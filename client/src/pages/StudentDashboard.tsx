@@ -1,15 +1,23 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Clock, BookOpen, Award, LogOut } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Clock, BookOpen, Award, LogOut, Upload } from "lucide-react";
 import { Link } from "wouter";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 import type { Test, Purchase, Submission } from "@shared/schema";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
+  const { toast } = useToast();
+  const [buyDialogOpen, setBuyDialogOpen] = useState(false);
+  const [selectedTest, setSelectedTest] = useState<Test | null>(null);
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const { data: tests = [], isLoading: testsLoading } = useQuery<Test[]>({
     queryKey: ["/api/tests"],
@@ -26,6 +34,40 @@ export default function StudentDashboard() {
   const publishedTests = tests.filter(t => t.isPublished);
   const purchasedTestIds = new Set(purchases.map(p => p.testId));
   const availableTests = publishedTests.filter(t => !purchasedTestIds.has(t.id));
+
+  const createPurchaseMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedTest || !receiptFile) throw new Error("Test yoki chek tanlanmagan");
+      
+      // Upload receipt image to object storage
+      const formData = new FormData();
+      formData.append("file", receiptFile);
+      
+      const uploadRes = await fetch("/api/upload-receipt", {
+        method: "POST",
+        body: formData,
+      });
+      
+      if (!uploadRes.ok) throw new Error("Chek yuklashda xatolik");
+      const { url } = await uploadRes.json();
+      
+      // Create purchase with receipt URL
+      await apiRequest("POST", "/api/purchases", {
+        testId: selectedTest.id,
+        receiptUrl: url,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "So'rovingiz yuborildi. Tasdiqlashni kuting." });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
+      setBuyDialogOpen(false);
+      setSelectedTest(null);
+      setReceiptFile(null);
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
 
   return (
     <div className="min-h-screen bg-background">
@@ -115,6 +157,10 @@ export default function StudentDashboard() {
                       <CardFooter>
                         <Button 
                           className="w-full" 
+                          onClick={() => {
+                            setSelectedTest(test);
+                            setBuyDialogOpen(true);
+                          }}
                           data-testid={`button-buy-${test.id}`}
                         >
                           Sotib olish
@@ -148,8 +194,14 @@ export default function StudentDashboard() {
                         <CardHeader>
                           <div className="flex items-start justify-between gap-2">
                             <CardTitle className="line-clamp-2">{test.title}</CardTitle>
-                            {purchase.status === 'completed' && (
-                              <Badge variant="default">To'langan</Badge>
+                            {purchase.status === 'approved' && (
+                              <Badge variant="default">Tasdiqlangan</Badge>
+                            )}
+                            {purchase.status === 'pending' && (
+                              <Badge variant="secondary">Kutilmoqda</Badge>
+                            )}
+                            {purchase.status === 'rejected' && (
+                              <Badge variant="destructive">Rad etilgan</Badge>
                             )}
                           </div>
                           <CardDescription>
@@ -163,7 +215,25 @@ export default function StudentDashboard() {
                           </div>
                         </CardContent>
                         <CardFooter>
-                          {hasSubmission ? (
+                          {purchase.status === 'pending' ? (
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              disabled
+                              data-testid={`button-pending-${purchase.id}`}
+                            >
+                              Tasdiqlashni kutilmoqda
+                            </Button>
+                          ) : purchase.status === 'rejected' ? (
+                            <Button 
+                              variant="destructive" 
+                              className="w-full" 
+                              disabled
+                              data-testid={`button-rejected-${purchase.id}`}
+                            >
+                              Rad etilgan
+                            </Button>
+                          ) : hasSubmission ? (
                             <Button 
                               variant="outline" 
                               className="w-full" 
@@ -238,6 +308,78 @@ export default function StudentDashboard() {
           </Tabs>
         </div>
       </main>
+
+      <Dialog open={buyDialogOpen} onOpenChange={setBuyDialogOpen}>
+        <DialogContent data-testid="dialog-buy-test">
+          <DialogHeader>
+            <DialogTitle>Test sotib olish</DialogTitle>
+            <DialogDescription>
+              To'lov chekini yuklang. O'qituvchi tasdiqlashidan keyin testni topshirishingiz mumkin bo'ladi.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedTest && (
+            <div className="space-y-4">
+              <div className="p-4 border rounded-lg">
+                <h3 className="font-semibold mb-2">{selectedTest.title}</h3>
+                <p className="text-2xl font-bold text-primary">
+                  {selectedTest.price.toLocaleString()} so'm
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">To'lov cheki</label>
+                <div className="border-2 border-dashed rounded-lg p-6 text-center hover-elevate active-elevate-2 cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="receipt-upload"
+                    data-testid="input-receipt"
+                  />
+                  <label htmlFor="receipt-upload" className="cursor-pointer">
+                    {receiptFile ? (
+                      <div className="space-y-2">
+                        <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                          <Upload className="h-8 w-8 text-primary" />
+                        </div>
+                        <p className="text-sm font-medium">{receiptFile.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {(receiptFile.size / 1024).toFixed(2)} KB
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
+                          <Upload className="h-8 w-8 text-muted-foreground" />
+                        </div>
+                        <p className="text-sm font-medium">Chek rasmini yuklang</p>
+                        <p className="text-xs text-muted-foreground">
+                          PNG, JPG yoki JPEG
+                        </p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button 
+              onClick={() => createPurchaseMutation.mutate()}
+              disabled={!receiptFile || createPurchaseMutation.isPending}
+              data-testid="button-submit-purchase"
+            >
+              Yuborish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

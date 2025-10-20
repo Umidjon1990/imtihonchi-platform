@@ -79,8 +79,8 @@ export const purchases = pgTable("purchases", {
   studentId: varchar("student_id").notNull(),
   testId: varchar("test_id").notNull(),
   purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
-  status: text("status").notNull().default('completed'), // completed, pending, failed
-  paymentIntentId: text("payment_intent_id"),
+  status: text("status").notNull().default('pending'), // pending, approved, rejected
+  receiptUrl: text("receipt_url"), // URL to payment receipt image
 });
 
 export const submissions = pgTable("submissions", {

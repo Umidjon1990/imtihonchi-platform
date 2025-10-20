@@ -57,6 +57,8 @@ export interface IStorage {
   getPurchasesByStudent(studentId: string): Promise<Purchase[]>;
   createPurchase(purchase: InsertPurchase): Promise<Purchase>;
   getPurchaseById(id: string): Promise<Purchase | undefined>;
+  getPendingPurchases(): Promise<Purchase[]>;
+  updatePurchaseStatus(id: string, status: string): Promise<Purchase | undefined>;
   
   // Submission operations
   getSubmissionsByTest(testId: string): Promise<Submission[]>;
@@ -201,6 +203,23 @@ export class DatabaseStorage implements IStorage {
   async getPurchaseById(id: string): Promise<Purchase | undefined> {
     const [purchase] = await db.select().from(purchases).where(eq(purchases.id, id));
     return purchase;
+  }
+
+  async getPendingPurchases(): Promise<Purchase[]> {
+    return await db
+      .select()
+      .from(purchases)
+      .where(eq(purchases.status, 'pending'))
+      .orderBy(desc(purchases.purchasedAt));
+  }
+
+  async updatePurchaseStatus(id: string, status: string): Promise<Purchase | undefined> {
+    const [updated] = await db
+      .update(purchases)
+      .set({ status })
+      .where(eq(purchases.id, id))
+      .returning();
+    return updated;
   }
 
   // Submission operations

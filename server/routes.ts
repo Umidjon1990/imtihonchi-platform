@@ -2,6 +2,9 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { 
   insertTestCategorySchema,
   insertTestSchema,
@@ -11,6 +14,35 @@ import {
   insertSubmissionSchema,
   insertResultSchema,
 } from "@shared/schema";
+
+// Configure multer for file uploads
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `receipt-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Faqat JPG, JPEG, PNG formatdagi fayllar qabul qilinadi"));
+    }
+  },
+});
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
@@ -240,6 +272,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post("/api/upload-receipt", isAuthenticated, upload.single("file"), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Fayl tanlanmagan" });
+      }
+      
+      // Return the file path relative to PRIVATE_OBJECT_DIR
+      const url = `/api/receipts/${req.file.filename}`;
+      res.json({ url });
+    } catch (error: any) {
+      console.error("Error uploading receipt:", error);
+      res.status(500).json({ message: error.message || "Chek yuklashda xatolik" });
+    }
+  });
+
+  app.get("/api/receipts/:filename", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin' && user?.role !== 'student') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const filePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads", req.params.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Fayl topilmadi" });
+      }
+
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error("Error getting receipt:", error);
+      res.status(500).json({ message: error.message || "Chekni olishda xatolik" });
+    }
+  });
+
   app.post("/api/purchases", isAuthenticated, async (req: any, res) => {
     try {
       const data = insertPurchaseSchema.parse({
@@ -251,6 +317,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating purchase:", error);
       res.status(400).json({ message: error.message || "Xarid qilishda xatolik" });
+    }
+  });
+
+  app.get("/api/purchases/pending", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const purchases = await storage.getPendingPurchases();
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching pending purchases:", error);
+      res.status(500).json({ message: "Pending xaridlarni olishda xatolik" });
+    }
+  });
+
+  app.patch("/api/purchases/:id/approve", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const updated = await storage.updatePurchaseStatus(req.params.id, 'approved');
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error approving purchase:", error);
+      res.status(400).json({ message: error.message || "Xaridni tasdiqlashda xatolik" });
+    }
+  });
+
+  app.patch("/api/purchases/:id/reject", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const updated = await storage.updatePurchaseStatus(req.params.id, 'rejected');
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error rejecting purchase:", error);
+      res.status(400).json({ message: error.message || "Xaridni rad etishda xatolik" });
     }
   });
 

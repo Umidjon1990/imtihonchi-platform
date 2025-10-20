@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,9 +9,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, LogOut, Plus, Edit, Eye } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FileText, LogOut, Plus, Edit, Eye, CheckCircle, XCircle, Receipt } from "lucide-react";
 import { Link } from "wouter";
-import type { Test, TestCategory } from "@shared/schema";
+import type { Test, TestCategory, Purchase } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -35,7 +36,38 @@ export default function TeacherDashboard() {
     queryKey: ["/api/categories"],
   });
 
+  const { data: pendingPurchases = [], isLoading: purchasesLoading } = useQuery<Purchase[]>({
+    queryKey: ["/api/purchases/pending"],
+    enabled: !!user?.id,
+  });
+
   const myTests = tests.filter(t => t.teacherId === user?.id);
+
+  const approvePurchaseMutation = useMutation({
+    mutationFn: async (purchaseId: string) => {
+      await apiRequest("PATCH", `/api/purchases/${purchaseId}/approve`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Xarid tasdiqlandi" });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases/pending"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const rejectPurchaseMutation = useMutation({
+    mutationFn: async (purchaseId: string) => {
+      await apiRequest("PATCH", `/api/purchases/${purchaseId}/reject`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Xarid rad etildi" });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases/pending"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
 
   const handleCreateTest = async () => {
     if (!newTest.categoryId || !newTest.title || !newTest.price) {
@@ -93,21 +125,29 @@ export default function TeacherDashboard() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">Mening testlarim</h2>
-              <p className="text-muted-foreground">
-                Testlarni yarating, tahrirlang va natijalarni ko'ring
-              </p>
+          <Tabs defaultValue="tests" className="space-y-6">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-3xl font-bold mb-4">O'qituvchi Paneli</h2>
+                <TabsList>
+                  <TabsTrigger value="tests" data-testid="tab-tests">
+                    Mening testlarim
+                  </TabsTrigger>
+                  <TabsTrigger value="pending" data-testid="tab-pending">
+                    Pending cheklar ({pendingPurchases.length})
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+              <Button 
+                onClick={() => setCreateDialogOpen(true)}
+                data-testid="button-create-test"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Yangi test
+              </Button>
             </div>
-            <Button 
-              onClick={() => setCreateDialogOpen(true)}
-              data-testid="button-create-test"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Yangi test
-            </Button>
-          </div>
+
+            <TabsContent value="tests" className="space-y-6">
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
             <Card>
@@ -210,6 +250,98 @@ export default function TeacherDashboard() {
               ))}
             </div>
           )}
+            </TabsContent>
+
+            <TabsContent value="pending" className="space-y-6">
+              {purchasesLoading ? (
+                <div className="text-center py-12">Yuklanmoqda...</div>
+              ) : pendingPurchases.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                    Pending cheklar yo'q
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {pendingPurchases.map((purchase) => {
+                    const test = tests.find(t => t.id === purchase.testId);
+                    
+                    if (!test) return null;
+                    
+                    return (
+                      <Card key={purchase.id} data-testid={`card-pending-${purchase.id}`}>
+                        <CardHeader>
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <CardTitle>{test.title}</CardTitle>
+                              <CardDescription className="mt-2">
+                                So'rov yuborilgan: {new Date(purchase.purchasedAt).toLocaleDateString('uz-UZ', {
+                                  year: 'numeric',
+                                  month: 'long',
+                                  day: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </CardDescription>
+                              <div className="mt-2 text-sm">
+                                <span className="text-muted-foreground">Narx: </span>
+                                <span className="font-semibold text-primary">
+                                  {test.price.toLocaleString()} so'm
+                                </span>
+                              </div>
+                            </div>
+                            <Badge variant="secondary">Kutilmoqda</Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent>
+                          {purchase.receiptUrl && (
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium">To'lov cheki:</p>
+                              <a 
+                                href={purchase.receiptUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                <div className="border rounded-lg p-4 hover-elevate active-elevate-2 cursor-pointer flex items-center gap-3">
+                                  <Receipt className="h-8 w-8 text-muted-foreground" />
+                                  <div>
+                                    <p className="text-sm font-medium">Chekni ko'rish</p>
+                                    <p className="text-xs text-muted-foreground">
+                                      Chekni yangi oynada ochish uchun bosing
+                                    </p>
+                                  </div>
+                                </div>
+                              </a>
+                            </div>
+                          )}
+                        </CardContent>
+                        <CardFooter className="flex gap-2">
+                          <Button
+                            onClick={() => approvePurchaseMutation.mutate(purchase.id)}
+                            disabled={approvePurchaseMutation.isPending || rejectPurchaseMutation.isPending}
+                            data-testid={`button-approve-${purchase.id}`}
+                          >
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Tasdiqlash
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={() => rejectPurchaseMutation.mutate(purchase.id)}
+                            disabled={approvePurchaseMutation.isPending || rejectPurchaseMutation.isPending}
+                            data-testid={`button-reject-${purchase.id}`}
+                          >
+                            <XCircle className="h-4 w-4 mr-2" />
+                            Rad etish
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
       </main>
 
