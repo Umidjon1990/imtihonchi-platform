@@ -1,0 +1,133 @@
+# Imtihonchi - CEFR Og'zaki Baholash Platformasi
+
+## Loyiha Haqida
+
+Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, O'qituvchi, Talaba) bilan ishlaydi. Platforma o'qituvchilarga sozlanadigan timerlar va rasm yuklash imkoniyati bilan test yaratish, talabalarga testlarni sotib olish va audio yozuv bilan topshirish, va adminlarga butun tizimni boshqarish imkoniyatini beradi.
+
+## Texnologiyalar
+
+- **Frontend**: React + TypeScript + Wouter + TanStack Query + Shadcn UI
+- **Backend**: Express + TypeScript + Drizzle ORM
+- **Database**: PostgreSQL (Neon)
+- **Authentication**: Replit Auth (OIDC)
+- **File Storage**: Replit Object Storage
+- **Payments**: Stripe
+- **Design System**: Material Design principles bilan professional ta'lim platformasi
+
+## Arxitektura
+
+### Database Schema
+
+- `users` - Foydalanuvchilar (Replit Auth bilan sinxronlangan, role: admin/teacher/student)
+- `test_categories` - Test kategoriyalari
+- `tests` - Testlar (o'qituvchilar tomonidan yaratilgan)
+- `test_sections` - Test bo'limlari (har bir test 3 bo'limga ega)
+- `questions` - Savollar (har bir bo'limda bir nechta savol)
+- `purchases` - Talabalar tomonidan sotib olingan testlar (Stripe to'lovlari)
+- `submissions` - Topshirilgan testlar (audio fayllar bilan)
+- `results` - O'qituvchilar tomonidan berilgan natijalar va sertifikatlar
+
+### Backend API Endpoints
+
+**Auth**:
+- `GET /api/auth/user` - Joriy foydalanuvchini olish (protected)
+- `GET /api/login` - Login boshlash
+- `GET /api/logout` - Logout
+
+**Categories** (Admin only):
+- `GET /api/categories` - Barcha kategoriyalar
+- `POST /api/categories` - Yangi kategoriya yaratish
+
+**Tests**:
+- `GET /api/tests?categoryId=&teacherId=` - Testlar ro'yxati
+- `GET /api/tests/:id` - Bitta test
+- `POST /api/tests` - Yangi test yaratish (teacher/admin)
+- `PATCH /api/tests/:id` - Testni yangilash (teacher/admin)
+- `DELETE /api/tests/:id` - Testni o'chirish (teacher/admin)
+
+**Sections & Questions**:
+- `GET /api/tests/:testId/sections` - Test bo'limlari
+- `POST /api/sections` - Yangi bo'lim (teacher/admin)
+- `PATCH /api/sections/:id` - Bo'limni yangilash (teacher/admin)
+- `GET /api/sections/:sectionId/questions` - Bo'lim savollari
+- `POST /api/questions` - Yangi savol (teacher/admin)
+- `PATCH /api/questions/:id` - Savolni yangilash (teacher/admin)
+
+**Purchases**:
+- `GET /api/purchases` - Foydalanuvchining xaridlari
+- `POST /api/purchases` - Yangi xarid (Stripe bilan)
+
+**Submissions**:
+- `GET /api/submissions/student` - Talabaning topshiriqlari
+- `GET /api/submissions/test/:testId` - Test bo'yicha topshiriqlar (teacher/admin)
+- `POST /api/submissions` - Yangi topshiriq
+
+**Results**:
+- `POST /api/results` - Natija berish (teacher/admin)
+- `GET /api/results/:submissionId` - Topshiriq natijasi
+
+## Rollar va Vazifalari
+
+### Admin
+- Kategoriyalarni yaratish va boshqarish
+- Barcha testlarni ko'rish va boshqarish
+- Foydalanuvchilarni boshqarish (keyingi bosqichda)
+
+### O'qituvchi
+- Testlar yaratish va tahrirlash
+- Har bir bo'lim va savol uchun timer sozlash
+- Bo'lim 1.2 va Bo'lim 2 uchun rasm yuklash
+- Talabalarning topshiriqlarini baholash
+- Natijalar va sertifikatlar berish
+
+### Talaba
+- Testlarni ko'rish va sotib olish
+- Sotib olingan testlarni topshirish (audio yozuv bilan)
+- Natijalar va sertifikatlarni ko'rish
+
+## Test Tuzilmasi (CEFR Og'zaki)
+
+### Bo'lim 1: Shaxsiy ma'lumotlar va hayot (6 savol)
+- Har bir savol: 5 soniya tayyorgarlik + 30 soniya gapirish
+- 1.2 savolida rasm yuklash
+
+### Bo'lim 2: Vaziyatga asoslangan savol (1 savol)
+- 1 daqiqa tayyorgarlik + 2 daqiqa gapirish
+- Rasm yuklash (vaziyat tasviri)
+
+### Bo'lim 3: Muhokama savoli (1 savol)
+- 1 daqiqa tayyorgarlik + 2 daqiqa gapirish
+
+## Joriy Holat
+
+✅ **Bajarilgan**:
+1. Replit Auth integratsiyasi (OIDC)
+2. Database schema va migratsiyalar
+3. Backend API endpointlari (CRUD)
+4. Frontend auth va role-based routing
+5. Landing sahifasi
+6. Student Dashboard (real API bilan bog'langan)
+
+🔄 **Jarayonda**:
+- O'qituvchi dashboardini yaratish (test yaratish interfeysi)
+
+⏳ **Navbatda**:
+- Stripe to'lov integratsiyasi
+- Test topshirish interfeysi (audio yozuv)
+- Object storage integratsiyasi (rasm yuklash)
+- O'qituvchi baholash tizimi
+- Admin panel
+
+## Dizayn Yo'riqnomalar
+
+- **Ranglar**: To'q havo ko'k (210° 80% 55%) asosiy rang, dark mode default
+- **Tipografiya**: Inter (interfeys), JetBrains Mono (timerlar)
+- **Komponentlar**: Shadcn UI kutubxonasi
+- **Til**: Barcha interfeys va xabarlar o'zbek tilida
+
+## Muhim Eslatmalar
+
+- Barcha API yo'nalishlari role-based authentication bilan himoyalangan
+- Timer sozlamalari har bir savol uchun alohida (override) bo'lishi mumkin
+- Audio fayllar object storage da saqlanadi
+- Sertifikatlar PDF formatida yaratiladi va object storage da saqlanadi
