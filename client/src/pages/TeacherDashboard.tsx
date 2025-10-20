@@ -27,7 +27,8 @@ export default function TeacherDashboard() {
   });
 
   const { data: tests = [], isLoading: testsLoading } = useQuery<Test[]>({
-    queryKey: ["/api/tests", { teacherId: user?.id }],
+    queryKey: [`/api/tests?teacherId=${user?.id || ''}`],
+    enabled: !!user?.id,
   });
 
   const { data: categories = [] } = useQuery<TestCategory[]>({
