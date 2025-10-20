@@ -1,15 +1,38 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, timestamp, integer, jsonb, boolean } from "drizzle-orm/pg-core";
+import { 
+  pgTable, 
+  text, 
+  varchar, 
+  timestamp, 
+  integer, 
+  jsonb, 
+  boolean,
+  index 
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// Session storage table (required for Replit Auth)
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table (Replit Auth compatible)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-  fullName: text("full_name").notNull(),
-  role: text("role").notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  role: text("role").notNull().default('student'), // admin, teacher, student
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const testCategories = pgTable("test_categories", {
@@ -37,8 +60,8 @@ export const testSections = pgTable("test_sections", {
   sectionNumber: integer("section_number").notNull(),
   title: text("title").notNull(),
   instructions: text("instructions"),
-  preparationTime: integer("preparation_time").notNull(),
-  speakingTime: integer("speaking_time").notNull(),
+  preparationTime: integer("preparation_time").notNull(), // in seconds
+  speakingTime: integer("speaking_time").notNull(), // in seconds
 });
 
 export const questions = pgTable("questions", {
@@ -47,8 +70,8 @@ export const questions = pgTable("questions", {
   questionNumber: integer("question_number").notNull(),
   questionText: text("question_text").notNull(),
   imageUrl: text("image_url"),
-  preparationTime: integer("preparation_time").notNull(),
-  speakingTime: integer("speaking_time").notNull(),
+  preparationTime: integer("preparation_time"), // override section timer if set
+  speakingTime: integer("speaking_time"), // override section timer if set
 });
 
 export const purchases = pgTable("purchases", {
@@ -56,7 +79,8 @@ export const purchases = pgTable("purchases", {
   studentId: varchar("student_id").notNull(),
   testId: varchar("test_id").notNull(),
   purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
-  status: text("status").notNull(),
+  status: text("status").notNull().default('completed'), // completed, pending, failed
+  paymentIntentId: text("payment_intent_id"),
 });
 
 export const submissions = pgTable("submissions", {
@@ -64,14 +88,14 @@ export const submissions = pgTable("submissions", {
   purchaseId: varchar("purchase_id").notNull(),
   studentId: varchar("student_id").notNull(),
   testId: varchar("test_id").notNull(),
-  audioFiles: jsonb("audio_files").notNull(),
+  audioFiles: jsonb("audio_files").notNull(), // { sectionId: { questionId: audioUrl } }
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
-  status: text("status").notNull(),
+  status: text("status").notNull().default('submitted'), // submitted, graded
 });
 
 export const results = pgTable("results", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  submissionId: varchar("submission_id").notNull(),
+  submissionId: varchar("submission_id").notNull().unique(),
   teacherId: varchar("teacher_id").notNull(),
   score: integer("score"),
   feedback: text("feedback"),
@@ -79,21 +103,59 @@ export const results = pgTable("results", {
   gradedAt: timestamp("graded_at").defaultNow().notNull(),
 });
 
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true });
-export const insertTestCategorySchema = createInsertSchema(testCategories).omit({ id: true, createdAt: true });
-export const insertTestSchema = createInsertSchema(tests).omit({ id: true, createdAt: true });
-export const insertTestSectionSchema = createInsertSchema(testSections).omit({ id: true });
-export const insertQuestionSchema = createInsertSchema(questions).omit({ id: true });
-export const insertPurchaseSchema = createInsertSchema(purchases).omit({ id: true, purchasedAt: true });
-export const insertSubmissionSchema = createInsertSchema(submissions).omit({ id: true, submittedAt: true });
-export const insertResultSchema = createInsertSchema(results).omit({ id: true, gradedAt: true });
+// Schemas
+export const upsertUserSchema = createInsertSchema(users).omit({ 
+  createdAt: true, 
+  updatedAt: true 
+});
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
+export const insertTestCategorySchema = createInsertSchema(testCategories).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertTestSchema = createInsertSchema(tests).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertTestSectionSchema = createInsertSchema(testSections).omit({ 
+  id: true 
+});
+
+export const insertQuestionSchema = createInsertSchema(questions).omit({ 
+  id: true 
+});
+
+export const insertPurchaseSchema = createInsertSchema(purchases).omit({ 
+  id: true, 
+  purchasedAt: true 
+});
+
+export const insertSubmissionSchema = createInsertSchema(submissions).omit({ 
+  id: true, 
+  submittedAt: true 
+});
+
+export const insertResultSchema = createInsertSchema(results).omit({ 
+  id: true, 
+  gradedAt: true 
+});
+
+// Types
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type TestCategory = typeof testCategories.$inferSelect;
+export type InsertTestCategory = z.infer<typeof insertTestCategorySchema>;
 export type Test = typeof tests.$inferSelect;
+export type InsertTest = z.infer<typeof insertTestSchema>;
 export type TestSection = typeof testSections.$inferSelect;
+export type InsertTestSection = z.infer<typeof insertTestSectionSchema>;
 export type Question = typeof questions.$inferSelect;
+export type InsertQuestion = z.infer<typeof insertQuestionSchema>;
 export type Purchase = typeof purchases.$inferSelect;
+export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
 export type Submission = typeof submissions.$inferSelect;
+export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
 export type Result = typeof results.$inferSelect;
+export type InsertResult = z.infer<typeof insertResultSchema>;
