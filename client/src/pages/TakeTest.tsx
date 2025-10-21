@@ -475,6 +475,22 @@ export default function TakeTest() {
     });
   };
 
+  const handleNextSection = async () => {
+    // Stop any active recording and wait for it to complete
+    if (isRecording) {
+      await stopRecording();
+    }
+    
+    if (currentSectionIndex < sections.length - 1) {
+      setCurrentSectionIndex(prev => prev + 1);
+      setCurrentQuestionIndex(0);
+      
+      // Reset to preparation phase
+      setTimeRemaining(0); // Trigger initialization effect
+      setTestPhase('preparation');
+    }
+  };
+
   const handleNextQuestion = async () => {
     // Stop any active recording and wait for it to complete
     if (isRecording) {
@@ -507,22 +523,6 @@ export default function TakeTest() {
       const prevSection = sections[currentSectionIndex - 1];
       const prevQuestions = allQuestions.filter(q => q.sectionId === prevSection.id);
       setCurrentQuestionIndex(prevQuestions.length - 1);
-      
-      // Reset to preparation phase
-      setTimeRemaining(0); // Trigger initialization effect
-      setTestPhase('preparation');
-    }
-  };
-
-  const handleNextSection = async () => {
-    // Stop any active recording and wait for it to complete
-    if (isRecording) {
-      await stopRecording();
-    }
-    
-    if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(prev => prev + 1);
-      setCurrentQuestionIndex(0);
       
       // Reset to preparation phase
       setTimeRemaining(0); // Trigger initialization effect
@@ -670,7 +670,10 @@ export default function TakeTest() {
                       />
                     </div>
                     
-                    <p className="text-4xl font-mono font-bold text-primary">{recordingTime}s</p>
+                    <div className="my-6">
+                      <p className="text-sm text-muted-foreground mb-2">Yozilgan vaqt:</p>
+                      <p className="text-[100px] md:text-[120px] font-black font-mono text-primary leading-none">{recordingTime}s</p>
+                    </div>
                     <Button onClick={stopMicTest} variant="destructive" size="lg">
                       <Square className="h-5 w-5 mr-2" />
                       To'xtatish
