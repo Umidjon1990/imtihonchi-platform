@@ -233,11 +233,11 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording]);
+  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted]);
 
-  // Recording timer
+  // Recording timer (for both mic test and actual recording)
   useEffect(() => {
-    if (isRecording) {
+    if (isRecording || isMicTesting) {
       recordingTimerRef.current = window.setInterval(() => {
         setRecordingTime(prev => prev + 1);
       }, 1000);
@@ -251,7 +251,7 @@ export default function TakeTest() {
     return () => {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
-  }, [isRecording]);
+  }, [isRecording, isMicTesting]);
 
   // Start wave visualization when canvas is ready
   useEffect(() => {
@@ -825,6 +825,28 @@ export default function TakeTest() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-6">
+          {/* Question Text - FIRST! */}
+          <Card className="border-2 border-primary/20">
+            <CardContent className="pt-8 pb-8">
+              <div className="text-center space-y-4">
+                <div className="flex items-center justify-center gap-3 mb-4">
+                  <Badge variant="outline" className="text-base px-4 py-2">
+                    Bo'lim {currentSection.displayNumber || currentSectionIndex + 1} - Savol {currentQuestionIndex + 1}/{sectionQuestions.length}
+                  </Badge>
+                  {isQuestionAnswered && (
+                    <Badge variant="default">
+                      <Check className="h-3 w-3 mr-1" />
+                      Javob berildi
+                    </Badge>
+                  )}
+                </div>
+                <div className="prose dark:prose-invert max-w-none">
+                  <p className="text-2xl md:text-3xl font-bold leading-relaxed text-foreground">{currentQuestion.questionText}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Large Timer Display */}
           <Card className="border-4 border-primary/30">
             <CardContent className="pt-8 pb-8">
@@ -832,9 +854,6 @@ export default function TakeTest() {
                 <div className="flex items-center justify-center gap-3 mb-2">
                   <Badge variant={testPhase === 'preparation' ? 'secondary' : 'default'} className="text-base px-4 py-2">
                     {testPhase === 'preparation' ? '📖 Tayyorgarlik' : '🎤 Gapirish'}
-                  </Badge>
-                  <Badge variant="outline" className="text-base px-4 py-2">
-                    Bo'lim {currentSection.displayNumber || currentSectionIndex + 1} - Savol {currentQuestionIndex + 1}/{sectionQuestions.length}
                   </Badge>
                 </div>
                 
@@ -878,80 +897,68 @@ export default function TakeTest() {
             </CardHeader>
           </Card>
 
-          {/* Question Card */}
-          <Card className="border-2">
-            <CardHeader>
-              <div className="flex items-start justify-between gap-4">
-                <CardTitle className="text-xl">
-                  Savol {currentQuestionIndex + 1}
-                </CardTitle>
-                {isQuestionAnswered && (
-                  <Badge variant="default">
-                    <Check className="h-3 w-3 mr-1" />
-                    Javob berildi
-                  </Badge>
+          {/* Images and Key Facts Card */}
+          {(currentSection.imageUrl || currentQuestion.imageUrl || currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
+            <Card className="border-2">
+              <CardContent className="space-y-6 pt-6">
+                {/* Section Image - Shows for all questions in this section */}
+                {currentSection.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border-2 border-primary/20 bg-muted/20 p-2">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
+                      Bo'lim rasmi (barcha savollar uchun):
+                    </p>
+                    <img 
+                      src={currentSection.imageUrl} 
+                      alt="Bo'lim rasmi"
+                      className="w-full h-auto rounded-md"
+                      data-testid="section-image"
+                    />
+                  </div>
                 )}
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Section Image - Shows for all questions in this section */}
-              {currentSection.imageUrl && (
-                <div className="rounded-lg overflow-hidden border-2 border-primary/20 bg-muted/20 p-2">
-                  <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
-                    Bo'lim rasmi (barcha savollar uchun):
-                  </p>
-                  <img 
-                    src={currentSection.imageUrl} 
-                    alt="Bo'lim rasmi"
-                    className="w-full h-auto rounded-md"
-                    data-testid="section-image"
-                  />
-                </div>
-              )}
 
-              {/* Question Image */}
-              {currentQuestion.imageUrl && (
-                <div className="rounded-lg overflow-hidden border">
-                  <img 
-                    src={currentQuestion.imageUrl} 
-                    alt="Savol rasmi"
-                    className="w-full h-auto"
-                  />
-                </div>
-              )}
+                {/* Question Image */}
+                {currentQuestion.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border">
+                    <img 
+                      src={currentQuestion.imageUrl} 
+                      alt="Savol rasmi"
+                      className="w-full h-auto"
+                    />
+                  </div>
+                )}
 
-              {/* Question Text */}
-              <div className="prose dark:prose-invert max-w-none">
-                <p className="text-lg leading-relaxed">{currentQuestion.questionText}</p>
-              </div>
+                {/* Key Facts - Bo'lim 3 uchun */}
+                {(currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {currentQuestion.keyFactsPlus && (
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                          <span>➕</span> {currentQuestion.keyFactsPlusLabel || "Plus tomonlar"}
+                        </h4>
+                        <p className="text-sm text-green-900 dark:text-green-200 whitespace-pre-wrap">
+                          {currentQuestion.keyFactsPlus}
+                        </p>
+                      </div>
+                    )}
+                    {currentQuestion.keyFactsMinus && (
+                      <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                          <span>➖</span> {currentQuestion.keyFactsMinusLabel || "Minus tomonlar"}
+                        </h4>
+                        <p className="text-sm text-red-900 dark:text-red-200 whitespace-pre-wrap">
+                          {currentQuestion.keyFactsMinus}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
-              {/* Key Facts - Bo'lim 3 uchun */}
-              {(currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
-                <div className="grid md:grid-cols-2 gap-4">
-                  {currentQuestion.keyFactsPlus && (
-                    <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                      <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
-                        <span>➕</span> {currentQuestion.keyFactsPlusLabel || "Plus tomonlar"}
-                      </h4>
-                      <p className="text-sm text-green-900 dark:text-green-200 whitespace-pre-wrap">
-                        {currentQuestion.keyFactsPlus}
-                      </p>
-                    </div>
-                  )}
-                  {currentQuestion.keyFactsMinus && (
-                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-                      <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                        <span>➖</span> {currentQuestion.keyFactsMinusLabel || "Minus tomonlar"}
-                      </h4>
-                      <p className="text-sm text-red-900 dark:text-red-200 whitespace-pre-wrap">
-                        {currentQuestion.keyFactsMinus}
-                      </p>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Recording Status */}
+          {/* Recording Status Card */}
+          <Card>
+            <CardContent className="space-y-4 pt-6">
               <div className="space-y-4 p-6 bg-muted/30 rounded-lg border-2">
                 <div className="flex items-center justify-between">
                   <h3 className="text-sm font-semibold">Audio javob holati</h3>
