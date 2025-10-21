@@ -53,14 +53,19 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 - `POST /api/questions` - Yangi savol (teacher/admin)
 - `PATCH /api/questions/:id` - Savolni yangilash (teacher/admin)
 
-**Purchases**:
+**Purchases** (Manual Payment):
 - `GET /api/purchases` - Foydalanuvchining xaridlari
-- `POST /api/purchases` - Yangi xarid (Stripe bilan)
+- `POST /api/purchases` - Yangi xarid (chek yuklash bilan)
+- `PATCH /api/purchases/:id/status` - To'lovni tasdiqlash/rad etish (teacher/admin)
+- `POST /api/upload-receipt` - Chek yuklash
+- `GET /api/receipt/:filename` - Chekni ko'rish
 
 **Submissions**:
 - `GET /api/submissions/student` - Talabaning topshiriqlari
 - `GET /api/submissions/test/:testId` - Test bo'yicha topshiriqlar (teacher/admin)
 - `POST /api/submissions` - Yangi topshiriq
+- `POST /api/upload-audio` - Audio javob yuklash
+- `GET /api/audio/:filename` - Audio faylni tinglash
 
 **Results**:
 - `POST /api/results` - Natija berish (teacher/admin)
@@ -107,16 +112,23 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 4. Frontend auth va role-based routing
 5. Landing sahifasi
 6. Student Dashboard (real API bilan bog'langan)
-
-🔄 **Jarayonda**:
-- O'qituvchi dashboardini yaratish (test yaratish interfeysi)
+7. Teacher Dashboard (test yaratish, tahrirlash)
+8. Object Storage integratsiyasi (rasm yuklash)
+9. Test topshirish interfeysi:
+   - MediaRecorder API bilan audio yozuv
+   - Har bo'lim uchun sozlanadigan timer
+   - Real-time progress tracking
+   - Savollar orasida navigatsiya
+   - Audio fayllarni Object Storage ga yuklash
+10. Manual to'lov tizimi:
+    - Chek yuklash (talaba)
+    - To'lovni tasdiqlash/rad etish (o'qituvchi)
+    - Status tracking (pending/approved/rejected)
 
 ⏳ **Navbatda**:
-- Stripe to'lov integratsiyasi
-- Test topshirish interfeysi (audio yozuv)
-- Object storage integratsiyasi (rasm yuklash)
-- O'qituvchi baholash tizimi
-- Admin panel
+- O'qituvchi baholash tizimi (audio tinglab natija berish)
+- Admin panel (kategoriyalar, foydalanuvchilar)
+- Sertifikat generatsiyasi
 
 ## Dizayn Yo'riqnomalar
 
