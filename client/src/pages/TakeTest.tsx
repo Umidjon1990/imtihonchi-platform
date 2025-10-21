@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
@@ -16,6 +16,70 @@ interface AudioRecording {
   blob: Blob | null;
   url: string | null;
   duration: number;
+}
+
+interface HierarchicalSection extends TestSection {
+  children?: HierarchicalSection[];
+  displayNumber?: string;
+}
+
+// Helper to build section tree from flat array
+function buildSectionTree(sections: TestSection[]): HierarchicalSection[] {
+  const sectionMap = new Map<string, HierarchicalSection>();
+  const rootSections: HierarchicalSection[] = [];
+  
+  // First pass: create map
+  sections.forEach(section => {
+    sectionMap.set(section.id, { ...section, children: [] });
+  });
+  
+  // Second pass: build tree structure
+  sections.forEach(section => {
+    const node = sectionMap.get(section.id)!;
+    if (!section.parentSectionId) {
+      rootSections.push(node);
+    } else {
+      const parent = sectionMap.get(section.parentSectionId);
+      if (parent) {
+        parent.children = parent.children || [];
+        parent.children.push(node);
+      } else {
+        console.warn(`Section ${section.id} has missing parent ${section.parentSectionId}, treating as root`);
+        rootSections.push(node);
+      }
+    }
+  });
+  
+  // Third pass: assign display numbers
+  const assignDisplayNumbers = (nodes: HierarchicalSection[], prefix = '') => {
+    nodes
+      .sort((a, b) => a.sectionNumber - b.sectionNumber)
+      .forEach((node, index) => {
+        const num = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+        node.displayNumber = num;
+        if (node.children && node.children.length > 0) {
+          assignDisplayNumbers(node.children, num);
+        }
+      });
+  };
+  assignDisplayNumbers(rootSections);
+  
+  return rootSections;
+}
+
+// Helper to flatten hierarchical tree back to array with display numbers
+function flattenSections(tree: HierarchicalSection[]): HierarchicalSection[] {
+  const result: HierarchicalSection[] = [];
+  const traverse = (nodes: HierarchicalSection[]) => {
+    nodes.forEach(node => {
+      result.push(node);
+      if (node.children && node.children.length > 0) {
+        traverse(node.children);
+      }
+    });
+  };
+  traverse(tree);
+  return result;
 }
 
 export default function TakeTest() {
@@ -49,10 +113,14 @@ export default function TakeTest() {
     enabled: !!purchase?.testId,
   });
 
-  const { data: sections = [] } = useQuery<TestSection[]>({
+  const { data: rawSections = [] } = useQuery<TestSection[]>({
     queryKey: ["/api/tests", test?.id, "sections"],
     enabled: !!test?.id,
   });
+
+  // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
+  const sectionTree = useMemo(() => buildSectionTree(rawSections), [rawSections]);
+  const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
 
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -377,7 +445,7 @@ export default function TakeTest() {
                   )}
                 </div>
                 <Badge variant="outline">
-                  Bo'lim {currentSectionIndex + 1}
+                  Bo'lim {currentSection.displayNumber || currentSectionIndex + 1}
                 </Badge>
               </div>
             </CardHeader>
