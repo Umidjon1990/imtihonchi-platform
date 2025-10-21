@@ -97,7 +97,7 @@ export default function TakeTest() {
   // Initialize section timer
   useEffect(() => {
     if (currentSection && timeRemaining === 0) {
-      const timeLimit = currentSection.timeLimit || 60;
+      const timeLimit = currentSection.preparationTime + currentSection.speakingTime;
       setTimeRemaining(timeLimit);
     }
   }, [currentSection, currentSectionIndex]);
@@ -209,7 +209,7 @@ export default function TakeTest() {
       setCurrentQuestionIndex(prevQuestions.length - 1);
       
       // Reset timer for previous section
-      const timeLimit = prevSection.timeLimit || 60;
+      const timeLimit = prevSection.preparationTime + prevSection.speakingTime;
       setTimeRemaining(timeLimit);
     }
   };
@@ -219,7 +219,7 @@ export default function TakeTest() {
       setCurrentSectionIndex(prev => prev + 1);
       setCurrentQuestionIndex(0);
       const nextSection = sections[currentSectionIndex + 1];
-      const timeLimit = nextSection?.timeLimit || 60;
+      const timeLimit = nextSection ? nextSection.preparationTime + nextSection.speakingTime : 120;
       setTimeRemaining(timeLimit);
     }
   };
@@ -370,9 +370,9 @@ export default function TakeTest() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <CardTitle>{currentSection.title}</CardTitle>
-                  {currentSection.description && (
+                  {currentSection.instructions && (
                     <CardDescription className="mt-2">
-                      {currentSection.description}
+                      {currentSection.instructions}
                     </CardDescription>
                   )}
                 </div>
@@ -399,6 +399,21 @@ export default function TakeTest() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Section Image - Shows for all questions in this section */}
+              {currentSection.imageUrl && (
+                <div className="rounded-lg overflow-hidden border-2 border-primary/20 bg-muted/20 p-2">
+                  <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
+                    Bo'lim rasmi (barcha savollar uchun):
+                  </p>
+                  <img 
+                    src={currentSection.imageUrl} 
+                    alt="Bo'lim rasmi"
+                    className="w-full h-auto rounded-md"
+                    data-testid="section-image"
+                  />
+                </div>
+              )}
+
               {/* Question Image */}
               {currentQuestion.imageUrl && (
                 <div className="rounded-lg overflow-hidden border">
