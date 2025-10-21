@@ -538,7 +538,7 @@ export default function TakeTest() {
       // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [micTestCompleted, currentSection, currentQuestion, currentSectionIndex, currentQuestionIndex]);
+  }, [currentSectionIndex, currentQuestionIndex]);
 
   // Section timer countdown with auto-progression
   useEffect(() => {
@@ -552,6 +552,7 @@ export default function TakeTest() {
     } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
+        console.log('⏰ Preparation phase complete, starting speaking phase');
         // Preparation done - start speaking phase
         const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
         setTimeRemaining(speakTime);
@@ -559,20 +560,24 @@ export default function TakeTest() {
         
         // Auto-start recording
         if (!isRecording) {
+          console.log('🎤 Auto-starting recording');
           startRecording();
         }
       } else if (testPhase === 'speaking') {
+        console.log('⏰ Speaking phase complete, auto-progressing to next question');
         // Mark auto-progress as queued to prevent re-triggers
         autoProgressQueuedRef.current = true;
         
         // Speaking time done - auto stop recording and move to next
         const handleAutoProgress = async () => {
           if (isRecording) {
+            console.log('🛑 Stopping recording before progression');
             await stopRecording();
           }
           
           // Auto-move to next question after stop completes
           setTimeout(() => {
+            console.log('➡️ Moving to next question');
             handleNextQuestion();
           }, 500);
         };
