@@ -89,6 +89,11 @@ export default function TakeTest() {
   const { user } = useAuth();
   const { toast } = useToast();
 
+  // Mikrofon test bosqichi
+  const [micTestCompleted, setMicTestCompleted] = useState(false);
+  const [micTestRecording, setMicTestRecording] = useState<AudioRecording | null>(null);
+  const [isMicTesting, setIsMicTesting] = useState(false);
+
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [recordings, setRecordings] = useState<{ [questionId: string]: AudioRecording }>({});
@@ -96,6 +101,7 @@ export default function TakeTest() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [testPhase, setTestPhase] = useState<'preparation' | 'speaking'>('preparation');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -205,6 +211,55 @@ export default function TakeTest() {
       if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
     };
   }, [isRecording]);
+
+  // Mikrofon test uchun recording
+  const startMicTest = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      
+      audioChunksRef.current = [];
+      recordingStartTimeRef.current = Date.now();
+      
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunksRef.current.push(event.data);
+      };
+      
+      mediaRecorder.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        const duration = recordingStartTimeRef.current 
+          ? Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
+          : 0;
+        
+        setMicTestRecording({
+          blob: audioBlob,
+          url: audioUrl,
+          duration,
+        });
+        
+        stream.getTracks().forEach(track => track.stop());
+        recordingStartTimeRef.current = null;
+      };
+      
+      mediaRecorder.start();
+      mediaRecorderRef.current = mediaRecorder;
+      setIsMicTesting(true);
+    } catch (error) {
+      toast({
+        title: "Xatolik",
+        description: "Mikrofonga ruxsat berilmadi. Brauzer sozlamalarini tekshiring.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopMicTest = () => {
+    if (mediaRecorderRef.current && isMicTesting) {
+      mediaRecorderRef.current.stop();
+      setIsMicTesting(false);
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -359,6 +414,121 @@ export default function TakeTest() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg text-destructive">Ma'lumot topilmadi</div>
+      </div>
+    );
+  }
+
+  // Mikrofon test sahifasi
+  if (!micTestCompleted) {
+    const micTestText = `Assalomu alaykum! Mening ismim ${user?.firstName || "Talaba"}. Men Imtihonchi platformasida CEFR og'zaki baholash testini topshiryapman. Mikrafonim to'g'ri sozlanganini tekshiryapman. Agar ovoz yaxshi eshitilsa, testni boshlashim mumkin.`;
+
+    return (
+      <div className="min-h-screen bg-background">
+        <header className="border-b sticky top-0 z-50 bg-background/95 backdrop-blur">
+          <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Mikrofon testi</h1>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                if (confirm("Testni bekor qilmoqchimisiz?")) {
+                  navigate("/student");
+                }
+              }}
+            >
+              Bekor qilish
+            </Button>
+          </div>
+        </header>
+
+        <main className="container mx-auto px-4 py-12 max-w-3xl">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl">Mikrofon sozlamasini tekshiring</CardTitle>
+              <CardDescription className="text-base">
+                Test boshlashdan avval mikrofoningiz to'g'ri ishlayotganini tekshiring
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>
+                  Quyidagi matnni o'qing va ovozingizni tinglang. Agar yaxshi eshitilsa, testni boshlashingiz mumkin.
+                </AlertDescription>
+              </Alert>
+
+              <div className="p-6 bg-muted/30 rounded-lg border-2">
+                <p className="text-lg leading-relaxed">{micTestText}</p>
+              </div>
+
+              <div className="flex flex-col items-center gap-4 p-8 border-2 border-dashed rounded-lg bg-muted/10">
+                {!isMicTesting && !micTestRecording ? (
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+                      <Mic className="h-10 w-10 text-primary" />
+                    </div>
+                    <Button onClick={startMicTest} size="lg" data-testid="button-start-mic-test">
+                      <Mic className="h-5 w-5 mr-2" />
+                      Yozishni boshlash
+                    </Button>
+                  </div>
+                ) : isMicTesting ? (
+                  <div className="text-center space-y-4">
+                    <div className="w-20 h-20 mx-auto bg-destructive/10 rounded-full flex items-center justify-center animate-pulse">
+                      <Mic className="h-10 w-10 text-destructive" />
+                    </div>
+                    <p className="text-lg font-medium">Yozilmoqda... Matnni o'qing</p>
+                    <p className="text-4xl font-mono font-bold text-primary">{recordingTime}s</p>
+                    <Button onClick={stopMicTest} variant="destructive" size="lg">
+                      <Square className="h-5 w-5 mr-2" />
+                      To'xtatish
+                    </Button>
+                  </div>
+                ) : micTestRecording ? (
+                  <div className="w-full space-y-4">
+                    <div className="text-center space-y-2">
+                      <div className="w-20 h-20 mx-auto bg-green-500/10 rounded-full flex items-center justify-center">
+                        <Check className="h-10 w-10 text-green-600 dark:text-green-400" />
+                      </div>
+                      <p className="text-lg font-medium">Yozuv tayyor!</p>
+                    </div>
+                    
+                    <div className="p-4 bg-background border rounded-lg">
+                      <audio 
+                        src={micTestRecording.url || undefined} 
+                        controls 
+                        className="w-full"
+                        data-testid="audio-mic-test"
+                      />
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button 
+                        onClick={() => {
+                          if (micTestRecording.url) {
+                            URL.revokeObjectURL(micTestRecording.url);
+                          }
+                          setMicTestRecording(null);
+                        }}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Qayta yozish
+                      </Button>
+                      <Button 
+                        onClick={() => setMicTestCompleted(true)}
+                        className="flex-1"
+                        data-testid="button-start-test"
+                      >
+                        <Check className="h-5 w-5 mr-2" />
+                        Testni boshlash
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            </CardContent>
+          </Card>
+        </main>
       </div>
     );
   }
