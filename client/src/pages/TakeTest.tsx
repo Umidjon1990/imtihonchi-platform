@@ -498,6 +498,32 @@ export default function TakeTest() {
                 <p className="text-lg leading-relaxed">{currentQuestion.questionText}</p>
               </div>
 
+              {/* Key Facts - Bo'lim 3 uchun */}
+              {(currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
+                <div className="grid md:grid-cols-2 gap-4">
+                  {currentQuestion.keyFactsPlus && (
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                        <span>➕</span> Plus tomonlar
+                      </h4>
+                      <p className="text-sm text-green-900 dark:text-green-200 whitespace-pre-wrap">
+                        {currentQuestion.keyFactsPlus}
+                      </p>
+                    </div>
+                  )}
+                  {currentQuestion.keyFactsMinus && (
+                    <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                      <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                        <span>➖</span> Minus tomonlar
+                      </h4>
+                      <p className="text-sm text-red-900 dark:text-red-200 whitespace-pre-wrap">
+                        {currentQuestion.keyFactsMinus}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Recording Section */}
               <div className="space-y-4 p-6 bg-muted/30 rounded-lg border-2">
                 <div className="flex items-center justify-between">

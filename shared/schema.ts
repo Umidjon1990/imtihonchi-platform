@@ -74,6 +74,8 @@ export const questions = pgTable("questions", {
   imageUrl: text("image_url"),
   preparationTime: integer("preparation_time"), // override section timer if set
   speakingTime: integer("speaking_time"), // override section timer if set
+  keyFactsPlus: text("key_facts_plus"), // Plus tomonlari (Bo'lim 3 uchun)
+  keyFactsMinus: text("key_facts_minus"), // Minus tomonlari (Bo'lim 3 uchun)
 });
 
 export const purchases = pgTable("purchases", {

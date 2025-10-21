@@ -3,6 +3,7 @@ import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -106,6 +107,8 @@ export default function EditTest() {
     preparationTime: null as number | null,
     speakingTime: null as number | null,
     imageUrl: null as string | null,
+    keyFactsPlus: null as string | null,
+    keyFactsMinus: null as string | null,
   });
 
   const { data: test, isLoading } = useQuery<Test>({
@@ -175,6 +178,8 @@ export default function EditTest() {
         preparationTime: null,
         speakingTime: null,
         imageUrl: null,
+        keyFactsPlus: null,
+        keyFactsMinus: null,
       });
       setSelectedSection("");
     },
@@ -835,6 +840,41 @@ export default function EditTest() {
                       })
                     }
                     placeholder="Bo'limdan olish"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">Bo'lim 3 uchun</Badge>
+                <Label className="text-sm font-medium">Key faktlar (ixtiyoriy)</Label>
+              </div>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="key-facts-plus" className="text-sm text-green-600 dark:text-green-400">
+                    ➕ Plus tomonlar
+                  </Label>
+                  <Textarea
+                    id="key-facts-plus"
+                    data-testid="input-key-facts-plus"
+                    value={newQuestion.keyFactsPlus || ""}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, keyFactsPlus: e.target.value || null })}
+                    placeholder="Mavzuning ijobiy tomonlari..."
+                    rows={3}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="key-facts-minus" className="text-sm text-red-600 dark:text-red-400">
+                    ➖ Minus tomonlar
+                  </Label>
+                  <Textarea
+                    id="key-facts-minus"
+                    data-testid="input-key-facts-minus"
+                    value={newQuestion.keyFactsMinus || ""}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, keyFactsMinus: e.target.value || null })}
+                    placeholder="Mavzuning salbiy tomonlari..."
+                    rows={3}
                   />
                 </div>
               </div>
