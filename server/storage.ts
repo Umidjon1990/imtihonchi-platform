@@ -201,19 +201,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSection(id: string): Promise<void> {
-    // Get all child sections recursively
-    const childSections = await this.getChildSectionsRecursive(id);
-    const allSectionIds = [id, ...childSections.map(s => s.id)];
-    
-    // Delete all questions in this section and its children
-    if (allSectionIds.length > 0) {
-      await db.delete(questions).where(inArray(questions.sectionId, allSectionIds));
-    }
-    
-    // Delete all child sections and the section itself
-    if (allSectionIds.length > 0) {
-      await db.delete(testSections).where(inArray(testSections.id, allSectionIds));
-    }
+    // Use transaction to ensure atomic cascade delete
+    await db.transaction(async (tx) => {
+      // Get all child sections recursively
+      const childSections = await this.getChildSectionsRecursive(id);
+      const allSectionIds = [id, ...childSections.map(s => s.id)];
+      
+      // Delete all questions in this section and its children
+      if (allSectionIds.length > 0) {
+        await tx.delete(questions).where(inArray(questions.sectionId, allSectionIds));
+      }
+      
+      // Delete all child sections and the section itself
+      if (allSectionIds.length > 0) {
+        await tx.delete(testSections).where(inArray(testSections.id, allSectionIds));
+      }
+    });
   }
 
   private async getChildSectionsRecursive(parentId: string): Promise<TestSection[]> {

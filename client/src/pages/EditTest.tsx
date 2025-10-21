@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
@@ -17,6 +17,57 @@ import type { Test, TestSection, Question } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
+// Helper types for hierarchical sections
+interface HierarchicalSection extends TestSection {
+  children?: HierarchicalSection[];
+  displayNumber?: string;
+}
+
+// Build hierarchical tree from flat sections array
+function buildSectionTree(sections: TestSection[]): HierarchicalSection[] {
+  const sectionMap = new Map<string, HierarchicalSection>();
+  const rootSections: HierarchicalSection[] = [];
+  
+  // First pass: create map of all sections
+  sections.forEach(section => {
+    sectionMap.set(section.id, { ...section, children: [] });
+  });
+  
+  // Second pass: build tree structure
+  sections.forEach(section => {
+    const node = sectionMap.get(section.id)!;
+    if (!section.parentSectionId) {
+      rootSections.push(node);
+    } else {
+      const parent = sectionMap.get(section.parentSectionId);
+      if (parent) {
+        parent.children = parent.children || [];
+        parent.children.push(node);
+      } else {
+        // Orphaned section - parent missing
+        console.warn(`Section ${section.id} has missing parent ${section.parentSectionId}, treating as root`);
+        rootSections.push(node);
+      }
+    }
+  });
+  
+  // Third pass: assign display numbers (1, 1.1, 1.2, 2, 2.1, etc.)
+  const assignDisplayNumbers = (nodes: HierarchicalSection[], prefix = '') => {
+    nodes
+      .sort((a, b) => a.sectionNumber - b.sectionNumber)
+      .forEach((node, index) => {
+        const number = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+        node.displayNumber = number;
+        if (node.children && node.children.length > 0) {
+          assignDisplayNumbers(node.children, number);
+        }
+      });
+  };
+  
+  assignDisplayNumbers(rootSections);
+  return rootSections;
+}
+
 export default function EditTest() {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
@@ -34,12 +85,14 @@ export default function EditTest() {
   const [deletingSectionId, setDeletingSectionId] = useState<string>("");
   const [deleteQuestionOpen, setDeleteQuestionOpen] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string>("");
+  const [selectedParentSection, setSelectedParentSection] = useState<string | null>(null);
   const [newSection, setNewSection] = useState({
     title: "",
     instructions: "",
     sectionNumber: 0,
     preparationTime: 60,
     speakingTime: 120,
+    parentSectionId: null as string | null,
   });
   const [editSection, setEditSection] = useState({
     title: "",
@@ -64,6 +117,9 @@ export default function EditTest() {
     queryKey: [`/api/tests/${id}/sections`],
     enabled: !!id,
   });
+
+  // Build hierarchical tree from flat sections
+  const sectionTree = useMemo(() => buildSectionTree(sections), [sections]);
 
   const updateTestMutation = useMutation({
     mutationFn: async (data: Partial<Test>) => {
@@ -95,6 +151,7 @@ export default function EditTest() {
         sectionNumber: sections.length + 1,
         preparationTime: 60,
         speakingTime: 120,
+        parentSectionId: null,
       });
     },
     onError: (error: any) => {
@@ -358,13 +415,23 @@ export default function EditTest() {
                 </div>
                 <Button
                   onClick={() => {
-                    setNewSection({ ...newSection, sectionNumber: sections.length + 1 });
+                    // Calculate next section number for root sections
+                    const rootSections = sections.filter(s => !s.parentSectionId);
+                    const maxSectionNumber = rootSections.length > 0 
+                      ? Math.max(...rootSections.map(s => s.sectionNumber))
+                      : 0;
+                    setNewSection({ 
+                      ...newSection, 
+                      sectionNumber: maxSectionNumber + 1,
+                      parentSectionId: null,
+                    });
+                    setSelectedParentSection(null);
                     setAddSectionOpen(true);
                   }}
                   data-testid="button-add-section"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Bo'lim qo'shish
+                  Asosiy bo'lim qo'shish
                 </Button>
               </div>
 
@@ -380,45 +447,55 @@ export default function EditTest() {
                 </Card>
               ) : (
                 <div className="space-y-4">
-                  {sections.map((section, index) => (
-                    <SectionCard
-                      key={section.id}
-                      section={section}
-                      index={index}
-                      onAddQuestion={(questionCount: number) => {
-                        setSelectedSection(section.id);
-                        setNewQuestion({
-                          ...newQuestion,
-                          questionNumber: questionCount + 1,
-                        });
-                        setAddQuestionOpen(true);
-                      }}
-                      onEditImage={(sectionId: string, currentImageUrl?: string) => {
-                        setSelectedSection(sectionId);
-                        setImageUrl(currentImageUrl || "");
-                        setImageUploadMethod("file");
-                        setEditImageOpen(true);
-                      }}
-                      onEditSection={(sec: TestSection) => {
-                        setEditingSectionId(sec.id);
-                        setEditSection({
-                          title: sec.title,
-                          instructions: sec.instructions,
-                          preparationTime: sec.preparationTime,
-                          speakingTime: sec.speakingTime,
-                        });
-                        setEditSectionOpen(true);
-                      }}
-                      onDeleteSection={(sectionId: string) => {
-                        setDeletingSectionId(sectionId);
-                        setDeleteSectionOpen(true);
-                      }}
-                      onDeleteQuestion={(questionId: string) => {
-                        setDeletingQuestionId(questionId);
-                        setDeleteQuestionOpen(true);
-                      }}
-                    />
-                  ))}
+                  <SectionTree 
+                    sections={sectionTree}
+                    onAddSubsection={(parentSectionId: string) => {
+                      // Calculate next section number for children of this parent
+                      const siblings = sections.filter(s => s.parentSectionId === parentSectionId);
+                      const maxSectionNumber = siblings.length > 0
+                        ? Math.max(...siblings.map(s => s.sectionNumber))
+                        : 0;
+                      setNewSection({
+                        ...newSection,
+                        sectionNumber: maxSectionNumber + 1,
+                        parentSectionId,
+                      });
+                      setSelectedParentSection(parentSectionId);
+                      setAddSectionOpen(true);
+                    }}
+                    onAddQuestion={(sectionId: string, questionCount: number) => {
+                      setSelectedSection(sectionId);
+                      setNewQuestion({
+                        ...newQuestion,
+                        questionNumber: questionCount + 1,
+                      });
+                      setAddQuestionOpen(true);
+                    }}
+                    onEditImage={(sectionId: string, currentImageUrl?: string) => {
+                      setSelectedSection(sectionId);
+                      setImageUrl(currentImageUrl || "");
+                      setImageUploadMethod("file");
+                      setEditImageOpen(true);
+                    }}
+                    onEditSection={(sec: TestSection) => {
+                      setEditingSectionId(sec.id);
+                      setEditSection({
+                        title: sec.title,
+                        instructions: sec.instructions || "",
+                        preparationTime: sec.preparationTime,
+                        speakingTime: sec.speakingTime,
+                      });
+                      setEditSectionOpen(true);
+                    }}
+                    onDeleteSection={(sectionId: string) => {
+                      setDeletingSectionId(sectionId);
+                      setDeleteSectionOpen(true);
+                    }}
+                    onDeleteQuestion={(questionId: string) => {
+                      setDeletingQuestionId(questionId);
+                      setDeleteQuestionOpen(true);
+                    }}
+                  />
                 </div>
               )}
             </TabsContent>
@@ -785,18 +862,74 @@ export default function EditTest() {
   );
 }
 
+// Recursive SectionTree component
+function SectionTree({
+  sections,
+  onAddSubsection,
+  onAddQuestion,
+  onEditImage,
+  onEditSection,
+  onDeleteSection,
+  onDeleteQuestion,
+  depth = 0,
+}: {
+  sections: HierarchicalSection[];
+  onAddSubsection: (parentSectionId: string) => void;
+  onAddQuestion: (sectionId: string, questionCount: number) => void;
+  onEditImage: (sectionId: string, currentImageUrl?: string) => void;
+  onEditSection: (section: TestSection) => void;
+  onDeleteSection: (sectionId: string) => void;
+  onDeleteQuestion: (questionId: string) => void;
+  depth?: number;
+}) {
+  return (
+    <>
+      {sections.map((section) => (
+        <div key={section.id} className={depth > 0 ? "ml-8" : ""}>
+          <SectionCard
+            section={section}
+            displayNumber={section.displayNumber || ""}
+            onAddSubsection={onAddSubsection}
+            onAddQuestion={onAddQuestion}
+            onEditImage={onEditImage}
+            onEditSection={onEditSection}
+            onDeleteSection={onDeleteSection}
+            onDeleteQuestion={onDeleteQuestion}
+          />
+          {section.children && section.children.length > 0 && (
+            <div className="mt-4 space-y-4">
+              <SectionTree
+                sections={section.children}
+                onAddSubsection={onAddSubsection}
+                onAddQuestion={onAddQuestion}
+                onEditImage={onEditImage}
+                onEditSection={onEditSection}
+                onDeleteSection={onDeleteSection}
+                onDeleteQuestion={onDeleteQuestion}
+                depth={depth + 1}
+              />
+            </div>
+          )}
+        </div>
+      ))}
+    </>
+  );
+}
+
 function SectionCard({
   section,
-  index,
+  displayNumber,
+  onAddSubsection,
   onAddQuestion,
   onEditImage,
   onEditSection,
   onDeleteSection,
   onDeleteQuestion,
 }: {
-  section: TestSection & { questions?: Question[] };
-  index: number;
-  onAddQuestion: (questionCount: number) => void;
+  section: HierarchicalSection;
+  displayNumber: string;
+  onAddSubsection: (parentSectionId: string) => void;
+  onAddQuestion: (sectionId: string, questionCount: number) => void;
   onEditImage: (sectionId: string, currentImageUrl?: string) => void;
   onEditSection: (section: TestSection) => void;
   onDeleteSection: (sectionId: string) => void;
@@ -812,7 +945,7 @@ function SectionCard({
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <CardTitle>
-              Bo'lim {index + 1}: {section.title}
+              Bo'lim {displayNumber}: {section.title}
             </CardTitle>
             <CardDescription className="mt-2">{section.instructions}</CardDescription>
             <div className="flex gap-4 mt-3 text-sm flex-wrap">
@@ -851,7 +984,16 @@ function SectionCard({
               <Upload className="h-4 w-4 mr-2" />
               {section.imageUrl ? "Rasmni o'zgartirish" : "Rasm qo'shish"}
             </Button>
-            <Button size="sm" onClick={() => onAddQuestion(questions.length)} data-testid={`button-add-question-${section.id}`}>
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => onAddSubsection(section.id)} 
+              data-testid={`button-add-subsection-${section.id}`}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Ichki bo'lim qo'shish
+            </Button>
+            <Button size="sm" onClick={() => onAddQuestion(section.id, questions.length)} data-testid={`button-add-question-${section.id}`}>
               <Plus className="h-4 w-4 mr-2" />
               Savol qo'shish
             </Button>
