@@ -172,6 +172,16 @@ export default function TakeTest() {
     .sort((a, b) => a.questionNumber - b.questionNumber);
   const currentQuestion = sectionQuestions[currentQuestionIndex];
 
+  console.log('📊 Current state:', {
+    sectionsLength: sections.length,
+    allQuestionsLength: allQuestions.length,
+    currentSectionIndex,
+    currentQuestionIndex,
+    hasCurrentSection: !!currentSection,
+    hasCurrentQuestion: !!currentQuestion,
+    sectionQuestionsLength: sectionQuestions.length
+  });
+
   // Calculate total progress
   const completedQuestions = Object.keys(recordings).length;
   const totalQuestions = allQuestions.length;
@@ -180,7 +190,7 @@ export default function TakeTest() {
   // Initialize section timer with preparation phase
   useEffect(() => {
     if (currentSection && currentQuestion) {
-      const prepTime = currentQuestion.preparationTime || currentSection.preparationTime;
+      const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
       console.log('🕒 Timer init:', {
         section: currentSection.title,
         question: currentQuestionIndex + 1,
@@ -207,7 +217,8 @@ export default function TakeTest() {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
         // Preparation done - start speaking phase
-        const speakTime = currentQuestion.speakingTime || currentSection.speakingTime;
+        const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
+        console.log('🎤 Starting speaking phase:', speakTime, 'seconds');
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
         
