@@ -478,24 +478,23 @@ export default function TakeTest() {
     }
   };
 
-  if (purchaseLoading || testLoading || sectionsLoading || questionsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Yuklanmoqda...</div>
-      </div>
-    );
-  }
-
-  if (!purchase || !test || sections.length === 0) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-destructive">Ma'lumot topilmadi</div>
-      </div>
-    );
-  }
-
-  // Mikrofon test sahifasi
+  // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
+    if (purchaseLoading || testLoading) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-lg">Yuklanmoqda...</div>
+        </div>
+      );
+    }
+    
+    if (!purchase || !test) {
+      return (
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-lg text-destructive">Ma'lumot topilmadi</div>
+        </div>
+      );
+    }
     const micTestText = `Assalomu alaykum! Mening ismim ${user?.firstName || "Talaba"}. Men Imtihonchi platformasida CEFR og'zaki baholash testini topshiryapman. Mikrafonim to'g'ri sozlanganini tekshiryapman. Agar ovoz yaxshi eshitilsa, testni boshlashim mumkin.`;
 
     return (
@@ -609,6 +608,25 @@ export default function TakeTest() {
     );
   }
 
+  // Show loading while sections/questions are being fetched
+  if (sectionsLoading || questionsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Test yuklanmoqda...</div>
+      </div>
+    );
+  }
+
+  // Check if data is valid
+  if (!purchase || !test || sections.length === 0 || allQuestions.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-destructive">Test ma'lumotlari topilmadi</div>
+      </div>
+    );
+  }
+
+  // All questions completed - show submission screen
   if (!currentSection || !currentQuestion) {
     return (
       <div className="min-h-screen flex items-center justify-center">
