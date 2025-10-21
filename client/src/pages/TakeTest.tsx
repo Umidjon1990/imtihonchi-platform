@@ -167,7 +167,9 @@ export default function TakeTest() {
   }, [sections]);
 
   const currentSection = sections[currentSectionIndex];
-  const sectionQuestions = allQuestions.filter(q => q.sectionId === currentSection?.id);
+  const sectionQuestions = allQuestions
+    .filter(q => q.sectionId === currentSection?.id)
+    .sort((a, b) => a.questionNumber - b.questionNumber);
   const currentQuestion = sectionQuestions[currentQuestionIndex];
 
   // Calculate total progress
@@ -177,7 +179,7 @@ export default function TakeTest() {
 
   // Initialize section timer with preparation phase
   useEffect(() => {
-    if (currentSection && currentQuestion && timeRemaining === 0) {
+    if (currentSection && currentQuestion) {
       const prepTime = currentQuestion.preparationTime || currentSection.preparationTime;
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
