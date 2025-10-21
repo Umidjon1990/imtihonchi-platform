@@ -102,6 +102,8 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 
 ### Bo'lim 3: Muhokama savoli (1 savol)
 - 1 daqiqa tayyorgarlik + 2 daqiqa gapirish
+- Key faktlar (Plus/Minus tomonlar) sozlanadi
+- Har bir savol uchun custom label (masalan: "Afzalliklari", "Kamchiliklari")
 
 ## Joriy Holat
 
@@ -124,6 +126,10 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - Chek yuklash (talaba)
     - To'lovni tasdiqlash/rad etish (o'qituvchi)
     - Status tracking (pending/approved/rejected)
+11. Key faktlar tizimi (Bo'lim 3):
+    - Plus/Minus tomonlar (content)
+    - Custom labellar har bir savol uchun
+    - Dinamik ko'rsatish TakeTest da
 
 ⏳ **Navbatda**:
 - O'qituvchi baholash tizimi (audio tinglab natija berish)

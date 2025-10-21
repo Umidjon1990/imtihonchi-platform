@@ -75,7 +75,9 @@ export const questions = pgTable("questions", {
   preparationTime: integer("preparation_time"), // override section timer if set
   speakingTime: integer("speaking_time"), // override section timer if set
   keyFactsPlus: text("key_facts_plus"), // Plus tomonlari (Bo'lim 3 uchun)
+  keyFactsPlusLabel: text("key_facts_plus_label"), // Plus uchun custom label
   keyFactsMinus: text("key_facts_minus"), // Minus tomonlari (Bo'lim 3 uchun)
+  keyFactsMinusLabel: text("key_facts_minus_label"), // Minus uchun custom label
 });
 
 export const purchases = pgTable("purchases", {

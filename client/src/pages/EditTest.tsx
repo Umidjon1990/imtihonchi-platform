@@ -108,7 +108,9 @@ export default function EditTest() {
     speakingTime: null as number | null,
     imageUrl: null as string | null,
     keyFactsPlus: null as string | null,
+    keyFactsPlusLabel: null as string | null,
     keyFactsMinus: null as string | null,
+    keyFactsMinusLabel: null as string | null,
   });
 
   const { data: test, isLoading } = useQuery<Test>({
@@ -179,7 +181,9 @@ export default function EditTest() {
         speakingTime: null,
         imageUrl: null,
         keyFactsPlus: null,
+        keyFactsPlusLabel: null,
         keyFactsMinus: null,
+        keyFactsMinusLabel: null,
       });
       setSelectedSection("");
     },
@@ -850,11 +854,21 @@ export default function EditTest() {
                 <Badge variant="outline">Bo'lim 3 uchun</Badge>
                 <Label className="text-sm font-medium">Key faktlar (ixtiyoriy)</Label>
               </div>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="key-facts-plus" className="text-sm text-green-600 dark:text-green-400">
-                    ➕ Plus tomonlar
-                  </Label>
+              <div className="space-y-4">
+                {/* Plus tomonlar */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="key-facts-plus-label" className="text-sm text-green-600 dark:text-green-400">
+                      ➕ Plus label
+                    </Label>
+                  </div>
+                  <Input
+                    id="key-facts-plus-label"
+                    data-testid="input-key-facts-plus-label"
+                    value={newQuestion.keyFactsPlusLabel || ""}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, keyFactsPlusLabel: e.target.value || null })}
+                    placeholder="Plus tomonlar"
+                  />
                   <Textarea
                     id="key-facts-plus"
                     data-testid="input-key-facts-plus"
@@ -864,10 +878,21 @@ export default function EditTest() {
                     rows={3}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="key-facts-minus" className="text-sm text-red-600 dark:text-red-400">
-                    ➖ Minus tomonlar
-                  </Label>
+
+                {/* Minus tomonlar */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="key-facts-minus-label" className="text-sm text-red-600 dark:text-red-400">
+                      ➖ Minus label
+                    </Label>
+                  </div>
+                  <Input
+                    id="key-facts-minus-label"
+                    data-testid="input-key-facts-minus-label"
+                    value={newQuestion.keyFactsMinusLabel || ""}
+                    onChange={(e) => setNewQuestion({ ...newQuestion, keyFactsMinusLabel: e.target.value || null })}
+                    placeholder="Minus tomonlar"
+                  />
                   <Textarea
                     id="key-facts-minus"
                     data-testid="input-key-facts-minus"

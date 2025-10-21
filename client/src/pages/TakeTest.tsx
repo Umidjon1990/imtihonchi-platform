@@ -504,7 +504,7 @@ export default function TakeTest() {
                   {currentQuestion.keyFactsPlus && (
                     <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
                       <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
-                        <span>➕</span> Plus tomonlar
+                        <span>➕</span> {currentQuestion.keyFactsPlusLabel || "Plus tomonlar"}
                       </h4>
                       <p className="text-sm text-green-900 dark:text-green-200 whitespace-pre-wrap">
                         {currentQuestion.keyFactsPlus}
@@ -514,7 +514,7 @@ export default function TakeTest() {
                   {currentQuestion.keyFactsMinus && (
                     <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
                       <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                        <span>➖</span> Minus tomonlar
+                        <span>➖</span> {currentQuestion.keyFactsMinusLabel || "Minus tomonlar"}
                       </h4>
                       <p className="text-sm text-red-900 dark:text-red-200 whitespace-pre-wrap">
                         {currentQuestion.keyFactsMinus}
