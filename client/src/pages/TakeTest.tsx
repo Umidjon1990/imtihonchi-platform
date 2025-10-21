@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoute, useLocation } from "wouter";
@@ -177,63 +177,6 @@ export default function TakeTest() {
   const totalQuestions = allQuestions.length;
   const progress = totalQuestions > 0 ? (completedQuestions / totalQuestions) * 100 : 0;
 
-  // Initialize section timer with preparation phase
-  useEffect(() => {
-    // Only initialize timer after mic test is completed
-    if (micTestCompleted && currentSection && currentQuestion) {
-      const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
-      setTimeRemaining(prepTime);
-      setTestPhase('preparation');
-      // Reset auto-progress flag when starting new question
-      autoProgressQueuedRef.current = false;
-    }
-  }, [micTestCompleted, currentSection, currentQuestion, currentSectionIndex, currentQuestionIndex]);
-
-  // Section timer countdown with auto-progression
-  useEffect(() => {
-    // Only countdown after mic test is completed
-    if (!micTestCompleted) return;
-    
-    if (timeRemaining > 0 && !isSubmitting) {
-      sectionTimerRef.current = window.setTimeout(() => {
-        setTimeRemaining(prev => prev - 1);
-      }, 1000);
-    } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
-      // Time's up - handle phase transition
-      if (testPhase === 'preparation') {
-        // Preparation done - start speaking phase
-        const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
-        setTimeRemaining(speakTime);
-        setTestPhase('speaking');
-        
-        // Auto-start recording
-        if (!isRecording) {
-          startRecording();
-        }
-      } else if (testPhase === 'speaking') {
-        // Mark auto-progress as queued to prevent re-triggers
-        autoProgressQueuedRef.current = true;
-        
-        // Speaking time done - auto stop recording and move to next
-        const handleAutoProgress = async () => {
-          if (isRecording) {
-            await stopRecording();
-          }
-          
-          // Auto-move to next question after stop completes
-          setTimeout(() => {
-            handleNextQuestion();
-          }, 500);
-        };
-        
-        handleAutoProgress();
-      }
-    }
-
-    return () => {
-      if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
-    };
-  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted]);
 
   // Recording timer (for both mic test and actual recording)
   useEffect(() => {
@@ -386,7 +329,7 @@ export default function TakeTest() {
     }
   };
 
-  const startRecording = async () => {
+  const startRecording = useCallback(async () => {
     try {
       if (!currentQuestion) return;
       
@@ -447,9 +390,9 @@ export default function TakeTest() {
         variant: "destructive",
       });
     }
-  };
+  }, [currentQuestion, toast]);
 
-  const stopRecording = (): Promise<void> => {
+  const stopRecording = useCallback((): Promise<void> => {
     return new Promise((resolve) => {
       if (mediaRecorderRef.current && isRecording) {
         const recorder = mediaRecorderRef.current;
@@ -473,9 +416,9 @@ export default function TakeTest() {
         resolve();
       }
     });
-  };
+  }, [isRecording]);
 
-  const handleNextSection = async () => {
+  const handleNextSection = useCallback(async () => {
     // Stop any active recording and wait for it to complete
     if (isRecording) {
       await stopRecording();
@@ -489,9 +432,9 @@ export default function TakeTest() {
       setTimeRemaining(0); // Trigger initialization effect
       setTestPhase('preparation');
     }
-  };
+  }, [isRecording, stopRecording, currentSectionIndex, sections.length]);
 
-  const handleNextQuestion = async () => {
+  const handleNextQuestion = useCallback(async () => {
     // Stop any active recording and wait for it to complete
     if (isRecording) {
       await stopRecording();
@@ -505,9 +448,9 @@ export default function TakeTest() {
     } else {
       handleNextSection();
     }
-  };
+  }, [isRecording, stopRecording, currentQuestionIndex, sectionQuestions.length, handleNextSection]);
 
-  const handlePrevQuestion = async () => {
+  const handlePrevQuestion = useCallback(async () => {
     // Stop any active recording and wait for it to complete
     if (isRecording) {
       await stopRecording();
@@ -528,7 +471,7 @@ export default function TakeTest() {
       setTimeRemaining(0); // Trigger initialization effect
       setTestPhase('preparation');
     }
-  };
+  }, [isRecording, stopRecording, currentQuestionIndex, currentSectionIndex, sections, allQuestions]);
 
   const submitTest = async () => {
     if (completedQuestions < totalQuestions) {
@@ -584,6 +527,64 @@ export default function TakeTest() {
       setIsSubmitting(false);
     }
   };
+
+  // Initialize section timer with preparation phase
+  useEffect(() => {
+    // Only initialize timer after mic test is completed
+    if (micTestCompleted && currentSection && currentQuestion) {
+      const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
+      setTimeRemaining(prepTime);
+      setTestPhase('preparation');
+      // Reset auto-progress flag when starting new question
+      autoProgressQueuedRef.current = false;
+    }
+  }, [micTestCompleted, currentSection, currentQuestion, currentSectionIndex, currentQuestionIndex]);
+
+  // Section timer countdown with auto-progression
+  useEffect(() => {
+    // Only countdown after mic test is completed
+    if (!micTestCompleted) return;
+    
+    if (timeRemaining > 0 && !isSubmitting) {
+      sectionTimerRef.current = window.setTimeout(() => {
+        setTimeRemaining(prev => prev - 1);
+      }, 1000);
+    } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
+      // Time's up - handle phase transition
+      if (testPhase === 'preparation') {
+        // Preparation done - start speaking phase
+        const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
+        setTimeRemaining(speakTime);
+        setTestPhase('speaking');
+        
+        // Auto-start recording
+        if (!isRecording) {
+          startRecording();
+        }
+      } else if (testPhase === 'speaking') {
+        // Mark auto-progress as queued to prevent re-triggers
+        autoProgressQueuedRef.current = true;
+        
+        // Speaking time done - auto stop recording and move to next
+        const handleAutoProgress = async () => {
+          if (isRecording) {
+            await stopRecording();
+          }
+          
+          // Auto-move to next question after stop completes
+          setTimeout(() => {
+            handleNextQuestion();
+          }, 500);
+        };
+        
+        handleAutoProgress();
+      }
+    }
+
+    return () => {
+      if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
+    };
+  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted, handleNextQuestion, startRecording, stopRecording]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
