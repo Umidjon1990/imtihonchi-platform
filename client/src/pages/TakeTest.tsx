@@ -181,6 +181,13 @@ export default function TakeTest() {
   useEffect(() => {
     if (currentSection && currentQuestion) {
       const prepTime = currentQuestion.preparationTime || currentSection.preparationTime;
+      console.log('🕒 Timer init:', {
+        section: currentSection.title,
+        question: currentQuestionIndex + 1,
+        prepTime,
+        currentQuestion_prepTime: currentQuestion.preparationTime,
+        currentSection_prepTime: currentSection.preparationTime
+      });
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       // Reset auto-progress flag when starting new question
@@ -191,10 +198,12 @@ export default function TakeTest() {
   // Section timer countdown with auto-progression
   useEffect(() => {
     if (timeRemaining > 0 && !isSubmitting) {
+      console.log('⏱️ Countdown:', timeRemaining, 'phase:', testPhase);
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
     } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
+      console.log('🔔 Time up! Phase:', testPhase);
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
         // Preparation done - start speaking phase
