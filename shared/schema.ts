@@ -62,6 +62,7 @@ export const testSections = pgTable("test_sections", {
   instructions: text("instructions"),
   preparationTime: integer("preparation_time").notNull(), // in seconds
   speakingTime: integer("speaking_time").notNull(), // in seconds
+  imageUrl: text("image_url"), // Section-level image for 1.2 and Section 2
 });
 
 export const questions = pgTable("questions", {
