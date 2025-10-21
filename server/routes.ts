@@ -75,6 +75,35 @@ const uploadAudio = multer({
   },
 });
 
+// Configure multer for section image uploads
+const uploadSectionImage = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `section-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    },
+  }),
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for images
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error("Faqat JPG, JPEG, PNG, GIF, WEBP formatdagi fayllar qabul qilinadi"));
+    }
+  },
+});
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware setup
   await setupAuth(app);
@@ -316,6 +345,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error updating section:", error);
       res.status(400).json({ message: error.message || "Bo'limni yangilashda xatolik" });
+    }
+  });
+
+  // Upload section image
+  app.post("/api/upload-section-image", isAuthenticated, uploadSectionImage.single("file"), async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "Fayl tanlanmagan" });
+      }
+      
+      const url = `/api/section-images/${req.file.filename}`;
+      res.json({ url });
+    } catch (error: any) {
+      console.error("Error uploading section image:", error);
+      res.status(500).json({ message: error.message || "Rasm yuklashda xatolik" });
+    }
+  });
+
+  // Get section image
+  app.get("/api/section-images/:filename", async (req, res) => {
+    try {
+      const filePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images", req.params.filename);
+      
+      // Security: prevent path traversal
+      const basename = path.basename(req.params.filename);
+      const safePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images", basename);
+      
+      if (!fs.existsSync(safePath)) {
+        return res.status(404).json({ message: "Rasm topilmadi" });
+      }
+
+      res.sendFile(safePath);
+    } catch (error: any) {
+      console.error("Error getting section image:", error);
+      res.status(500).json({ message: error.message || "Rasmni olishda xatolik" });
     }
   });
 
