@@ -109,6 +109,7 @@ export default function TakeTest() {
   const sectionTimerRef = useRef<number | null>(null);
   const recordingStartTimeRef = useRef<number | null>(null);
   const recordingQuestionIdRef = useRef<string | null>(null);
+  const autoProgressQueuedRef = useRef<boolean>(false);
 
   const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
     queryKey: ["/api/purchases", purchaseId],
@@ -175,6 +176,8 @@ export default function TakeTest() {
       const prepTime = currentQuestion?.preparationTime || currentSection.preparationTime;
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
+      // Reset auto-progress flag when starting new question
+      autoProgressQueuedRef.current = false;
     }
   }, [currentSection, currentSectionIndex, currentQuestionIndex]);
 
@@ -184,7 +187,7 @@ export default function TakeTest() {
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
-    } else if (timeRemaining === 0 && currentSection && currentQuestion) {
+    } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
         // Preparation done - start speaking phase
@@ -197,6 +200,9 @@ export default function TakeTest() {
           startRecording();
         }
       } else if (testPhase === 'speaking') {
+        // Mark auto-progress as queued to prevent re-triggers
+        autoProgressQueuedRef.current = true;
+        
         // Speaking time done - auto stop recording and move to next
         const handleAutoProgress = async () => {
           if (isRecording) {
