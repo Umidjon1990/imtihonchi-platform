@@ -31,10 +31,14 @@ export interface IStorage {
   // User operations (required for Replit Auth)
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUserRole(id: string, role: string): Promise<User | undefined>;
   
   // Test category operations
   getCategories(): Promise<TestCategory[]>;
   createCategory(category: InsertTestCategory): Promise<TestCategory>;
+  updateCategory(id: string, category: Partial<InsertTestCategory>): Promise<TestCategory | undefined>;
+  deleteCategory(id: string): Promise<void>;
   
   // Test operations
   getTests(categoryId?: string, teacherId?: string): Promise<Test[]>;
@@ -95,6 +99,19 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users).orderBy(desc(users.createdAt));
+  }
+
+  async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    const [updated] = await db
+      .update(users)
+      .set({ role })
+      .where(eq(users.id, id))
+      .returning();
+    return updated;
+  }
+
   // Test category operations
   async getCategories(): Promise<TestCategory[]> {
     return await db.select().from(testCategories).orderBy(testCategories.name);
@@ -103,6 +120,19 @@ export class DatabaseStorage implements IStorage {
   async createCategory(category: InsertTestCategory): Promise<TestCategory> {
     const [newCategory] = await db.insert(testCategories).values(category).returning();
     return newCategory;
+  }
+
+  async updateCategory(id: string, category: Partial<InsertTestCategory>): Promise<TestCategory | undefined> {
+    const [updated] = await db
+      .update(testCategories)
+      .set(category)
+      .where(eq(testCategories.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCategory(id: string): Promise<void> {
+    await db.delete(testCategories).where(eq(testCategories.id, id));
   }
 
   // Test operations

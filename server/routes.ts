@@ -90,6 +90,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User management routes (admin only)
+  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Foydalanuvchilarni olishda xatolik" });
+    }
+  });
+
+  app.patch('/api/users/:id/role', isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const { role } = req.body;
+      if (!['admin', 'teacher', 'student'].includes(role)) {
+        return res.status(400).json({ message: "Noto'g'ri rol" });
+      }
+
+      const updatedUser = await storage.updateUserRole(req.params.id, role);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ message: "Rolni yangilashda xatolik" });
+    }
+  });
+
   // Test category routes
   app.get("/api/categories", async (req, res) => {
     try {
@@ -114,6 +150,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error creating category:", error);
       res.status(400).json({ message: error.message || "Kategoriya yaratishda xatolik" });
+    }
+  });
+
+  app.patch("/api/categories/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const data = insertTestCategorySchema.partial().parse(req.body);
+      const category = await storage.updateCategory(req.params.id, data);
+      if (!category) {
+        return res.status(404).json({ message: "Kategoriya topilmadi" });
+      }
+      res.json(category);
+    } catch (error: any) {
+      console.error("Error updating category:", error);
+      res.status(400).json({ message: error.message || "Kategoriyani yangilashda xatolik" });
+    }
+  });
+
+  app.delete("/api/categories/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      await storage.deleteCategory(req.params.id);
+      res.json({ message: "Kategoriya o'chirildi" });
+    } catch (error: any) {
+      console.error("Error deleting category:", error);
+      res.status(400).json({ message: error.message || "Kategoriyani o'chirishda xatolik" });
     }
   });
 
