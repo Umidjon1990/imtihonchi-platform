@@ -130,6 +130,17 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - Plus/Minus tomonlar (content)
     - Custom labellar har bir savol uchun
     - Dinamik ko'rsatish TakeTest da
+12. Mikrofon test bosqichi:
+    - Test boshlanishidan oldin mikrofon tekshirish
+    - O'zbekcha sample matn bilan audio yozish
+    - Playback bilan tekshirish
+    - Tasdiqlashdan keyin asosiy testga o'tish
+13. Avtomatik progression tizimi:
+    - Ikki fazali timer: Tayyorgarlik va Gapirish
+    - Katta, ko'zga ko'rinadigan timer display (120px-160px)
+    - Tayyorgarlik vaqti tugagach avtomatik recording boshlanadi
+    - Gapirish vaqti tugagach avtomatik keyingi savolga o'tiladi
+    - Fazalarga qarab rangli timer (primary/green/red)
 
 ⏳ **Navbatda**:
 - O'qituvchi baholash tizimi (audio tinglab natija berish)

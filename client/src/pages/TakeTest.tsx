@@ -108,6 +108,7 @@ export default function TakeTest() {
   const recordingTimerRef = useRef<number | null>(null);
   const sectionTimerRef = useRef<number | null>(null);
   const recordingStartTimeRef = useRef<number | null>(null);
+  const recordingQuestionIdRef = useRef<string | null>(null);
 
   const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
     queryKey: ["/api/purchases", purchaseId],
@@ -197,14 +198,18 @@ export default function TakeTest() {
         }
       } else if (testPhase === 'speaking') {
         // Speaking time done - auto stop recording and move to next
-        if (isRecording) {
-          stopRecording();
-        }
+        const handleAutoProgress = async () => {
+          if (isRecording) {
+            await stopRecording();
+          }
+          
+          // Auto-move to next question after stop completes
+          setTimeout(() => {
+            handleNextQuestion();
+          }, 500);
+        };
         
-        // Auto-move to next question after short delay
-        setTimeout(() => {
-          handleNextQuestion();
-        }, 1000);
+        handleAutoProgress();
       }
     }
 
@@ -282,11 +287,15 @@ export default function TakeTest() {
 
   const startRecording = async () => {
     try {
+      if (!currentQuestion) return;
+      
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       
       audioChunksRef.current = [];
       recordingStartTimeRef.current = Date.now();
+      // Capture the question ID when recording starts
+      recordingQuestionIdRef.current = currentQuestion.id;
       
       mediaRecorder.ondataavailable = (event) => {
         audioChunksRef.current.push(event.data);
@@ -299,10 +308,12 @@ export default function TakeTest() {
           ? Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
           : 0;
         
-        if (currentQuestion) {
+        // Use the captured question ID from when recording started
+        const questionId = recordingQuestionIdRef.current;
+        if (questionId) {
           setRecordings(prev => ({
             ...prev,
-            [currentQuestion.id]: {
+            [questionId]: {
               blob: audioBlob,
               url: audioUrl,
               duration,
@@ -312,6 +323,7 @@ export default function TakeTest() {
         
         stream.getTracks().forEach(track => track.stop());
         recordingStartTimeRef.current = null;
+        recordingQuestionIdRef.current = null;
       };
       
       mediaRecorder.start();
@@ -326,43 +338,82 @@ export default function TakeTest() {
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-    }
+  const stopRecording = (): Promise<void> => {
+    return new Promise((resolve) => {
+      if (mediaRecorderRef.current && isRecording) {
+        const recorder = mediaRecorderRef.current;
+        
+        // Add a one-time listener for when stop completes
+        const originalOnStop = recorder.onstop;
+        recorder.onstop = (event) => {
+          // Call original handler first
+          if (originalOnStop) {
+            originalOnStop.call(recorder, event);
+          }
+          setIsRecording(false);
+          resolve();
+        };
+        
+        recorder.stop();
+      } else {
+        setIsRecording(false);
+        resolve();
+      }
+    });
   };
 
-  const handleNextQuestion = () => {
+  const handleNextQuestion = async () => {
+    // Stop any active recording and wait for it to complete
+    if (isRecording) {
+      await stopRecording();
+    }
+    
     if (currentQuestionIndex < sectionQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
+      // Reset to preparation phase
+      setTimeRemaining(0); // Trigger initialization effect
+      setTestPhase('preparation');
     } else {
       handleNextSection();
     }
   };
 
-  const handlePrevQuestion = () => {
+  const handlePrevQuestion = async () => {
+    // Stop any active recording and wait for it to complete
+    if (isRecording) {
+      await stopRecording();
+    }
+    
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
+      // Reset to preparation phase
+      setTimeRemaining(0); // Trigger initialization effect
+      setTestPhase('preparation');
     } else if (currentSectionIndex > 0) {
       setCurrentSectionIndex(prev => prev - 1);
       const prevSection = sections[currentSectionIndex - 1];
       const prevQuestions = allQuestions.filter(q => q.sectionId === prevSection.id);
       setCurrentQuestionIndex(prevQuestions.length - 1);
       
-      // Reset timer for previous section
-      const timeLimit = prevSection.preparationTime + prevSection.speakingTime;
-      setTimeRemaining(timeLimit);
+      // Reset to preparation phase
+      setTimeRemaining(0); // Trigger initialization effect
+      setTestPhase('preparation');
     }
   };
 
-  const handleNextSection = () => {
+  const handleNextSection = async () => {
+    // Stop any active recording and wait for it to complete
+    if (isRecording) {
+      await stopRecording();
+    }
+    
     if (currentSectionIndex < sections.length - 1) {
       setCurrentSectionIndex(prev => prev + 1);
       setCurrentQuestionIndex(0);
-      const nextSection = sections[currentSectionIndex + 1];
-      const timeLimit = nextSection ? nextSection.preparationTime + nextSection.speakingTime : 120;
-      setTimeRemaining(timeLimit);
+      
+      // Reset to preparation phase
+      setTimeRemaining(0); // Trigger initialization effect
+      setTestPhase('preparation');
     }
   };
 
