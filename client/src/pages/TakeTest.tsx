@@ -103,17 +103,17 @@ export default function TakeTest() {
   const sectionTimerRef = useRef<number | null>(null);
   const recordingStartTimeRef = useRef<number | null>(null);
 
-  const { data: purchase } = useQuery<Purchase>({
+  const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
     queryKey: ["/api/purchases", purchaseId],
     enabled: !!purchaseId,
   });
 
-  const { data: test } = useQuery<Test>({
+  const { data: test, isLoading: testLoading } = useQuery<Test>({
     queryKey: ["/api/tests", purchase?.testId],
     enabled: !!purchase?.testId,
   });
 
-  const { data: rawSections = [] } = useQuery<TestSection[]>({
+  const { data: rawSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
     queryKey: ["/api/tests", test?.id, "sections"],
     enabled: !!test?.id,
   });
@@ -347,10 +347,18 @@ export default function TakeTest() {
     }
   };
 
-  if (!purchase || !test || sections.length === 0 || questionsLoading) {
+  if (purchaseLoading || testLoading || sectionsLoading || questionsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Yuklanmoqda...</div>
+      </div>
+    );
+  }
+
+  if (!purchase || !test || sections.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-destructive">Ma'lumot topilmadi</div>
       </div>
     );
   }
