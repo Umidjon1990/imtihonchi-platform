@@ -5,12 +5,95 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, BookOpen, Award, LogOut, Upload } from "lucide-react";
+import { Clock, BookOpen, Award, LogOut, Upload, Download } from "lucide-react";
 import { Link } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import type { Test, Purchase, Submission } from "@shared/schema";
+
+function SubmissionCard({ submission, test }: { submission: Submission; test: Test }) {
+  const { data: result } = useQuery<any>({
+    queryKey: ["/api/results", submission.id],
+    enabled: submission.status === 'graded',
+  });
+
+  const handleDownloadCertificate = () => {
+    if (result?.certificateUrl) {
+      window.open(result.certificateUrl, '_blank');
+    }
+  };
+
+  return (
+    <Card data-testid={`card-submission-${submission.id}`}>
+      <CardHeader>
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle>{test.title}</CardTitle>
+            <CardDescription>
+              Topshirilgan: {new Date(submission.submittedAt).toLocaleDateString('uz-UZ', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </CardDescription>
+          </div>
+          {submission.status === 'graded' ? (
+            <Badge variant="default">
+              <Award className="h-3 w-3 mr-1" />
+              Baholangan
+            </Badge>
+          ) : (
+            <Badge variant="secondary">Tekshirilmoqda</Badge>
+          )}
+        </div>
+      </CardHeader>
+      {result && (
+        <>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">CEFR Darajasi</p>
+                <p className="text-2xl font-bold text-primary" data-testid={`text-cefr-${submission.id}`}>
+                  {result.cefrLevel}
+                </p>
+              </div>
+              <div className="p-4 border rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">Ball</p>
+                <p className="text-2xl font-bold" data-testid={`text-score-${submission.id}`}>
+                  {result.score}/100
+                </p>
+              </div>
+            </div>
+            {result.feedback && (
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+                <p className="text-sm text-muted-foreground mb-1">O'qituvchi izohi</p>
+                <p className="text-sm" data-testid={`text-feedback-${submission.id}`}>
+                  {result.feedback}
+                </p>
+              </div>
+            )}
+          </CardContent>
+          {result.certificateUrl && (
+            <CardFooter>
+              <Button
+                variant="outline"
+                onClick={handleDownloadCertificate}
+                className="w-full"
+                data-testid={`button-certificate-${submission.id}`}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Sertifikatni yuklab olish
+              </Button>
+            </CardFooter>
+          )}
+        </>
+      )}
+    </Card>
+  );
+}
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -273,34 +356,7 @@ export default function StudentDashboard() {
                     
                     if (!test) return null;
                     
-                    return (
-                      <Card key={submission.id} data-testid={`card-submission-${submission.id}`}>
-                        <CardHeader>
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <CardTitle>{test.title}</CardTitle>
-                              <CardDescription>
-                                Topshirilgan: {new Date(submission.submittedAt).toLocaleDateString('uz-UZ', {
-                                  year: 'numeric',
-                                  month: 'long',
-                                  day: 'numeric',
-                                  hour: '2-digit',
-                                  minute: '2-digit'
-                                })}
-                              </CardDescription>
-                            </div>
-                            {submission.status === 'graded' ? (
-                              <Badge variant="default">
-                                <Award className="h-3 w-3 mr-1" />
-                                Baholangan
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">Tekshirilmoqda</Badge>
-                            )}
-                          </div>
-                        </CardHeader>
-                      </Card>
-                    );
+                    return <SubmissionCard key={submission.id} submission={submission} test={test} />;
                   })}
                 </div>
               )}

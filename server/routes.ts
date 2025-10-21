@@ -5,6 +5,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { generateCertificate } from "./utils/certificate";
 import { 
   insertTestCategorySchema,
   insertTestSchema,
@@ -598,13 +599,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         teacherId: req.user.claims.sub,
       });
-      const result = await storage.createResult(data);
+
+      // Get submission and test info for certificate
+      const submission = await storage.getSubmissionById(data.submissionId);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      const student = await storage.getUser(submission.studentId);
+      const test = await storage.getTestById(submission.testId);
+      const teacher = await storage.getUser(req.user.claims.sub);
+
+      // Generate certificate
+      let certificateUrl = '';
+      try {
+        certificateUrl = await generateCertificate({
+          studentName: `${student?.firstName || ''} ${student?.lastName || ''}`.trim(),
+          testTitle: test?.title || '',
+          score: data.score || 0,
+          cefrLevel: data.cefrLevel || '',
+          gradedAt: new Date(),
+          teacherName: `${teacher?.firstName || ''} ${teacher?.lastName || ''}`.trim(),
+        });
+      } catch (certError) {
+        console.error("Certificate generation error:", certError);
+        // Continue without certificate if generation fails
+      }
+
+      const result = await storage.createResult({
+        ...data,
+        certificateUrl,
+      });
       
       // Update submission status to graded
-      const submission = await storage.getSubmissionById(data.submissionId);
-      if (submission) {
-        await storage.updateSubmission(submission.id, { status: 'graded' });
-      }
+      await storage.updateSubmission(submission.id, { status: 'graded' });
       
       res.json(result);
     } catch (error: any) {
@@ -623,6 +651,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching result:", error);
       res.status(500).json({ message: "Natijani olishda xatolik" });
+    }
+  });
+
+  // Certificate download endpoint
+  app.get("/api/certificates/:filename", isAuthenticated, async (req: any, res) => {
+    try {
+      // Sanitize filename to prevent path traversal
+      const filename = path.basename(req.params.filename);
+      const certificatesDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp", "certificates");
+      const filePath = path.join(certificatesDir, filename);
+      
+      // Verify the resolved path is within certificatesDir
+      const resolvedPath = path.resolve(filePath);
+      const resolvedDir = path.resolve(certificatesDir);
+      if (!resolvedPath.startsWith(resolvedDir)) {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Sertifikat topilmadi" });
+      }
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      const fileStream = fs.createReadStream(filePath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error("Error serving certificate:", error);
+      res.status(500).json({ message: "Sertifikatni yuklashda xatolik" });
     }
   });
 
