@@ -51,11 +51,13 @@ export interface IStorage {
   getSectionsByTestId(testId: string): Promise<TestSection[]>;
   createSection(section: InsertTestSection): Promise<TestSection>;
   updateSection(id: string, section: Partial<InsertTestSection>): Promise<TestSection | undefined>;
+  deleteSection(id: string): Promise<void>;
   
   // Question operations
   getQuestionsBySectionId(sectionId: string): Promise<Question[]>;
   createQuestion(question: InsertQuestion): Promise<Question>;
   updateQuestion(id: string, question: Partial<InsertQuestion>): Promise<Question | undefined>;
+  deleteQuestion(id: string): Promise<void>;
   
   // Purchase operations
   getPurchasesByStudent(studentId: string): Promise<Purchase[]>;
@@ -198,6 +200,13 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
+  async deleteSection(id: string): Promise<void> {
+    // First delete all questions in this section
+    await db.delete(questions).where(eq(questions.sectionId, id));
+    // Then delete the section
+    await db.delete(testSections).where(eq(testSections.id, id));
+  }
+
   // Question operations
   async getQuestionsBySectionId(sectionId: string): Promise<Question[]> {
     return await db
@@ -215,6 +224,10 @@ export class DatabaseStorage implements IStorage {
   async updateQuestion(id: string, questionData: Partial<InsertQuestion>): Promise<Question | undefined> {
     const [updated] = await db.update(questions).set(questionData).where(eq(questions.id, id)).returning();
     return updated;
+  }
+
+  async deleteQuestion(id: string): Promise<void> {
+    await db.delete(questions).where(eq(questions.id, id));
   }
 
   // Purchase operations

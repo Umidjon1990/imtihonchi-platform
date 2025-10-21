@@ -430,6 +430,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/questions/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      await storage.deleteQuestion(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting question:", error);
+      res.status(400).json({ message: error.message || "Savolni o'chirishda xatolik" });
+    }
+  });
+
+  app.delete("/api/sections/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      await storage.deleteSection(req.params.id);
+      res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error deleting section:", error);
+      res.status(400).json({ message: error.message || "Bo'limni o'chirishda xatolik" });
+    }
+  });
+
   // Purchase routes
   app.get("/api/purchases", isAuthenticated, async (req: any, res) => {
     try {
