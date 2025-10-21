@@ -528,17 +528,21 @@ export default function TakeTest() {
     }
   };
 
-  // Initialize section timer with preparation phase
+  // Initialize section timer with preparation phase - ONLY when question/section changes
   useEffect(() => {
-    // Only initialize timer after mic test is completed
-    if (micTestCompleted && currentSection && currentQuestion) {
+    // Skip if mic test not completed yet
+    if (!micTestCompleted) return;
+    
+    // Initialize timer for new question
+    if (currentSection && currentQuestion) {
+      console.log(`🔄 Initializing question ${currentQuestionIndex + 1}`);
       const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [currentSectionIndex, currentQuestionIndex]);
+  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
 
   // Section timer countdown with auto-progression
   useEffect(() => {
