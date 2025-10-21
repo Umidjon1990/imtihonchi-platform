@@ -172,16 +172,6 @@ export default function TakeTest() {
     .sort((a, b) => a.questionNumber - b.questionNumber);
   const currentQuestion = sectionQuestions[currentQuestionIndex];
 
-  console.log('📊 Current state:', {
-    sectionsLength: sections.length,
-    allQuestionsLength: allQuestions.length,
-    currentSectionIndex,
-    currentQuestionIndex,
-    hasCurrentSection: !!currentSection,
-    hasCurrentQuestion: !!currentQuestion,
-    sectionQuestionsLength: sectionQuestions.length
-  });
-
   // Calculate total progress
   const completedQuestions = Object.keys(recordings).length;
   const totalQuestions = allQuestions.length;
@@ -189,36 +179,30 @@ export default function TakeTest() {
 
   // Initialize section timer with preparation phase
   useEffect(() => {
-    if (currentSection && currentQuestion) {
+    // Only initialize timer after mic test is completed
+    if (micTestCompleted && currentSection && currentQuestion) {
       const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
-      console.log('🕒 Timer init:', {
-        section: currentSection.title,
-        question: currentQuestionIndex + 1,
-        prepTime,
-        currentQuestion_prepTime: currentQuestion.preparationTime,
-        currentSection_prepTime: currentSection.preparationTime
-      });
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [currentSection, currentQuestion, currentSectionIndex, currentQuestionIndex]);
+  }, [micTestCompleted, currentSection, currentQuestion, currentSectionIndex, currentQuestionIndex]);
 
   // Section timer countdown with auto-progression
   useEffect(() => {
+    // Only countdown after mic test is completed
+    if (!micTestCompleted) return;
+    
     if (timeRemaining > 0 && !isSubmitting) {
-      console.log('⏱️ Countdown:', timeRemaining, 'phase:', testPhase);
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
     } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
-      console.log('🔔 Time up! Phase:', testPhase);
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
         // Preparation done - start speaking phase
         const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
-        console.log('🎤 Starting speaking phase:', speakTime, 'seconds');
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
         
