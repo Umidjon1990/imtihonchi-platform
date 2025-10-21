@@ -12,6 +12,7 @@ import TeacherDashboard from "@/pages/TeacherDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import TakeTest from "@/pages/TakeTest";
 import EditTest from "@/pages/EditTest";
+import ReviewSubmission from "@/pages/ReviewSubmission";
 import { useEffect, useState } from "react";
 
 function Router() {
@@ -77,6 +78,13 @@ function Router() {
             {() => (
               <RoleGuard allowedRoles={['teacher', 'admin']}>
                 <EditTest />
+              </RoleGuard>
+            )}
+          </Route>
+          <Route path="/teacher/review/:submissionId">
+            {() => (
+              <RoleGuard allowedRoles={['teacher', 'admin']}>
+                <ReviewSubmission />
               </RoleGuard>
             )}
           </Route>

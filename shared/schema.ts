@@ -98,6 +98,7 @@ export const results = pgTable("results", {
   submissionId: varchar("submission_id").notNull().unique(),
   teacherId: varchar("teacher_id").notNull(),
   score: integer("score"),
+  cefrLevel: text("cefr_level"), // A1, A2, B1, B2, C1, C2
   feedback: text("feedback"),
   certificateUrl: text("certificate_url"),
   gradedAt: timestamp("graded_at").defaultNow().notNull(),

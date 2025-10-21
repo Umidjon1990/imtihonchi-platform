@@ -441,6 +441,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/submissions/teacher", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const submissions = await storage.getSubmissionsByTeacher(user.id);
+      res.json(submissions);
+    } catch (error) {
+      console.error("Error fetching teacher submissions:", error);
+      res.status(500).json({ message: "Topshiriqlarni olishda xatolik" });
+    }
+  });
+
+  app.get("/api/submissions/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const submission = await storage.getSubmissionById(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      // Check if user is the teacher or student
+      const user = await storage.getUser(req.user.claims.sub);
+      const test = await storage.getTestById(submission.testId);
+      
+      if (user?.id !== submission.studentId && 
+          user?.id !== test?.teacherId && 
+          user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      // Get student info
+      const student = await storage.getUser(submission.studentId);
+      
+      res.json({
+        ...submission,
+        studentName: student?.firstName || "",
+        studentLastName: student?.lastName || "",
+      });
+    } catch (error) {
+      console.error("Error fetching submission:", error);
+      res.status(500).json({ message: "Topshiriqni olishda xatolik" });
+    }
+  });
+
   app.get("/api/submissions/test/:testId", isAuthenticated, async (req: any, res) => {
     try {
       const user = await storage.getUser(req.user.claims.sub);

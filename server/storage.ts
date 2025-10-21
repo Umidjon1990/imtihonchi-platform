@@ -25,7 +25,7 @@ import {
   type InsertResult,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -63,6 +63,7 @@ export interface IStorage {
   // Submission operations
   getSubmissionsByTest(testId: string): Promise<Submission[]>;
   getSubmissionsByStudent(studentId: string): Promise<Submission[]>;
+  getSubmissionsByTeacher(teacherId: string): Promise<any[]>;
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   getSubmissionById(id: string): Promise<Submission | undefined>;
   updateSubmission(id: string, submission: Partial<InsertSubmission>): Promise<Submission | undefined>;
@@ -237,6 +238,40 @@ export class DatabaseStorage implements IStorage {
       .from(submissions)
       .where(eq(submissions.studentId, studentId))
       .orderBy(desc(submissions.submittedAt));
+  }
+
+  async getSubmissionsByTeacher(teacherId: string): Promise<any[]> {
+    // Get all tests by teacher
+    const teacherTests = await db
+      .select()
+      .from(tests)
+      .where(eq(tests.teacherId, teacherId));
+    
+    const testIds = teacherTests.map(t => t.id);
+    
+    if (testIds.length === 0) return [];
+    
+    // Get submissions for those tests with student info
+    const results = await db
+      .select({
+        id: submissions.id,
+        purchaseId: submissions.purchaseId,
+        studentId: submissions.studentId,
+        testId: submissions.testId,
+        audioFiles: submissions.audioFiles,
+        submittedAt: submissions.submittedAt,
+        status: submissions.status,
+        studentName: users.firstName,
+        studentLastName: users.lastName,
+        testTitle: tests.title,
+      })
+      .from(submissions)
+      .innerJoin(users, eq(submissions.studentId, users.id))
+      .innerJoin(tests, eq(submissions.testId, tests.id))
+      .where(inArray(submissions.testId, testIds))
+      .orderBy(desc(submissions.submittedAt));
+    
+    return results;
   }
 
   async createSubmission(submission: InsertSubmission): Promise<Submission> {

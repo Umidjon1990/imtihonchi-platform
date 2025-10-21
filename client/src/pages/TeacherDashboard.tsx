@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, LogOut, Plus, Edit, Eye, CheckCircle, XCircle, Receipt } from "lucide-react";
 import { Link } from "wouter";
-import type { Test, TestCategory, Purchase } from "@shared/schema";
+import type { Test, TestCategory, Purchase, Submission } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 
@@ -41,7 +41,17 @@ export default function TeacherDashboard() {
     enabled: !!user?.id,
   });
 
+  const { data: allSubmissions = [] } = useQuery<any[]>({
+    queryKey: ["/api/submissions/teacher"],
+    enabled: !!user?.id,
+  });
+
   const myTests = tests.filter(t => t.teacherId === user?.id);
+  
+  // Get submissions for my tests
+  const mySubmissions = allSubmissions.filter((sub: any) => 
+    myTests.some(test => test.id === sub.testId)
+  );
 
   const approvePurchaseMutation = useMutation({
     mutationFn: async (purchaseId: string) => {
@@ -132,6 +142,9 @@ export default function TeacherDashboard() {
                 <TabsList>
                   <TabsTrigger value="tests" data-testid="tab-tests">
                     Mening testlarim
+                  </TabsTrigger>
+                  <TabsTrigger value="submissions" data-testid="tab-submissions">
+                    Topshiriqlar ({mySubmissions.length})
                   </TabsTrigger>
                   <TabsTrigger value="pending" data-testid="tab-pending">
                     Pending cheklar ({pendingPurchases.length})
@@ -250,6 +263,53 @@ export default function TeacherDashboard() {
               ))}
             </div>
           )}
+            </TabsContent>
+
+            <TabsContent value="submissions" className="space-y-6">
+              {mySubmissions.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                    Hozircha topshiriqlar yo'q
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="space-y-4">
+                  {mySubmissions.map((submission: any) => (
+                    <Card key={submission.id} data-testid={`card-submission-${submission.id}`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <CardTitle>{submission.testTitle}</CardTitle>
+                            <CardDescription className="mt-2">
+                              Talaba: {submission.studentName} {submission.studentLastName}
+                            </CardDescription>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Topshirilgan: {new Date(submission.submittedAt).toLocaleDateString('uz-UZ', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                          <Badge variant={submission.status === 'graded' ? 'default' : 'secondary'}>
+                            {submission.status === 'graded' ? 'Baholangan' : 'Baholanmagan'}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardFooter>
+                        <Link href={`/teacher/review/${submission.id}`}>
+                          <Button data-testid={`button-review-${submission.id}`}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            {submission.status === 'graded' ? 'Natijani ko\'rish' : 'Baholash'}
+                          </Button>
+                        </Link>
+                      </CardFooter>
+                    </Card>
+                  ))}
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="pending" className="space-y-6">
