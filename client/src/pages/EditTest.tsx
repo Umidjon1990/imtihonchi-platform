@@ -28,10 +28,22 @@ export default function EditTest() {
   const [imageUploadMethod, setImageUploadMethod] = useState<"file" | "url">("file");
   const [imageUrl, setImageUrl] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [editSectionOpen, setEditSectionOpen] = useState(false);
+  const [editingSectionId, setEditingSectionId] = useState<string>("");
+  const [deleteSectionOpen, setDeleteSectionOpen] = useState(false);
+  const [deletingSectionId, setDeletingSectionId] = useState<string>("");
+  const [deleteQuestionOpen, setDeleteQuestionOpen] = useState(false);
+  const [deletingQuestionId, setDeletingQuestionId] = useState<string>("");
   const [newSection, setNewSection] = useState({
     title: "",
     instructions: "",
     sectionNumber: 0,
+    preparationTime: 60,
+    speakingTime: 120,
+  });
+  const [editSection, setEditSection] = useState({
+    title: "",
+    instructions: "",
     preparationTime: 60,
     speakingTime: 120,
   });
@@ -108,6 +120,51 @@ export default function EditTest() {
         imageUrl: null,
       });
       setSelectedSection("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateSectionMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PATCH", `/api/sections/${editingSectionId}`, editSection);
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Bo'lim yangilandi" });
+      queryClient.invalidateQueries({ queryKey: [`/api/tests/${id}/sections`] });
+      setEditSectionOpen(false);
+      setEditingSectionId("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteSectionMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/sections/${deletingSectionId}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Bo'lim o'chirildi" });
+      queryClient.invalidateQueries({ queryKey: [`/api/tests/${id}/sections`] });
+      setDeleteSectionOpen(false);
+      setDeletingSectionId("");
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteQuestionMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", `/api/questions/${deletingQuestionId}`);
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Savol o'chirildi" });
+      queryClient.invalidateQueries({ queryKey: [`/api/tests/${id}/sections`] });
+      setDeleteQuestionOpen(false);
+      setDeletingQuestionId("");
     },
     onError: (error: any) => {
       toast({ title: "Xatolik", description: error.message, variant: "destructive" });
@@ -342,6 +399,24 @@ export default function EditTest() {
                         setImageUploadMethod("file");
                         setEditImageOpen(true);
                       }}
+                      onEditSection={(sec: TestSection) => {
+                        setEditingSectionId(sec.id);
+                        setEditSection({
+                          title: sec.title,
+                          instructions: sec.instructions,
+                          preparationTime: sec.preparationTime,
+                          speakingTime: sec.speakingTime,
+                        });
+                        setEditSectionOpen(true);
+                      }}
+                      onDeleteSection={(sectionId: string) => {
+                        setDeletingSectionId(sectionId);
+                        setDeleteSectionOpen(true);
+                      }}
+                      onDeleteQuestion={(questionId: string) => {
+                        setDeletingQuestionId(questionId);
+                        setDeleteQuestionOpen(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -497,6 +572,132 @@ export default function EditTest() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={editSectionOpen} onOpenChange={setEditSectionOpen}>
+        <DialogContent data-testid="dialog-edit-section">
+          <DialogHeader>
+            <DialogTitle>Bo'limni tahrirlash</DialogTitle>
+            <DialogDescription>
+              Bo'lim ma'lumotlari va timer sozlamalarini yangilang
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-section-title">Sarlavha</Label>
+              <Input
+                id="edit-section-title"
+                data-testid="input-edit-section-title"
+                value={editSection.title}
+                onChange={(e) => setEditSection({ ...editSection, title: e.target.value })}
+                placeholder="Bo'lim 1: Shaxsiy ma'lumotlar"
+              />
+            </div>
+            <div>
+              <Label htmlFor="edit-section-instructions">Ko'rsatmalar</Label>
+              <Textarea
+                id="edit-section-instructions"
+                data-testid="input-edit-section-instructions"
+                value={editSection.instructions}
+                onChange={(e) => setEditSection({ ...editSection, instructions: e.target.value })}
+                placeholder="Ushbu bo'limda..."
+                rows={3}
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-prep-time">
+                  <Clock className="h-4 w-4 inline mr-1" />
+                  Tayyorgarlik (soniya)
+                </Label>
+                <Input
+                  id="edit-prep-time"
+                  type="number"
+                  data-testid="input-edit-prep-time"
+                  value={editSection.preparationTime}
+                  onChange={(e) =>
+                    setEditSection({ ...editSection, preparationTime: parseInt(e.target.value) || 0 })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-response-time">
+                  <Clock className="h-4 w-4 inline mr-1" />
+                  Gapirish (soniya)
+                </Label>
+                <Input
+                  id="edit-response-time"
+                  type="number"
+                  data-testid="input-edit-response-time"
+                  value={editSection.speakingTime}
+                  onChange={(e) =>
+                    setEditSection({ ...editSection, speakingTime: parseInt(e.target.value) || 0 })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditSectionOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button
+              onClick={() => updateSectionMutation.mutate()}
+              disabled={!editSection.title || updateSectionMutation.isPending}
+              data-testid="button-save-edit-section"
+            >
+              Saqlash
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteSectionOpen} onOpenChange={setDeleteSectionOpen}>
+        <DialogContent data-testid="dialog-delete-section">
+          <DialogHeader>
+            <DialogTitle>Bo'limni o'chirish</DialogTitle>
+            <DialogDescription>
+              Bu bo'limni va barcha savollarini o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteSectionOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteSectionMutation.mutate()}
+              disabled={deleteSectionMutation.isPending}
+              data-testid="button-confirm-delete-section"
+            >
+              O'chirish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteQuestionOpen} onOpenChange={setDeleteQuestionOpen}>
+        <DialogContent data-testid="dialog-delete-question">
+          <DialogHeader>
+            <DialogTitle>Savolni o'chirish</DialogTitle>
+            <DialogDescription>
+              Bu savolni o'chirishni xohlaysizmi? Bu amalni qaytarib bo'lmaydi.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteQuestionOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteQuestionMutation.mutate()}
+              disabled={deleteQuestionMutation.isPending}
+              data-testid="button-confirm-delete-question"
+            >
+              O'chirish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={addQuestionOpen} onOpenChange={setAddQuestionOpen}>
         <DialogContent data-testid="dialog-add-question">
           <DialogHeader>
@@ -589,11 +790,17 @@ function SectionCard({
   index,
   onAddQuestion,
   onEditImage,
+  onEditSection,
+  onDeleteSection,
+  onDeleteQuestion,
 }: {
   section: TestSection & { questions?: Question[] };
   index: number;
   onAddQuestion: (questionCount: number) => void;
   onEditImage: (sectionId: string, currentImageUrl?: string) => void;
+  onEditSection: (section: TestSection) => void;
+  onDeleteSection: (sectionId: string) => void;
+  onDeleteQuestion: (questionId: string) => void;
 }) {
   const { data: questions = [] } = useQuery<Question[]>({
     queryKey: [`/api/sections/${section.id}/questions`],
@@ -625,7 +832,16 @@ function SectionCard({
               )}
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => onEditSection(section)} 
+              data-testid={`button-edit-section-${section.id}`}
+            >
+              <Save className="h-4 w-4 mr-2" />
+              Tahrirlash
+            </Button>
             <Button 
               size="sm" 
               variant="outline"
@@ -638,6 +854,15 @@ function SectionCard({
             <Button size="sm" onClick={() => onAddQuestion(questions.length)} data-testid={`button-add-question-${section.id}`}>
               <Plus className="h-4 w-4 mr-2" />
               Savol qo'shish
+            </Button>
+            <Button 
+              size="sm" 
+              variant="destructive"
+              onClick={() => onDeleteSection(section.id)} 
+              data-testid={`button-delete-section-${section.id}`}
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              O'chirish
             </Button>
           </div>
         </div>
@@ -666,27 +891,38 @@ function SectionCard({
             {questions.map((q, qIndex) => (
               <div
                 key={q.id}
-                className="p-3 rounded-md border bg-card hover-elevate"
+                className="p-3 rounded-md border bg-card hover-elevate flex items-start justify-between gap-3"
                 data-testid={`question-${q.id}`}
               >
-                <p className="font-medium text-sm">
-                  {qIndex + 1}. {q.questionText}
-                </p>
-                {q.imageUrl && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    📷 Rasm: {q.imageUrl}
+                <div className="flex-1">
+                  <p className="font-medium text-sm">
+                    {qIndex + 1}. {q.questionText}
                   </p>
-                )}
-                {(q.preparationTime || q.speakingTime) && (
-                  <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
-                    {q.preparationTime && (
-                      <span>Tayyorgarlik: {q.preparationTime}s</span>
-                    )}
-                    {q.speakingTime && (
-                      <span>Gapirish: {q.speakingTime}s</span>
-                    )}
-                  </div>
-                )}
+                  {q.imageUrl && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      📷 Rasm: {q.imageUrl}
+                    </p>
+                  )}
+                  {(q.preparationTime || q.speakingTime) && (
+                    <div className="flex gap-3 mt-2 text-xs text-muted-foreground">
+                      {q.preparationTime && (
+                        <span>Tayyorgarlik: {q.preparationTime}s</span>
+                      )}
+                      {q.speakingTime && (
+                        <span>Gapirish: {q.speakingTime}s</span>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => onDeleteQuestion(q.id)}
+                  data-testid={`button-delete-question-${q.id}`}
+                  className="shrink-0"
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
               </div>
             ))}
           </div>
