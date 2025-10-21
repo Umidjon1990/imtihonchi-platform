@@ -24,6 +24,10 @@ export default function EditTest() {
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [addQuestionOpen, setAddQuestionOpen] = useState(false);
   const [selectedSection, setSelectedSection] = useState<string>("");
+  const [editImageOpen, setEditImageOpen] = useState(false);
+  const [imageUploadMethod, setImageUploadMethod] = useState<"file" | "url">("file");
+  const [imageUrl, setImageUrl] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [newSection, setNewSection] = useState({
     title: "",
     instructions: "",
@@ -109,6 +113,75 @@ export default function EditTest() {
       toast({ title: "Xatolik", description: error.message, variant: "destructive" });
     },
   });
+
+  const handleImageUpload = async (file: File) => {
+    try {
+      setUploadingImage(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload-section-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Rasm yuklashda xatolik");
+      }
+
+      const data = await response.json();
+      return data.url;
+    } catch (error: any) {
+      toast({ 
+        title: "Xatolik", 
+        description: error.message || "Rasm yuklashda xatolik", 
+        variant: "destructive" 
+      });
+      throw error;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleSaveSectionImage = async () => {
+    try {
+      let finalImageUrl = imageUrl;
+
+      if (imageUploadMethod === "file") {
+        const fileInput = document.getElementById("section-image-file") as HTMLInputElement;
+        const file = fileInput?.files?.[0];
+        
+        if (!file) {
+          toast({ title: "Xatolik", description: "Fayl tanlanmagan", variant: "destructive" });
+          return;
+        }
+
+        finalImageUrl = await handleImageUpload(file);
+      }
+
+      if (!finalImageUrl) {
+        toast({ title: "Xatolik", description: "Rasm URL kiriting", variant: "destructive" });
+        return;
+      }
+
+      await apiRequest("PATCH", `/api/sections/${selectedSection}`, {
+        imageUrl: finalImageUrl,
+      });
+
+      toast({ title: "Muvaffaqiyat", description: "Rasm qo'shildi" });
+      queryClient.invalidateQueries({ queryKey: [`/api/tests/${id}/sections`] });
+      setEditImageOpen(false);
+      setImageUrl("");
+      setSelectedSection("");
+    } catch (error: any) {
+      toast({ 
+        title: "Xatolik", 
+        description: error.message || "Rasm saqlanmadi", 
+        variant: "destructive" 
+      });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -263,6 +336,12 @@ export default function EditTest() {
                         });
                         setAddQuestionOpen(true);
                       }}
+                      onEditImage={(sectionId: string, currentImageUrl?: string) => {
+                        setSelectedSection(sectionId);
+                        setImageUrl(currentImageUrl || "");
+                        setImageUploadMethod("file");
+                        setEditImageOpen(true);
+                      }}
                     />
                   ))}
                 </div>
@@ -350,6 +429,74 @@ export default function EditTest() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={editImageOpen} onOpenChange={setEditImageOpen}>
+        <DialogContent data-testid="dialog-edit-image">
+          <DialogHeader>
+            <DialogTitle>Bo'lim uchun rasm yuklash</DialogTitle>
+            <DialogDescription>
+              Rasm barcha savollarda doimiy ko'rinib turadi
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Tabs value={imageUploadMethod} onValueChange={(v) => setImageUploadMethod(v as "file" | "url")}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="file" data-testid="tab-upload-file">
+                  Fayl yuklash
+                </TabsTrigger>
+                <TabsTrigger value="url" data-testid="tab-upload-url">
+                  URL orqali
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="file" className="space-y-4">
+                <div>
+                  <Label htmlFor="section-image-file">Rasm tanlang</Label>
+                  <Input
+                    id="section-image-file"
+                    type="file"
+                    accept="image/*"
+                    data-testid="input-image-file"
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    JPG, PNG, GIF, WEBP (max 5MB)
+                  </p>
+                </div>
+              </TabsContent>
+              
+              <TabsContent value="url" className="space-y-4">
+                <div>
+                  <Label htmlFor="section-image-url">Rasm URL</Label>
+                  <Input
+                    id="section-image-url"
+                    data-testid="input-image-url-direct"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    placeholder="https://example.com/image.jpg"
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Rasmning to'liq URL manzilini kiriting
+                  </p>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditImageOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button
+              onClick={handleSaveSectionImage}
+              disabled={uploadingImage}
+              data-testid="button-save-image"
+            >
+              {uploadingImage ? "Yuklanmoqda..." : "Saqlash"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={addQuestionOpen} onOpenChange={setAddQuestionOpen}>
         <DialogContent data-testid="dialog-add-question">
           <DialogHeader>
@@ -369,19 +516,6 @@ export default function EditTest() {
                 placeholder="Sizning ismingiz nima?"
                 rows={3}
               />
-            </div>
-            <div>
-              <Label htmlFor="image-url">Rasm URL (ixtiyoriy)</Label>
-              <Input
-                id="image-url"
-                data-testid="input-image-url"
-                value={newQuestion.imageUrl || ""}
-                onChange={(e) => setNewQuestion({ ...newQuestion, imageUrl: e.target.value || null })}
-                placeholder="https://example.com/image.jpg"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Bo'lim 1.2 va Bo'lim 2 uchun rasm yuklash mumkin
-              </p>
             </div>
             <div className="space-y-2">
               <Label className="text-sm font-medium">Timer sozlamalari (ixtiyoriy)</Label>
@@ -454,10 +588,12 @@ function SectionCard({
   section,
   index,
   onAddQuestion,
+  onEditImage,
 }: {
   section: TestSection & { questions?: Question[] };
   index: number;
   onAddQuestion: (questionCount: number) => void;
+  onEditImage: (sectionId: string, currentImageUrl?: string) => void;
 }) {
   const { data: questions = [] } = useQuery<Question[]>({
     queryKey: [`/api/sections/${section.id}/questions`],
@@ -467,12 +603,12 @@ function SectionCard({
     <Card data-testid={`card-section-${section.id}`}>
       <CardHeader>
         <div className="flex items-start justify-between">
-          <div>
+          <div className="flex-1">
             <CardTitle>
               Bo'lim {index + 1}: {section.title}
             </CardTitle>
             <CardDescription className="mt-2">{section.instructions}</CardDescription>
-            <div className="flex gap-4 mt-3 text-sm">
+            <div className="flex gap-4 mt-3 text-sm flex-wrap">
               <div className="flex items-center gap-1 text-muted-foreground">
                 <Clock className="h-3 w-3" />
                 <span>Tayyorgarlik: {section.preparationTime}s</span>
@@ -481,15 +617,48 @@ function SectionCard({
                 <Clock className="h-3 w-3" />
                 <span>Gapirish: {section.speakingTime}s</span>
               </div>
+              {section.imageUrl && (
+                <div className="flex items-center gap-1 text-primary">
+                  <Upload className="h-3 w-3" />
+                  <span>Rasm yuklangan</span>
+                </div>
+              )}
             </div>
           </div>
-          <Button size="sm" onClick={() => onAddQuestion(questions.length)} data-testid={`button-add-question-${section.id}`}>
-            <Plus className="h-4 w-4 mr-2" />
-            Savol qo'shish
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              size="sm" 
+              variant="outline"
+              onClick={() => onEditImage(section.id, section.imageUrl || undefined)} 
+              data-testid={`button-edit-image-${section.id}`}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {section.imageUrl ? "Rasmni o'zgartirish" : "Rasm qo'shish"}
+            </Button>
+            <Button size="sm" onClick={() => onAddQuestion(questions.length)} data-testid={`button-add-question-${section.id}`}>
+              <Plus className="h-4 w-4 mr-2" />
+              Savol qo'shish
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent>
+        {section.imageUrl && (
+          <div className="mb-4 p-3 rounded-md border bg-muted/30">
+            <p className="text-xs font-medium text-muted-foreground mb-2">Bo'lim rasmi (barcha savollarda ko'rinadi):</p>
+            <img 
+              src={section.imageUrl} 
+              alt="Bo'lim rasmi" 
+              className="w-full max-w-md rounded-md border"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+                e.currentTarget.nextElementSibling!.classList.remove('hidden');
+              }}
+            />
+            <p className="text-xs text-destructive mt-2 hidden">Rasmni yuklashda xatolik</p>
+          </div>
+        )}
+        
         {questions.length === 0 ? (
           <p className="text-sm text-muted-foreground text-center py-4">Hali savollar yo'q</p>
         ) : (
