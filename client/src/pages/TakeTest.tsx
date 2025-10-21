@@ -168,31 +168,50 @@ export default function TakeTest() {
   const totalQuestions = allQuestions.length;
   const progress = totalQuestions > 0 ? (completedQuestions / totalQuestions) * 100 : 0;
 
-  // Initialize section timer
+  // Initialize section timer with preparation phase
   useEffect(() => {
     if (currentSection && timeRemaining === 0) {
-      const timeLimit = currentSection.preparationTime + currentSection.speakingTime;
-      setTimeRemaining(timeLimit);
+      const prepTime = currentQuestion?.preparationTime || currentSection.preparationTime;
+      setTimeRemaining(prepTime);
+      setTestPhase('preparation');
     }
-  }, [currentSection, currentSectionIndex]);
+  }, [currentSection, currentSectionIndex, currentQuestionIndex]);
 
-  // Section timer countdown
+  // Section timer countdown with auto-progression
   useEffect(() => {
     if (timeRemaining > 0 && !isSubmitting) {
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
-    } else if (timeRemaining === 0 && currentSection && sectionQuestions.length > 0) {
-      // Time's up for this section - move to next
-      if (currentSectionIndex < sections.length - 1) {
-        handleNextSection();
+    } else if (timeRemaining === 0 && currentSection && currentQuestion) {
+      // Time's up - handle phase transition
+      if (testPhase === 'preparation') {
+        // Preparation done - start speaking phase
+        const speakTime = currentQuestion.speakingTime || currentSection.speakingTime;
+        setTimeRemaining(speakTime);
+        setTestPhase('speaking');
+        
+        // Auto-start recording
+        if (!isRecording) {
+          startRecording();
+        }
+      } else if (testPhase === 'speaking') {
+        // Speaking time done - auto stop recording and move to next
+        if (isRecording) {
+          stopRecording();
+        }
+        
+        // Auto-move to next question after short delay
+        setTimeout(() => {
+          handleNextQuestion();
+        }, 1000);
       }
     }
 
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, currentSection, isSubmitting]);
+  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording]);
 
   // Recording timer
   useEffect(() => {
@@ -610,6 +629,43 @@ export default function TakeTest() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8 max-w-4xl">
         <div className="space-y-6">
+          {/* Large Timer Display */}
+          <Card className="border-4 border-primary/30">
+            <CardContent className="pt-8 pb-8">
+              <div className="text-center space-y-4">
+                <div className="flex items-center justify-center gap-3 mb-2">
+                  <Badge variant={testPhase === 'preparation' ? 'secondary' : 'default'} className="text-base px-4 py-2">
+                    {testPhase === 'preparation' ? '📖 Tayyorgarlik' : '🎤 Gapirish'}
+                  </Badge>
+                  <Badge variant="outline" className="text-base px-4 py-2">
+                    Bo'lim {currentSection.displayNumber || currentSectionIndex + 1} - Savol {currentQuestionIndex + 1}/{sectionQuestions.length}
+                  </Badge>
+                </div>
+                
+                <div className="relative">
+                  <div className={`text-[120px] md:text-[160px] font-black leading-none tracking-tight font-mono ${
+                    timeRemaining < 30 ? 'text-destructive animate-pulse' : 
+                    testPhase === 'preparation' ? 'text-primary' : 'text-green-600 dark:text-green-400'
+                  }`} data-testid="text-timer-large">
+                    {formatTime(timeRemaining)}
+                  </div>
+                  <p className="text-lg text-muted-foreground mt-2">
+                    {testPhase === 'preparation' 
+                      ? 'Savol ustida o\'ylab, javob tayyorlang' 
+                      : 'Javobingizni aytib bering (yozilmoqda)'}
+                  </p>
+                </div>
+
+                {testPhase === 'speaking' && (
+                  <div className="flex items-center justify-center gap-2 mt-4">
+                    <div className="w-4 h-4 bg-destructive rounded-full animate-pulse"></div>
+                    <span className="text-sm font-medium">Ovoz yozilmoqda</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Section Info */}
           <Card>
             <CardHeader>
@@ -622,9 +678,6 @@ export default function TakeTest() {
                     </CardDescription>
                   )}
                 </div>
-                <Badge variant="outline">
-                  Bo'lim {currentSection.displayNumber || currentSectionIndex + 1}
-                </Badge>
               </div>
             </CardHeader>
           </Card>
@@ -702,10 +755,10 @@ export default function TakeTest() {
                 </div>
               )}
 
-              {/* Recording Section */}
+              {/* Recording Status */}
               <div className="space-y-4 p-6 bg-muted/30 rounded-lg border-2">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Audio javob</h3>
+                  <h3 className="text-sm font-semibold">Audio javob holati</h3>
                   {isRecording && (
                     <div className="flex items-center gap-2 text-destructive">
                       <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
@@ -714,72 +767,29 @@ export default function TakeTest() {
                   )}
                 </div>
 
-                {currentRecording && !isRecording ? (
+                {currentRecording ? (
                   <div className="space-y-3">
+                    <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                      <Check className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-900 dark:text-green-100">Javob yozildi</p>
+                        <p className="text-xs text-green-700 dark:text-green-300">Davomiyligi: {formatTime(currentRecording.duration)}</p>
+                      </div>
+                    </div>
                     <audio 
                       src={currentRecording.url || undefined} 
                       controls 
                       className="w-full"
                       data-testid="audio-playback"
                     />
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Davomiyligi: {formatTime(currentRecording.duration)}</span>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={startRecording}
-                        data-testid="button-rerecord"
-                      >
-                        Qayta yozish
-                      </Button>
-                    </div>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center gap-4 py-6">
-                    {!isRecording ? (
-                      <>
-                        <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Mic className="h-10 w-10 text-primary" />
-                        </div>
-                        <Button 
-                          size="lg" 
-                          onClick={startRecording}
-                          data-testid="button-start-recording"
-                        >
-                          <Mic className="h-4 w-4 mr-2" />
-                          Yozishni boshlash
-                        </Button>
-                        <p className="text-xs text-muted-foreground text-center">
-                          Mikrofon tugmasini bosing va javobingizni aytib bering
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-24 h-24 rounded-full bg-destructive/20 flex items-center justify-center animate-pulse">
-                          <MicOff className="h-12 w-12 text-destructive" />
-                        </div>
-                        <Button 
-                          size="lg" 
-                          variant="destructive"
-                          onClick={stopRecording}
-                          data-testid="button-stop-recording"
-                        >
-                          <Square className="h-4 w-4 mr-2" />
-                          Yozishni to'xtatish
-                        </Button>
-                        <p className="text-sm text-muted-foreground">
-                          Javobingizni gapiring...
-                        </p>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {!isQuestionAnswered && (
                   <Alert>
                     <AlertCircle className="h-4 w-4" />
                     <AlertDescription>
-                      Bu savolga javob berishni unutmang. Keyinroq qaytib kelishingiz mumkin.
+                      {testPhase === 'preparation' 
+                        ? 'Tayyorgarlik vaqti tugagach, avtomatik yozuv boshlanadi'
+                        : 'Javob avtomatik yozilmoqda...'}
                     </AlertDescription>
                   </Alert>
                 )}
@@ -787,50 +797,26 @@ export default function TakeTest() {
             </CardContent>
           </Card>
 
-          {/* Navigation */}
-          <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="outline"
-              onClick={handlePrevQuestion}
-              disabled={currentSectionIndex === 0 && currentQuestionIndex === 0}
-              data-testid="button-prev"
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              Oldingi
-            </Button>
-
-            <div className="text-sm text-muted-foreground">
+          {/* Auto-progression Info */}
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription className="flex items-center justify-between">
+              <span>
+                <strong>Avtomatik rejim:</strong> Vaqt tugagach keyingi savolga avtomatik o'tiladi
+              </span>
               {currentQuestionIndex === sectionQuestions.length - 1 && 
-               currentSectionIndex === sections.length - 1 ? (
-                <span className="font-medium text-primary">Oxirgi savol</span>
-              ) : (
-                <span>
-                  {currentQuestionIndex === sectionQuestions.length - 1
-                    ? "Keyingi bo'limga o'tish"
-                    : "Keyingi savol"}
-                </span>
+               currentSectionIndex === sections.length - 1 && (
+                <Button
+                  onClick={submitTest}
+                  disabled={isSubmitting}
+                  size="sm"
+                  data-testid="button-submit-test"
+                >
+                  {isSubmitting ? "Yuklanmoqda..." : "Testni topshirish"}
+                </Button>
               )}
-            </div>
-
-            {currentQuestionIndex === sectionQuestions.length - 1 && 
-             currentSectionIndex === sections.length - 1 ? (
-              <Button
-                onClick={submitTest}
-                disabled={isSubmitting}
-                data-testid="button-submit-test"
-              >
-                {isSubmitting ? "Yuklanmoqda..." : "Testni topshirish"}
-              </Button>
-            ) : (
-              <Button
-                onClick={handleNextQuestion}
-                data-testid="button-next"
-              >
-                Keyingi
-                <ChevronRight className="h-4 w-4 ml-2" />
-              </Button>
-            )}
-          </div>
+            </AlertDescription>
+          </Alert>
         </div>
       </main>
     </div>
