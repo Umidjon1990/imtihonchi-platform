@@ -325,6 +325,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = insertTestSectionSchema.parse(req.body);
+      
+      // Validate parent section if provided
+      if (data.parentSectionId) {
+        const parentSection = await storage.getSectionsByTestId(data.testId);
+        const parent = parentSection.find(s => s.id === data.parentSectionId);
+        
+        if (!parent) {
+          return res.status(400).json({ message: "Parent bo'lim topilmadi" });
+        }
+        
+        // Ensure parent belongs to the same test
+        if (parent.testId !== data.testId) {
+          return res.status(400).json({ message: "Parent bo'lim boshqa testga tegishli" });
+        }
+      }
+      
       const section = await storage.createSection(data);
       res.json(section);
     } catch (error: any) {
