@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
+import { Client } from "@replit/object-storage";
 import { generateCertificate } from "./utils/certificate";
 import { 
   insertTestCategorySchema,
@@ -16,21 +16,12 @@ import {
   insertResultSchema,
 } from "@shared/schema";
 
-// Configure multer for receipt uploads
+// Initialize Replit Object Storage client
+const objectStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
+
+// Configure multer for receipt uploads (memory storage)
 const uploadReceipt = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads";
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueName = `receipt-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
-      cb(null, uniqueName);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png/;
@@ -45,21 +36,9 @@ const uploadReceipt = multer({
   },
 });
 
-// Configure multer for audio uploads
+// Configure multer for audio uploads (memory storage)
 const uploadAudio = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = process.env.PRIVATE_OBJECT_DIR || "/tmp/audio-uploads";
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueName = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
-      cb(null, uniqueName);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for audio
   fileFilter: (req, file, cb) => {
     const allowedTypes = /webm|mp3|wav|ogg/;
@@ -75,21 +54,9 @@ const uploadAudio = multer({
   },
 });
 
-// Configure multer for section image uploads
+// Configure multer for section image uploads (memory storage)
 const uploadSectionImage = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images";
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      const uniqueName = `section-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
-      cb(null, uniqueName);
-    },
-  }),
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit for images
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
@@ -376,7 +343,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      const url = `/api/section-images/${req.file.filename}`;
+      // Upload to object storage
+      const uniqueName = `section-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(req.file.originalname)}`;
+      const objectKey = `.private/${uniqueName}`;
+      await objectStorage.uploadFromBytes(objectKey, req.file.buffer);
+      
+      const url = `/api/section-images/${uniqueName}`;
       res.json({ url });
     } catch (error: any) {
       console.error("Error uploading section image:", error);
@@ -387,17 +359,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get section image
   app.get("/api/section-images/:filename", async (req, res) => {
     try {
-      const filePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images", req.params.filename);
-      
       // Security: prevent path traversal
       const basename = path.basename(req.params.filename);
-      const safePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images", basename);
+      const objectKey = `.private/${basename}`;
+      const result = await objectStorage.downloadAsBytes(objectKey);
       
-      if (!fs.existsSync(safePath)) {
+      if (!result.ok) {
         return res.status(404).json({ message: "Rasm topilmadi" });
       }
 
-      res.sendFile(safePath);
+      const [fileData] = result.value;
+
+      // Determine content type from filename
+      const ext = path.extname(basename).toLowerCase();
+      const contentType = ext === '.png' ? 'image/png' : 
+                         ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' :
+                         ext === '.gif' ? 'image/gif' :
+                         ext === '.webp' ? 'image/webp' : 'application/octet-stream';
+      
+      res.setHeader('Content-Type', contentType);
+      res.send(fileData);
     } catch (error: any) {
       console.error("Error getting section image:", error);
       res.status(500).json({ message: error.message || "Rasmni olishda xatolik" });
@@ -494,8 +475,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      // Return the file path relative to PRIVATE_OBJECT_DIR
-      const url = `/api/receipts/${req.file.filename}`;
+      // Upload to object storage
+      const uniqueName = `receipt-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(req.file.originalname)}`;
+      const objectKey = `.private/${uniqueName}`;
+      await objectStorage.uploadFromBytes(objectKey, req.file.buffer);
+      
+      const url = `/api/receipts/${uniqueName}`;
       res.json({ url });
     } catch (error: any) {
       console.error("Error uploading receipt:", error);
@@ -510,12 +495,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
-      const filePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads", req.params.filename);
-      if (!fs.existsSync(filePath)) {
+      const basename = path.basename(req.params.filename);
+      const objectKey = `.private/${basename}`;
+      const result = await objectStorage.downloadAsBytes(objectKey);
+      
+      if (!result.ok) {
         return res.status(404).json({ message: "Fayl topilmadi" });
       }
 
-      res.sendFile(filePath);
+      const [fileData] = result.value;
+
+      const ext = path.extname(basename).toLowerCase();
+      const contentType = ext === '.png' ? 'image/png' : 
+                         ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg' : 'application/octet-stream';
+      
+      res.setHeader('Content-Type', contentType);
+      res.send(fileData);
     } catch (error: any) {
       console.error("Error getting receipt:", error);
       res.status(500).json({ message: error.message || "Chekni olishda xatolik" });
@@ -528,8 +523,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      // Return the file path relative to audio upload dir
-      const url = `/api/audio/${req.file.filename}`;
+      // Upload to object storage
+      const uniqueName = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(req.file.originalname)}`;
+      const objectKey = `.private/${uniqueName}`;
+      await objectStorage.uploadFromBytes(objectKey, req.file.buffer);
+      
+      const url = `/api/audio/${uniqueName}`;
       res.json({ url });
     } catch (error: any) {
       console.error("Error uploading audio:", error);
@@ -544,12 +543,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
-      const filePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/audio-uploads", req.params.filename);
-      if (!fs.existsSync(filePath)) {
+      const basename = path.basename(req.params.filename);
+      const objectKey = `.private/${basename}`;
+      const result = await objectStorage.downloadAsBytes(objectKey);
+      
+      if (!result.ok) {
         return res.status(404).json({ message: "Fayl topilmadi" });
       }
 
-      res.sendFile(filePath);
+      const [fileData] = result.value;
+
+      const ext = path.extname(basename).toLowerCase();
+      const contentType = ext === '.webm' ? 'audio/webm' : 
+                         ext === '.mp3' ? 'audio/mpeg' :
+                         ext === '.wav' ? 'audio/wav' :
+                         ext === '.ogg' ? 'audio/ogg' : 'application/octet-stream';
+      
+      res.setHeader('Content-Type', contentType);
+      res.send(fileData);
     } catch (error: any) {
       console.error("Error getting audio:", error);
       res.status(500).json({ message: error.message || "Audio olishda xatolik" });
@@ -774,25 +785,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Sanitize filename to prevent path traversal
       const filename = path.basename(req.params.filename);
-      const certificatesDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp", "certificates");
-      const filePath = path.join(certificatesDir, filename);
+      const objectKey = `.private/certificates/${filename}`;
       
-      // Verify the resolved path is within certificatesDir
-      const resolvedPath = path.resolve(filePath);
-      const resolvedDir = path.resolve(certificatesDir);
-      if (!resolvedPath.startsWith(resolvedDir)) {
-        return res.status(403).json({ message: "Ruxsat berilmagan" });
-      }
-
-      if (!fs.existsSync(filePath)) {
+      const result = await objectStorage.downloadAsBytes(objectKey);
+      
+      if (!result.ok) {
         return res.status(404).json({ message: "Sertifikat topilmadi" });
       }
 
+      const [fileData] = result.value;
+
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      
-      const fileStream = fs.createReadStream(filePath);
-      fileStream.pipe(res);
+      res.send(fileData);
     } catch (error) {
       console.error("Error serving certificate:", error);
       res.status(500).json({ message: "Sertifikatni yuklashda xatolik" });

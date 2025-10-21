@@ -1,6 +1,5 @@
 import PDFDocument from "pdfkit";
-import * as fs from "fs";
-import * as path from "path";
+import { Client } from "@replit/object-storage";
 
 interface CertificateData {
   studentName: string;
@@ -11,6 +10,8 @@ interface CertificateData {
   teacherName: string;
 }
 
+const objectStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
+
 export async function generateCertificate(data: CertificateData): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
@@ -20,25 +21,26 @@ export async function generateCertificate(data: CertificateData): Promise<string
         margins: { top: 50, bottom: 50, left: 50, right: 50 }
       });
 
-      // Create certificates directory
-      const certificatesDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp", "certificates");
-      if (!fs.existsSync(certificatesDir)) {
-        fs.mkdirSync(certificatesDir, { recursive: true });
-      }
-
       const fileName = `certificate-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
-      const filePath = path.join(certificatesDir, fileName);
+      const objectKey = `.private/certificates/${fileName}`;
       const publicPath = `/api/certificates/${fileName}`;
 
-      const writeStream = fs.createWriteStream(filePath);
-
-      doc.pipe(writeStream);
-
-      writeStream.on('finish', () => {
-        resolve(publicPath);
+      // Collect PDF chunks in memory
+      const chunks: Buffer[] = [];
+      
+      doc.on('data', (chunk) => {
+        chunks.push(chunk);
       });
 
-      writeStream.on('error', reject);
+      doc.on('end', async () => {
+        try {
+          const pdfBuffer = Buffer.concat(chunks);
+          await objectStorage.uploadFromBytes(objectKey, pdfBuffer);
+          resolve(publicPath);
+        } catch (error) {
+          reject(error);
+        }
+      });
 
       doc.on('error', reject);
 
