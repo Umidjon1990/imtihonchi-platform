@@ -110,6 +110,11 @@ export default function TakeTest() {
   const recordingStartTimeRef = useRef<number | null>(null);
   const recordingQuestionIdRef = useRef<string | null>(null);
   const autoProgressQueuedRef = useRef<boolean>(false);
+  
+  // Wave visualization refs
+  const analyzerRef = useRef<AnalyserNode | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
     queryKey: ["/api/purchases", purchaseId],
@@ -172,14 +177,14 @@ export default function TakeTest() {
 
   // Initialize section timer with preparation phase
   useEffect(() => {
-    if (currentSection && timeRemaining === 0) {
-      const prepTime = currentQuestion?.preparationTime || currentSection.preparationTime;
+    if (currentSection && currentQuestion && timeRemaining === 0) {
+      const prepTime = currentQuestion.preparationTime || currentSection.preparationTime;
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [currentSection, currentSectionIndex, currentQuestionIndex]);
+  }, [currentSection, currentQuestion, currentSectionIndex, currentQuestionIndex]);
 
   // Section timer countdown with auto-progression
   useEffect(() => {
@@ -242,11 +247,92 @@ export default function TakeTest() {
     };
   }, [isRecording]);
 
+  // Start wave visualization when canvas is ready
+  useEffect(() => {
+    if ((isRecording || isMicTesting) && analyzerRef.current && canvasRef.current) {
+      drawWaveform();
+      // Only cleanup if we actually started the waveform
+      return () => {
+        stopWaveform();
+      };
+    }
+  }, [isRecording, isMicTesting]);
+
+  // Wave visualization
+  const drawWaveform = () => {
+    if (!analyzerRef.current || !canvasRef.current) return;
+    
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const analyzer = analyzerRef.current;
+    const bufferLength = analyzer.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    const draw = () => {
+      animationFrameRef.current = requestAnimationFrame(draw);
+      analyzer.getByteTimeDomainData(dataArray);
+
+      // Clear canvas with fade effect
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw wave
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'hsl(var(--primary))';
+      ctx.beginPath();
+
+      const sliceWidth = canvas.width / bufferLength;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const v = dataArray[i] / 128.0;
+        const y = (v * canvas.height) / 2;
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+      }
+
+      ctx.lineTo(canvas.width, canvas.height / 2);
+      ctx.stroke();
+    };
+
+    draw();
+  };
+
+  const stopWaveform = () => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      }
+    }
+    analyzerRef.current = null;
+  };
+
   // Mikrofon test uchun recording
   const startMicTest = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
+      
+      // Setup Web Audio API for wave visualization
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 2048;
+      source.connect(analyzer);
+      analyzerRef.current = analyzer;
       
       audioChunksRef.current = [];
       recordingStartTimeRef.current = Date.now();
@@ -269,6 +355,8 @@ export default function TakeTest() {
         });
         
         stream.getTracks().forEach(track => track.stop());
+        audioContext.close();
+        stopWaveform();
         recordingStartTimeRef.current = null;
       };
       
@@ -288,6 +376,7 @@ export default function TakeTest() {
     if (mediaRecorderRef.current && isMicTesting) {
       mediaRecorderRef.current.stop();
       setIsMicTesting(false);
+      stopWaveform();
     }
   };
 
@@ -297,6 +386,14 @@ export default function TakeTest() {
       
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
+      
+      // Setup Web Audio API for wave visualization
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyzer = audioContext.createAnalyser();
+      analyzer.fftSize = 2048;
+      source.connect(analyzer);
+      analyzerRef.current = analyzer;
       
       audioChunksRef.current = [];
       recordingStartTimeRef.current = Date.now();
@@ -328,6 +425,8 @@ export default function TakeTest() {
         }
         
         stream.getTracks().forEach(track => track.stop());
+        audioContext.close();
+        stopWaveform();
         recordingStartTimeRef.current = null;
         recordingQuestionIdRef.current = null;
       };
@@ -357,12 +456,14 @@ export default function TakeTest() {
             originalOnStop.call(recorder, event);
           }
           setIsRecording(false);
+          stopWaveform();
           resolve();
         };
         
         recorder.stop();
       } else {
         setIsRecording(false);
+        stopWaveform();
         resolve();
       }
     });
@@ -547,11 +648,22 @@ export default function TakeTest() {
                     </Button>
                   </div>
                 ) : isMicTesting ? (
-                  <div className="text-center space-y-4">
+                  <div className="text-center space-y-4 w-full">
                     <div className="w-20 h-20 mx-auto bg-destructive/10 rounded-full flex items-center justify-center animate-pulse">
                       <Mic className="h-10 w-10 text-destructive" />
                     </div>
                     <p className="text-lg font-medium">Yozilmoqda... Matnni o'qing</p>
+                    
+                    {/* Wave visualization canvas */}
+                    <div className="w-full bg-background border-2 rounded-lg overflow-hidden">
+                      <canvas 
+                        ref={canvasRef}
+                        width={600}
+                        height={120}
+                        className="w-full h-[120px]"
+                      />
+                    </div>
+                    
                     <p className="text-4xl font-mono font-bold text-primary">{recordingTime}s</p>
                     <Button onClick={stopMicTest} variant="destructive" size="lg">
                       <Square className="h-5 w-5 mr-2" />
@@ -841,6 +953,18 @@ export default function TakeTest() {
                     </div>
                   )}
                 </div>
+
+                {/* Wave visualization during recording */}
+                {isRecording && (
+                  <div className="w-full bg-background border-2 rounded-lg overflow-hidden">
+                    <canvas 
+                      ref={canvasRef}
+                      width={800}
+                      height={120}
+                      className="w-full h-[120px]"
+                    />
+                  </div>
+                )}
 
                 {currentRecording ? (
                   <div className="space-y-3">
