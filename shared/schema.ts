@@ -57,12 +57,13 @@ export const tests = pgTable("tests", {
 export const testSections = pgTable("test_sections", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   testId: varchar("test_id").notNull(),
-  sectionNumber: integer("section_number").notNull(),
+  parentSectionId: varchar("parent_section_id"), // null for root sections, otherwise reference to parent section
+  sectionNumber: integer("section_number").notNull(), // ordering within parent level
   title: text("title").notNull(),
   instructions: text("instructions"),
   preparationTime: integer("preparation_time").notNull(), // in seconds
   speakingTime: integer("speaking_time").notNull(), // in seconds
-  imageUrl: text("image_url"), // Section-level image for 1.2 and Section 2
+  imageUrl: text("image_url"), // Section-level image
 });
 
 export const questions = pgTable("questions", {
