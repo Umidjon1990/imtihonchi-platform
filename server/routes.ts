@@ -15,8 +15,8 @@ import {
   insertResultSchema,
 } from "@shared/schema";
 
-// Configure multer for file uploads
-const upload = multer({
+// Configure multer for receipt uploads
+const uploadReceipt = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
       const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads");
@@ -40,6 +40,36 @@ const upload = multer({
       cb(null, true);
     } else {
       cb(new Error("Faqat JPG, JPEG, PNG formatdagi fayllar qabul qilinadi"));
+    }
+  },
+});
+
+// Configure multer for audio uploads
+const uploadAudio = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/audio-uploads");
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit for audio
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /webm|mp3|wav|ogg/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetypeTest = allowedTypes.test(file.mimetype);
+    const isAudio = file.mimetype.includes('audio') || file.mimetype.includes('webm');
+    
+    if (extname || mimetypeTest || isAudio) {
+      cb(null, true);
+    } else {
+      cb(new Error("Faqat audio formatdagi fayllar qabul qilinadi"));
     }
   },
 });
@@ -272,7 +302,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upload-receipt", isAuthenticated, upload.single("file"), async (req: any, res) => {
+  app.post("/api/upload-receipt", isAuthenticated, uploadReceipt.single("file"), async (req: any, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
@@ -303,6 +333,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error getting receipt:", error);
       res.status(500).json({ message: error.message || "Chekni olishda xatolik" });
+    }
+  });
+
+  app.post("/api/upload-audio", isAuthenticated, uploadAudio.single("file"), async (req: any, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Fayl tanlanmagan" });
+      }
+      
+      // Return the file path relative to audio upload dir
+      const url = `/api/audio/${req.file.filename}`;
+      res.json({ url });
+    } catch (error: any) {
+      console.error("Error uploading audio:", error);
+      res.status(500).json({ message: error.message || "Audio yuklashda xatolik" });
+    }
+  });
+
+  app.get("/api/audio/:filename", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (!user) {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const filePath = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/audio-uploads", req.params.filename);
+      if (!fs.existsSync(filePath)) {
+        return res.status(404).json({ message: "Fayl topilmadi" });
+      }
+
+      res.sendFile(filePath);
+    } catch (error: any) {
+      console.error("Error getting audio:", error);
+      res.status(500).json({ message: error.message || "Audio olishda xatolik" });
     }
   });
 
