@@ -20,7 +20,7 @@ import {
 const uploadReceipt = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads");
+      const uploadDir = process.env.PRIVATE_OBJECT_DIR || "/tmp/uploads";
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -49,7 +49,7 @@ const uploadReceipt = multer({
 const uploadAudio = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/audio-uploads");
+      const uploadDir = process.env.PRIVATE_OBJECT_DIR || "/tmp/audio-uploads";
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
@@ -79,7 +79,7 @@ const uploadAudio = multer({
 const uploadSectionImage = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
-      const uploadDir = path.join(process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images");
+      const uploadDir = process.env.PRIVATE_OBJECT_DIR || "/tmp/section-images";
       if (!fs.existsSync(uploadDir)) {
         fs.mkdirSync(uploadDir, { recursive: true });
       }
