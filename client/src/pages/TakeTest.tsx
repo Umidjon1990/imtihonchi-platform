@@ -650,6 +650,12 @@ export default function TakeTest() {
         // Mark auto-progress as queued to prevent re-triggers
         autoProgressQueuedRef.current = true;
         
+        // Capture current state to avoid stale closure
+        const currentQIdx = currentQuestionIndex;
+        const sectionQLength = sectionQuestions.length;
+        const currentSecIdx = currentSectionIndex;
+        const totalSec = sections.length;
+        
         // Speaking time done - stop recording and move to next directly
         const progressToNext = async () => {
           console.log('🛑 [AUTO] Stopping recording...');
@@ -663,21 +669,23 @@ export default function TakeTest() {
           await new Promise(resolve => setTimeout(resolve, 300));
           
           console.log('➡️ [AUTO] Moving to next question:', {
-            currentQuestionIndex,
-            sectionQuestionsLength: sectionQuestions.length,
-            currentSectionIndex,
-            totalSections: sections.length,
+            currentQuestionIndex: currentQIdx,
+            sectionQuestionsLength: sectionQLength,
+            currentSectionIndex: currentSecIdx,
+            totalSections: totalSec,
             currentSectionId: currentSection?.id,
             currentSectionTitle: currentSection?.title
           });
           
-          // Move to next question directly
-          if (currentQuestionIndex < sectionQuestions.length - 1) {
-            console.log(`➡️ Next question in same section (${currentQuestionIndex + 1} → ${currentQuestionIndex + 2})`);
-            setCurrentQuestionIndex(prev => prev + 1);
-          } else if (currentSectionIndex < sections.length - 1) {
-            console.log(`➡️ Next section (${currentSectionIndex + 1} → ${currentSectionIndex + 2})`);
-            setCurrentSectionIndex(prev => prev + 1);
+          // Move to next question directly - use captured state
+          if (currentQIdx < sectionQLength - 1) {
+            const nextIdx = currentQIdx + 1;
+            console.log(`➡️ Next question in same section (${currentQIdx} → ${nextIdx})`);
+            setCurrentQuestionIndex(nextIdx);
+          } else if (currentSecIdx < totalSec - 1) {
+            const nextSecIdx = currentSecIdx + 1;
+            console.log(`➡️ Next section (${currentSecIdx} → ${nextSecIdx})`);
+            setCurrentSectionIndex(nextSecIdx);
             setCurrentQuestionIndex(0);
           } else {
             console.log('✅ Test complete!');
@@ -691,7 +699,7 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted, currentQuestionIndex, sectionQuestions.length, currentSectionIndex, sections.length]);
+  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
