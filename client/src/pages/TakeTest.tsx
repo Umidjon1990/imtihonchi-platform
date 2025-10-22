@@ -411,19 +411,10 @@ export default function TakeTest() {
         throw new Error('Purchase yoki test ID topilmadi');
       }
 
-      const response = await apiRequest("/api/submissions", {
-        method: "POST",
-        body: JSON.stringify({
-          purchaseId: purchase.id,
-          testId: test.id,
-        }),
+      const response = await apiRequest("POST", "/api/submissions", {
+        purchaseId: purchase.id,
+        testId: test.id,
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error('❌ Server error:', errorData);
-        throw new Error(errorData.message || 'Server xatosi');
-      }
 
       const submission = await response.json();
       setSubmissionId(submission.id);
@@ -469,17 +460,10 @@ export default function TakeTest() {
       console.log('✅ Audio uploaded:', filename);
 
       // Save answer to database
-      const answerResponse = await apiRequest(`/api/submissions/${currentSubmissionId}/answer`, {
-        method: 'POST',
-        body: JSON.stringify({
-          questionId,
-          audioFile: filename,
-        }),
+      const answerResponse = await apiRequest("POST", `/api/submissions/${currentSubmissionId}/answer`, {
+        questionId,
+        audioFile: filename,
       });
-
-      if (!answerResponse.ok) {
-        throw new Error('Answer submission failed');
-      }
 
       console.log('✅ Answer saved to database');
     } catch (error) {
@@ -798,9 +782,7 @@ export default function TakeTest() {
             const currentSubmissionId = submissionIdRef.current;
             if (currentSubmissionId) {
               try {
-                await apiRequest(`/api/submissions/${currentSubmissionId}/complete`, {
-                  method: 'POST',
-                });
+                await apiRequest("POST", `/api/submissions/${currentSubmissionId}/complete`);
                 console.log('✅ Submission completed');
                 
                 // Navigate to student dashboard after a short delay
