@@ -404,7 +404,12 @@ export default function TakeTest() {
   // Create submission when test starts
   const createSubmission = async () => {
     try {
-      if (!purchase?.id || !test?.id) return;
+      console.log('🚀 Creating submission...', { purchaseId: purchase?.id, testId: test?.id });
+      
+      if (!purchase?.id || !test?.id) {
+        console.error('❌ Missing purchase or test ID', { purchase, test });
+        throw new Error('Purchase yoki test ID topilmadi');
+      }
 
       const response = await apiRequest("/api/submissions", {
         method: "POST",
@@ -413,6 +418,12 @@ export default function TakeTest() {
           testId: test.id,
         }),
       });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Server error:', errorData);
+        throw new Error(errorData.message || 'Server xatosi');
+      }
 
       const submission = await response.json();
       setSubmissionId(submission.id);
@@ -423,7 +434,7 @@ export default function TakeTest() {
       console.error('❌ Error creating submission:', error);
       toast({
         title: "Xatolik",
-        description: "Topshiriqni boshlashda xatolik yuz berdi",
+        description: error instanceof Error ? error.message : "Topshiriqni boshlashda xatolik yuz berdi",
         variant: "destructive",
       });
       throw error;
