@@ -25,6 +25,7 @@ export default function TeacherDashboard() {
     title: "",
     description: "",
     price: 0,
+    language: "ar" as "ar" | "en",
   });
 
   const { data: tests = [], isLoading: testsLoading } = useQuery<Test[]>({
@@ -98,7 +99,7 @@ export default function TeacherDashboard() {
 
       queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
       setCreateDialogOpen(false);
-      setNewTest({ categoryId: "", title: "", description: "", price: 0 });
+      setNewTest({ categoryId: "", title: "", description: "", price: 0, language: "ar" });
     } catch (error: any) {
       toast({
         title: "Xatolik",
@@ -462,6 +463,21 @@ export default function TeacherDashboard() {
                 onChange={(e) => setNewTest({ ...newTest, price: parseInt(e.target.value) || 0 })}
                 placeholder="50000"
               />
+            </div>
+            <div>
+              <Label htmlFor="language">Test tili</Label>
+              <Select 
+                value={newTest.language} 
+                onValueChange={(value: "ar" | "en") => setNewTest({ ...newTest, language: value })}
+              >
+                <SelectTrigger id="language" data-testid="select-language">
+                  <SelectValue placeholder="Tilni tanlang" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ar">Arab tili 🇸🇦</SelectItem>
+                  <SelectItem value="en">Ingliz tili 🇬🇧</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
