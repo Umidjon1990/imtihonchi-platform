@@ -124,6 +124,7 @@ export default function TakeTest() {
   // Use a flat list approach - single global question index
   const [globalQuestionIndex, setGlobalQuestionIndex] = useState(0);
   const globalQuestionIndexRef = useRef(0); // Track current index in ref to avoid stale closures
+  const flatQuestionListRef = useRef<any[]>([]); // Track flat list in ref to avoid re-renders
   const [recordings, setRecordings] = useState<{ [questionId: string]: AudioRecording }>({});
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -567,10 +568,14 @@ export default function TakeTest() {
     }
   };
 
-  // Sync ref with state - CRITICAL for avoiding stale closures
+  // Sync refs with state - CRITICAL for avoiding stale closures
   useEffect(() => {
     globalQuestionIndexRef.current = globalQuestionIndex;
   }, [globalQuestionIndex]);
+  
+  useEffect(() => {
+    flatQuestionListRef.current = flatQuestionList;
+  }, [flatQuestionList]);
 
   // Initialize section timer - run ONLY after mic test AND when question changes
   useEffect(() => {
@@ -603,12 +608,16 @@ export default function TakeTest() {
       }, 1000);
     } else if (timeRemaining === 0 && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
-      // Use ref to get current index (avoids stale closure)
+      // Use REFS to get current values (avoids stale closure AND re-renders)
       const currentIdx = globalQuestionIndexRef.current;
-      const question = flatQuestionList[currentIdx];
-      if (!question) return;
+      const currentFlatList = flatQuestionListRef.current;
+      const question = currentFlatList[currentIdx];
+      if (!question) {
+        console.log(`⚠️ [TIMER HIT 0] No question found at index ${currentIdx}`);
+        return;
+      }
       
-      console.log(`⏰ [TIMER HIT 0] Current index from ref: ${currentIdx}, Phase: ${testPhase}`);
+      console.log(`⏰ [TIMER HIT 0] Current index from ref: ${currentIdx}/${currentFlatList.length}, Phase: ${testPhase}, Question: ${question.questionText.substring(0, 30)}`);
       
       if (testPhase === 'preparation') {
         console.log('⏰ [PHASE] Preparation done, switching to speaking');
@@ -670,9 +679,10 @@ export default function TakeTest() {
           // Wait a bit for recording to save
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          // Use ref to get current index
+          // Use refs to get current values
           const currentIdxBeforeUpdate = globalQuestionIndexRef.current;
-          console.log(`➡️ [AUTO] Moving to next question: ${currentIdxBeforeUpdate} → ${currentIdxBeforeUpdate + 1} (total: ${flatQuestionList.length})`);
+          const totalQuestions = flatQuestionListRef.current.length;
+          console.log(`➡️ [AUTO] Moving to next question: ${currentIdxBeforeUpdate} → ${currentIdxBeforeUpdate + 1} (total: ${totalQuestions})`);
           
           // Move to next question in flat list - NO SKIP!
           setGlobalQuestionIndex(prevIdx => {
@@ -689,9 +699,9 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-    // CRITICAL: Do NOT include globalQuestionIndex in deps - it causes double progression!
-    // We read it directly from closure which is safe
-  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted, flatQuestionList]);
+    // CRITICAL: Do NOT include globalQuestionIndex or flatQuestionList in deps!
+    // They cause double progression when they change. We use refs instead.
+  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
