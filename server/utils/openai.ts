@@ -99,7 +99,7 @@ JSON formatda javob bering:
       messages: [
         {
           role: "system",
-          content: "Siz CEFR og'zaki baholash bo'yicha professional mutaxassissiz. Talabalarni rag'batlantiruvchi va konstruktiv baholaysiz. Javoblaringiz o'zbek tilida bo'lishi kerak."
+          content: "You are a CEFR speaking assessment expert. You evaluate students learning English. Your responses must be in Uzbek language and MUST be valid JSON format with all required fields."
         },
         {
           role: "user",
@@ -110,18 +110,22 @@ JSON formatda javob bering:
       response_format: { type: "json_object" }
     });
 
-    const result = JSON.parse(completion.choices[0].message.content || "{}");
+    const responseContent = completion.choices[0].message.content || "{}";
+    console.log("GPT-4o response:", responseContent);
     
+    const result = JSON.parse(responseContent);
+    
+    // Ensure all fields exist with defaults
     return {
-      vocabularyScore: result.vocabularyScore || 0,
-      vocabularyFeedback: result.vocabularyFeedback || "",
-      grammarScore: result.grammarScore || 0,
-      grammarFeedback: result.grammarFeedback || "",
-      coherenceScore: result.coherenceScore || 0,
-      coherenceFeedback: result.coherenceFeedback || "",
-      overallFeedback: result.overallFeedback || "",
-      suggestedScore: result.suggestedScore || 0,
-      suggestedCefrLevel: result.suggestedCefrLevel || "A1",
+      vocabularyScore: Number(result.vocabularyScore) || 0,
+      vocabularyFeedback: String(result.vocabularyFeedback || "So'z boyligi baholanmadi"),
+      grammarScore: Number(result.grammarScore) || 0,
+      grammarFeedback: String(result.grammarFeedback || "Grammatika baholanmadi"),
+      coherenceScore: Number(result.coherenceScore) || 0,
+      coherenceFeedback: String(result.coherenceFeedback || "Izchillik baholanmadi"),
+      overallFeedback: String(result.overallFeedback || "Umumiy xulosa berilmadi"),
+      suggestedScore: Number(result.suggestedScore) || 0,
+      suggestedCefrLevel: String(result.suggestedCefrLevel || "A1"),
     };
   } catch (error) {
     console.error("GPT evaluation error:", error);
