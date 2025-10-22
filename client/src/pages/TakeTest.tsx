@@ -576,14 +576,23 @@ export default function TakeTest() {
         
         // Speaking time done - auto stop recording and move to next
         const handleAutoProgress = async () => {
+          console.log('🛑 [AUTO] About to stop recording, isRecording:', isRecording);
           if (isRecording) {
             console.log('🛑 [AUTO] Stopping recording');
             await stopRecording();
+            console.log('✅ [AUTO] Recording stopped');
           }
           
           // Auto-move to next question after stop completes
+          console.log('⏰ [AUTO] Waiting 500ms before calling handleNextQuestion');
           setTimeout(() => {
-            console.log('➡️ [AUTO] Calling handleNextQuestion');
+            console.log('➡️ [AUTO] NOW calling handleNextQuestion');
+            console.log('Current state:', {
+              currentQuestionIndex,
+              sectionQuestionsLength: sectionQuestions.length,
+              currentSectionIndex,
+              sectionsLength: sections.length
+            });
             handleNextQuestion();
           }, 500);
         };
