@@ -531,40 +531,32 @@ export default function TakeTest() {
     }
   };
 
-  // Initialize section timer with preparation phase - ONLY when mic test completes OR question/section changes
+  // Initialize section timer - run ONLY after mic test AND when question changes
   useEffect(() => {
-    // CRITICAL: Only run this effect AFTER mic test is completed
+    // Skip completely if mic test not done yet
     if (!micTestCompleted) return;
     
     // Initialize timer for new question
     if (currentSection && currentQuestion) {
-      console.log(`🔄 [Timer Init] Question ${currentQuestionIndex + 1}, Section ${currentSectionIndex + 1}`);
       const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
-      console.log(`⏱️ [Timer Init] Preparation time: ${prepTime}s`);
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
-      // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
+  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex]);
 
-  // Section timer countdown with auto-progression
+  // Timer countdown - run ONLY after mic test
   useEffect(() => {
-    // CRITICAL: Only countdown after mic test is completed
-    if (!micTestCompleted) {
-      console.log('⏸️ [Timer Countdown] Blocked - mic test not completed');
-      return;
-    }
+    // Absolutely block all timer activity before mic test completes
+    if (!micTestCompleted) return;
     
     if (timeRemaining > 0 && !isSubmitting) {
-      console.log(`⏱️ [Timer Countdown] ${timeRemaining}s remaining (${testPhase})`);
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
     } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
-        console.log('⏰ Preparation phase complete, starting speaking phase');
         // Preparation done - start speaking phase
         const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
         setTimeRemaining(speakTime);
@@ -572,24 +564,20 @@ export default function TakeTest() {
         
         // Auto-start recording
         if (!isRecording) {
-          console.log('🎤 Auto-starting recording');
           startRecording();
         }
       } else if (testPhase === 'speaking') {
-        console.log('⏰ Speaking phase complete, auto-progressing to next question');
         // Mark auto-progress as queued to prevent re-triggers
         autoProgressQueuedRef.current = true;
         
         // Speaking time done - auto stop recording and move to next
         const handleAutoProgress = async () => {
           if (isRecording) {
-            console.log('🛑 Stopping recording before progression');
             await stopRecording();
           }
           
           // Auto-move to next question after stop completes
           setTimeout(() => {
-            console.log('➡️ Moving to next question');
             handleNextQuestion();
           }, 500);
         };
