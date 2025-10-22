@@ -1022,6 +1022,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(existingEvaluation);
       }
 
+      // Get test to determine language
+      const test = await storage.getTestById(submission.testId);
+      if (!test) {
+        return res.status(404).json({ message: "Test topilmadi" });
+      }
+
       // Get all transcripts
       const answers = await storage.getSubmissionAnswers(req.params.id);
       const transcripts = answers
@@ -1035,8 +1041,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // Evaluate using GPT-4o
-      const evaluation = await evaluateSpeaking(transcripts);
+      // Evaluate using GPT-4o with test language
+      const testLanguage = (test.language === 'en' || test.language === 'ar') ? test.language : 'ar';
+      const evaluation = await evaluateSpeaking(transcripts, testLanguage);
 
       // Save evaluation
       const saved = await storage.createAiEvaluation({

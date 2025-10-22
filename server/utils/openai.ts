@@ -51,7 +51,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
 /**
  * Evaluate CEFR speaking test transcripts using GPT-4o
  */
-export async function evaluateSpeaking(transcripts: string[]): Promise<EvaluationResult> {
+export async function evaluateSpeaking(transcripts: string[], language: 'ar' | 'en' = 'ar'): Promise<EvaluationResult> {
   if (!process.env.OPENAI_API_KEY) {
     throw new Error("OPENAI_API_KEY muhit o'zgaruvchisi sozlanmagan");
   }
@@ -59,15 +59,17 @@ export async function evaluateSpeaking(transcripts: string[]): Promise<Evaluatio
   try {
     const combinedText = transcripts.join("\n\n---\n\n");
     
-    const prompt = `Siz CEFR og'zaki baholash mutaxassisisiz. O'zbek tilida ingliz tilini o'rganayotgan talabaning javoblarini baholang.
+    // Language-specific prompts
+    const prompts = {
+      ar: `Siz CEFR og'zaki baholash mutaxassisisiz. Arab tilida gapirgan talabaning javoblarini baholang.
 
-TALABA JAVOBI:
+TALABA JAVOBI (Arab tilida):
 ${combinedText}
 
 Quyidagi mezonlar bo'yicha baholang (optimistik yondashuv bilan):
 
-1. SO'Z BOYLIGI (0-100): Lug'at boyligi, so'zlarni to'g'ri ishlatish
-2. GRAMMATIKA (0-100): Grammatik to'g'rilik, jumla tuzilishi
+1. SO'Z BOYLIGI (0-100): Arab tilida lug'at boyligi, so'zlarni to'g'ri ishlatish
+2. GRAMMATIKA (0-100): Arab tili grammatikasi, jumla tuzilishi, morfologiya
 3. IZCHILLIK (0-100): Fikrlarning mantiqiy ketma-ketligi, ravonlik
 
 Har bir mezon uchun:
@@ -92,18 +94,58 @@ JSON formatda javob bering:
   "overallFeedback": "...",
   "suggestedScore": 80,
   "suggestedCefrLevel": "B1"
-}`;
+}`,
+      en: `Siz CEFR og'zaki baholash mutaxassisisiz. Ingliz tilida gapirgan talabaning javoblarini baholang.
+
+TALABA JAVOBI (Ingliz tilida):
+${combinedText}
+
+Quyidagi mezonlar bo'yicha baholang (optimistik yondashuv bilan):
+
+1. SO'Z BOYLIGI (0-100): Ingliz tilida lug'at boyligi, so'zlarni to'g'ri ishlatish
+2. GRAMMATIKA (0-100): Ingliz tili grammatikasi, jumla tuzilishi
+3. IZCHILLIK (0-100): Fikrlarning mantiqiy ketma-ketligi, ravonlik
+
+Har bir mezon uchun:
+- Ball (0-100)
+- Qisqa tavsif (3-4 jumla, o'zbek tilida)
+
+Umumiy xulosa:
+- Kuchli tomonlar
+- Yaxshilanishi kerak bo'lgan tomonlar
+- Umumiy tavsiyalar
+
+Umumiy ball (0-100) va CEFR daraja (A1, A2, B1, B2, C1, C2) taklif qiling.
+
+JSON formatda javob bering:
+{
+  "vocabularyScore": 85,
+  "vocabularyFeedback": "...",
+  "grammarScore": 80,
+  "grammarFeedback": "...",
+  "coherenceScore": 75,
+  "coherenceFeedback": "...",
+  "overallFeedback": "...",
+  "suggestedScore": 80,
+  "suggestedCefrLevel": "B1"
+}`
+    };
+
+    const systemMessages = {
+      ar: "You are a CEFR speaking assessment expert. You evaluate students speaking Arabic. Your responses must be in Uzbek language and MUST be valid JSON format with all required fields.",
+      en: "You are a CEFR speaking assessment expert. You evaluate students speaking English. Your responses must be in Uzbek language and MUST be valid JSON format with all required fields."
+    };
 
     const completion = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are a CEFR speaking assessment expert. You evaluate students learning English. Your responses must be in Uzbek language and MUST be valid JSON format with all required fields."
+          content: systemMessages[language]
         },
         {
           role: "user",
-          content: prompt
+          content: prompts[language]
         }
       ],
       temperature: 0.3,
@@ -111,7 +153,7 @@ JSON formatda javob bering:
     });
 
     const responseContent = completion.choices[0].message.content || "{}";
-    console.log("GPT-4o response:", responseContent);
+    console.log(`GPT-4o response (${language}):`, responseContent);
     
     const result = JSON.parse(responseContent);
     
