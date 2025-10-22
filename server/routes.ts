@@ -748,7 +748,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
-      const data = insertSubmissionAnswerSchema.parse(req.body);
+      // Map audioFile to audioUrl for schema compatibility
+      const { audioFile, ...rest } = req.body;
+      const data = insertSubmissionAnswerSchema.parse({
+        ...rest,
+        audioUrl: audioFile,
+      });
+      
       const answer = await storage.createSubmissionAnswer({
         ...data,
         submissionId: req.params.id,
