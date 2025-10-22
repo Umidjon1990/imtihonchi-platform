@@ -50,35 +50,62 @@ function buildSectionTree(sections: TestSection[]): HierarchicalSection[] {
     }
   });
   
-  // Third pass: assign display numbers
+  // Third pass: sort and assign display numbers
   const assignDisplayNumbers = (nodes: HierarchicalSection[], prefix = '') => {
-    nodes
-      .sort((a, b) => a.sectionNumber - b.sectionNumber)
-      .forEach((node, index) => {
-        const num = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
-        node.displayNumber = num;
-        if (node.children && node.children.length > 0) {
-          assignDisplayNumbers(node.children, num);
-        }
-      });
+    // Sort by section number FIRST
+    const sorted = nodes.sort((a, b) => a.sectionNumber - b.sectionNumber);
+    
+    sorted.forEach((node, index) => {
+      const num = prefix ? `${prefix}.${index + 1}` : `${index + 1}`;
+      node.displayNumber = num;
+      
+      // Recursively sort and number children
+      if (node.children && node.children.length > 0) {
+        node.children.sort((a, b) => a.sectionNumber - b.sectionNumber);
+        assignDisplayNumbers(node.children, num);
+      }
+    });
+    
+    return sorted;
   };
-  assignDisplayNumbers(rootSections);
   
-  return rootSections;
+  const sortedRoots = assignDisplayNumbers(rootSections);
+  
+  console.log('🌳 [TREE] Built section tree:', sortedRoots.map(r => ({
+    title: r.title,
+    displayNumber: r.displayNumber,
+    children: r.children?.map(c => ({ title: c.title, displayNumber: c.displayNumber }))
+  })));
+  
+  return sortedRoots;
 }
 
 // Helper to flatten hierarchical tree back to array with display numbers
 function flattenSections(tree: HierarchicalSection[]): HierarchicalSection[] {
   const result: HierarchicalSection[] = [];
+  
   const traverse = (nodes: HierarchicalSection[]) => {
-    nodes.forEach(node => {
+    // Ensure nodes are sorted before processing
+    const sorted = [...nodes].sort((a, b) => a.sectionNumber - b.sectionNumber);
+    
+    sorted.forEach(node => {
       result.push(node);
       if (node.children && node.children.length > 0) {
         traverse(node.children);
       }
     });
   };
+  
   traverse(tree);
+  
+  console.log('📋 [FLATTEN] Flattened sections order:', result.map((s, i) => ({
+    index: i,
+    title: s.title,
+    displayNumber: s.displayNumber,
+    sectionNumber: s.sectionNumber,
+    hasParent: !!s.parentSectionId
+  })));
+  
   return result;
 }
 
