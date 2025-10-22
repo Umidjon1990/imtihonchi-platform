@@ -638,7 +638,7 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted, currentQuestionIndex, sectionQuestions.length, currentSectionIndex, sections.length, recordingTime]);
+  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted, currentQuestionIndex, sectionQuestions.length, currentSectionIndex, sections.length]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
