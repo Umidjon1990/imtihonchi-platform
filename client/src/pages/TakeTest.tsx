@@ -121,8 +121,8 @@ export default function TakeTest() {
   const [micTestRecording, setMicTestRecording] = useState<AudioRecording | null>(null);
   const [isMicTesting, setIsMicTesting] = useState(false);
 
-  const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  // Use a flat list approach - single global question index
+  const [globalQuestionIndex, setGlobalQuestionIndex] = useState(0);
   const [recordings, setRecordings] = useState<{ [questionId: string]: AudioRecording }>({});
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
@@ -203,23 +203,40 @@ export default function TakeTest() {
     fetchAllQuestions();
   }, [sections]);
 
-  const currentSection = useMemo(() => sections[currentSectionIndex], [sections, currentSectionIndex]);
-  const sectionQuestions = useMemo(() => {
-    const filtered = allQuestions
-      .filter(q => q.sectionId === currentSection?.id)
-      .sort((a, b) => a.questionNumber - b.questionNumber);
+  // Flat list of all questions with section info embedded
+  const flatQuestionList = useMemo(() => {
+    const list: Array<Question & { sectionIndex: number; sectionTitle: string; sectionPreparationTime: number; sectionSpeakingTime: number; sectionImageUrl: string | null }> = [];
     
-    console.log('🔍 [SECTION QUESTIONS]', {
-      sectionId: currentSection?.id,
-      sectionTitle: currentSection?.title,
-      totalQuestions: allQuestions.length,
-      filteredCount: filtered.length,
-      questions: filtered.map(q => ({ id: q.id, number: q.questionNumber, text: q.questionText.substring(0, 30) }))
+    sections.forEach((section, sectionIdx) => {
+      const sectionQs = allQuestions
+        .filter(q => q.sectionId === section.id)
+        .sort((a, b) => a.questionNumber - b.questionNumber);
+      
+      sectionQs.forEach(q => {
+        list.push({
+          ...q,
+          sectionIndex: sectionIdx,
+          sectionTitle: section.title,
+          sectionPreparationTime: section.preparationTime ?? 5,
+          sectionSpeakingTime: section.speakingTime ?? 30,
+          sectionImageUrl: section.imageUrl
+        });
+      });
     });
     
-    return filtered;
-  }, [allQuestions, currentSection]);
-  const currentQuestion = useMemo(() => sectionQuestions[currentQuestionIndex], [sectionQuestions, currentQuestionIndex]);
+    console.log('📋 [FLAT LIST] Built flat question list:', list.length, 'questions');
+    list.forEach((q, idx) => {
+      console.log(`  ${idx}: Section "${q.sectionTitle}" Q${q.questionNumber} - ${q.questionText.substring(0, 40)}`);
+    });
+    
+    return list;
+  }, [allQuestions, sections]);
+  
+  const currentQuestion = useMemo(() => flatQuestionList[globalQuestionIndex], [flatQuestionList, globalQuestionIndex]);
+  const currentSection = useMemo(() => {
+    if (!currentQuestion) return null;
+    return sections[currentQuestion.sectionIndex];
+  }, [currentQuestion, sections]);
 
   // Calculate total progress
   const completedQuestions = Object.keys(recordings).length;
@@ -467,54 +484,32 @@ export default function TakeTest() {
     });
   }, [isRecording]);
 
-  const handleNextSection = useCallback(async () => {
-    // Stop any active recording and wait for it to complete
-    if (isRecording) {
-      await stopRecording();
-    }
-    
-    if (currentSectionIndex < sections.length - 1) {
-      setCurrentSectionIndex(prev => prev + 1);
-      setCurrentQuestionIndex(0);
-      // Timer will be re-initialized by the initialization effect watching currentSectionIndex
-    }
-  }, [isRecording, stopRecording, currentSectionIndex, sections.length]);
-
   const handleNextQuestion = useCallback(async () => {
     console.log('🚀 [NEXT] handleNextQuestion called');
-    // Stop any active recording and wait for it to complete
     if (isRecording) {
       console.log('🛑 [NEXT] Stopping recording first');
       await stopRecording();
     }
     
-    if (currentQuestionIndex < sectionQuestions.length - 1) {
-      console.log(`➡️ [NEXT] Moving to question ${currentQuestionIndex + 2}`);
-      setCurrentQuestionIndex(prev => prev + 1);
-      // Timer will be re-initialized by the initialization effect watching currentQuestionIndex
+    if (globalQuestionIndex < flatQuestionList.length - 1) {
+      console.log(`➡️ [NEXT] Moving to question ${globalQuestionIndex + 2}`);
+      setGlobalQuestionIndex(prev => prev + 1);
     } else {
-      console.log('📑 [NEXT] Moving to next section');
-      handleNextSection();
+      console.log('✅ [NEXT] Already at last question');
     }
-  }, [isRecording, stopRecording, currentQuestionIndex, sectionQuestions.length, handleNextSection]);
+  }, [isRecording, stopRecording, globalQuestionIndex, flatQuestionList.length]);
 
   const handlePrevQuestion = useCallback(async () => {
-    // Stop any active recording and wait for it to complete
     if (isRecording) {
       await stopRecording();
     }
     
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-      // Timer will be re-initialized by the initialization effect
-    } else if (currentSectionIndex > 0) {
-      setCurrentSectionIndex(prev => prev - 1);
-      const prevSection = sections[currentSectionIndex - 1];
-      const prevQuestions = allQuestions.filter(q => q.sectionId === prevSection.id);
-      setCurrentQuestionIndex(prevQuestions.length - 1);
-      // Timer will be re-initialized by the initialization effect
+    if (globalQuestionIndex > 0) {
+      setGlobalQuestionIndex(prev => prev - 1);
+    } else {
+      console.log('⚠️ [PREV] Already at first question');
     }
-  }, [isRecording, stopRecording, currentQuestionIndex, currentSectionIndex, sections, allQuestions]);
+  }, [isRecording, stopRecording, globalQuestionIndex]);
 
   const submitTest = async () => {
     if (completedQuestions < totalQuestions) {
@@ -577,16 +572,16 @@ export default function TakeTest() {
     if (!micTestCompleted) return;
     
     // Initialize timer for new question
-    if (currentSection && currentQuestion) {
-      const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
-      console.log(`🔄 [INIT] Question ${currentQuestionIndex + 1}, Section ${currentSectionIndex + 1}, Prep: ${prepTime}s`);
+    if (currentQuestion) {
+      const prepTime = currentQuestion.preparationTime ?? currentQuestion.sectionPreparationTime;
+      console.log(`🔄 [INIT] Question ${globalQuestionIndex + 1}/${flatQuestionList.length}, Section "${currentQuestion.sectionTitle}", Prep: ${prepTime}s`);
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       autoProgressQueuedRef.current = false;
     } else {
-      console.log(`⚠️ [INIT] Waiting for data... section: ${!!currentSection}, question: ${!!currentQuestion}`);
+      console.log(`⚠️ [INIT] Waiting for data... question: ${!!currentQuestion}`);
     }
-  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
+  }, [micTestCompleted, globalQuestionIndex, currentQuestion, flatQuestionList.length]);
 
   // Timer countdown - run ONLY after mic test  
   useEffect(() => {
@@ -596,20 +591,16 @@ export default function TakeTest() {
     // Don't countdown if timer not initialized yet
     if (timeRemaining === null) return;
     
-    // Get current values via ref to avoid stale closures
-    const section = sections[currentSectionIndex];
-    const question = sectionQuestions[currentQuestionIndex];
-    
     if (timeRemaining > 0 && !isSubmitting) {
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
       }, 1000);
-    } else if (timeRemaining === 0 && section && question && !autoProgressQueuedRef.current) {
+    } else if (timeRemaining === 0 && currentQuestion && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
         console.log('⏰ [PHASE] Preparation done, switching to speaking');
         // Preparation done - start speaking phase
-        const speakTime = question.speakingTime ?? section.speakingTime ?? 30;
+        const speakTime = currentQuestion.speakingTime ?? currentQuestion.sectionSpeakingTime;
         console.log(`⏱️ [PHASE] Speaking time: ${speakTime}s`);
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
@@ -640,7 +631,7 @@ export default function TakeTest() {
             };
             
             mediaRecorderRef.current = recorder;
-            recordingQuestionIdRef.current = question.id;
+            recordingQuestionIdRef.current = currentQuestion.id;
             recordingStartTimeRef.current = Date.now();
             
             recorder.start();
@@ -654,12 +645,6 @@ export default function TakeTest() {
         // Mark auto-progress as queued to prevent re-triggers
         autoProgressQueuedRef.current = true;
         
-        // Capture current state to avoid stale closure
-        const currentQIdx = currentQuestionIndex;
-        const sectionQLength = sectionQuestions.length;
-        const currentSecIdx = currentSectionIndex;
-        const totalSec = sections.length;
-        
         // Speaking time done - stop recording and move to next directly
         const progressToNext = async () => {
           console.log('🛑 [AUTO] Stopping recording...');
@@ -672,25 +657,11 @@ export default function TakeTest() {
           // Wait a bit for recording to save
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          console.log('➡️ [AUTO] Moving to next question:', {
-            currentQuestionIndex: currentQIdx,
-            sectionQuestionsLength: sectionQLength,
-            currentSectionIndex: currentSecIdx,
-            totalSections: totalSec,
-            currentSectionId: section?.id,
-            currentSectionTitle: section?.title
-          });
+          console.log(`➡️ [AUTO] Moving to next question: ${globalQuestionIndex} → ${globalQuestionIndex + 1} (total: ${flatQuestionList.length})`);
           
-          // Move to next question directly - use captured state
-          if (currentQIdx < sectionQLength - 1) {
-            const nextIdx = currentQIdx + 1;
-            console.log(`➡️ Next question in same section (${currentQIdx} → ${nextIdx})`);
-            setCurrentQuestionIndex(nextIdx);
-          } else if (currentSecIdx < totalSec - 1) {
-            const nextSecIdx = currentSecIdx + 1;
-            console.log(`➡️ Next section (${currentSecIdx} → ${nextSecIdx})`);
-            setCurrentSectionIndex(nextSecIdx);
-            setCurrentQuestionIndex(0);
+          // Move to next question in flat list
+          if (globalQuestionIndex < flatQuestionList.length - 1) {
+            setGlobalQuestionIndex(prev => prev + 1);
           } else {
             console.log('✅ Test complete!');
           }
@@ -703,7 +674,7 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted, currentSectionIndex, currentQuestionIndex, sections, sectionQuestions]);
+  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted, currentQuestion, globalQuestionIndex, flatQuestionList.length]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
@@ -907,7 +878,7 @@ export default function TakeTest() {
               {test.title}
             </h1>
             <p className="text-xs text-muted-foreground">
-              Bo'lim {currentSectionIndex + 1}/{sections.length} - Savol {currentQuestionIndex + 1}/{sectionQuestions.length}
+              Savol {globalQuestionIndex + 1}/{flatQuestionList.length}
             </p>
           </div>
           
@@ -951,7 +922,7 @@ export default function TakeTest() {
               <div className="text-center space-y-4">
                 <div className="flex items-center justify-center gap-3 mb-4">
                   <Badge variant="outline" className="text-base px-4 py-2">
-                    Bo'lim {currentSection.displayNumber || currentSectionIndex + 1} - Savol {currentQuestionIndex + 1}/{sectionQuestions.length}
+                    {currentQuestion.sectionTitle} - Savol {globalQuestionIndex + 1}/{flatQuestionList.length}
                   </Badge>
                   {isQuestionAnswered && (
                     <Badge variant="default">
@@ -1139,8 +1110,7 @@ export default function TakeTest() {
               <span>
                 <strong>Avtomatik rejim:</strong> Vaqt tugagach keyingi savolga avtomatik o'tiladi
               </span>
-              {currentQuestionIndex === sectionQuestions.length - 1 && 
-               currentSectionIndex === sections.length - 1 && (
+              {globalQuestionIndex === flatQuestionList.length - 1 && (
                 <Button
                   onClick={submitTest}
                   disabled={isSubmitting}
