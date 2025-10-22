@@ -149,11 +149,14 @@ export default function ReviewSubmission() {
   // Create a map of questionId -> audioUrl from submission answers
   const audioFiles: { [questionId: string]: string } = {};
   submissionAnswers.forEach((answer: any) => {
-    audioFiles[answer.questionId] = `/api/audio/${answer.audioUrl}`;
+    // Only add to map if audioUrl exists
+    if (answer.audioUrl) {
+      audioFiles[answer.questionId] = `/api/audio/${answer.audioUrl}`;
+    }
   });
 
   const totalQuestions = allQuestions.length;
-  const answeredQuestions = submissionAnswers.length;
+  const answeredQuestions = Object.keys(audioFiles).length;
 
   return (
     <div className="min-h-screen bg-background">
