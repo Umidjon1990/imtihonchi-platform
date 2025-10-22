@@ -49,6 +49,7 @@ export const tests = pgTable("tests", {
   title: text("title").notNull(),
   description: text("description"),
   price: integer("price").notNull(),
+  language: text("language").notNull().default('ar'), // ar (Arab), en (Ingliz)
   imageUrl: text("image_url"),
   isPublished: boolean("is_published").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
