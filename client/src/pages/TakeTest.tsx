@@ -430,25 +430,24 @@ export default function TakeTest() {
     if (currentSectionIndex < sections.length - 1) {
       setCurrentSectionIndex(prev => prev + 1);
       setCurrentQuestionIndex(0);
-      
-      // Reset to preparation phase
-      setTimeRemaining(0); // Trigger initialization effect
-      setTestPhase('preparation');
+      // Timer will be re-initialized by the initialization effect watching currentSectionIndex
     }
   }, [isRecording, stopRecording, currentSectionIndex, sections.length]);
 
   const handleNextQuestion = useCallback(async () => {
+    console.log('🚀 [NEXT] handleNextQuestion called');
     // Stop any active recording and wait for it to complete
     if (isRecording) {
+      console.log('🛑 [NEXT] Stopping recording first');
       await stopRecording();
     }
     
     if (currentQuestionIndex < sectionQuestions.length - 1) {
+      console.log(`➡️ [NEXT] Moving to question ${currentQuestionIndex + 2}`);
       setCurrentQuestionIndex(prev => prev + 1);
-      // Reset to preparation phase
-      setTimeRemaining(0); // Trigger initialization effect
-      setTestPhase('preparation');
+      // Timer will be re-initialized by the initialization effect watching currentQuestionIndex
     } else {
+      console.log('📑 [NEXT] Moving to next section');
       handleNextSection();
     }
   }, [isRecording, stopRecording, currentQuestionIndex, sectionQuestions.length, handleNextSection]);
@@ -461,18 +460,13 @@ export default function TakeTest() {
     
     if (currentQuestionIndex > 0) {
       setCurrentQuestionIndex(prev => prev - 1);
-      // Reset to preparation phase
-      setTimeRemaining(0); // Trigger initialization effect
-      setTestPhase('preparation');
+      // Timer will be re-initialized by the initialization effect
     } else if (currentSectionIndex > 0) {
       setCurrentSectionIndex(prev => prev - 1);
       const prevSection = sections[currentSectionIndex - 1];
       const prevQuestions = allQuestions.filter(q => q.sectionId === prevSection.id);
       setCurrentQuestionIndex(prevQuestions.length - 1);
-      
-      // Reset to preparation phase
-      setTimeRemaining(0); // Trigger initialization effect
-      setTestPhase('preparation');
+      // Timer will be re-initialized by the initialization effect
     }
   }, [isRecording, stopRecording, currentQuestionIndex, currentSectionIndex, sections, allQuestions]);
 
@@ -539,6 +533,7 @@ export default function TakeTest() {
     // Initialize timer for new question
     if (currentSection && currentQuestion) {
       const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
+      console.log(`🔄 [INIT] Question ${currentQuestionIndex + 1}, Section ${currentSectionIndex + 1}, Prep: ${prepTime}s`);
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       autoProgressQueuedRef.current = false;
@@ -560,27 +555,33 @@ export default function TakeTest() {
     } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
+        console.log('⏰ [PHASE] Preparation done, switching to speaking');
         // Preparation done - start speaking phase
         const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
+        console.log(`⏱️ [PHASE] Speaking time: ${speakTime}s`);
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
         
         // Auto-start recording
         if (!isRecording) {
+          console.log('🎤 [AUTO] Starting recording');
           startRecording();
         }
       } else if (testPhase === 'speaking') {
+        console.log('⏰ [PHASE] Speaking done, auto-progressing');
         // Mark auto-progress as queued to prevent re-triggers
         autoProgressQueuedRef.current = true;
         
         // Speaking time done - auto stop recording and move to next
         const handleAutoProgress = async () => {
           if (isRecording) {
+            console.log('🛑 [AUTO] Stopping recording');
             await stopRecording();
           }
           
           // Auto-move to next question after stop completes
           setTimeout(() => {
+            console.log('➡️ [AUTO] Calling handleNextQuestion');
             handleNextQuestion();
           }, 500);
         };
