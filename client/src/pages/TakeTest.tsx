@@ -662,14 +662,21 @@ export default function TakeTest() {
           // Wait a bit for recording to save
           await new Promise(resolve => setTimeout(resolve, 300));
           
-          console.log('➡️ [AUTO] Moving to next question, current:', currentQuestionIndex, 'total:', sectionQuestions.length);
+          console.log('➡️ [AUTO] Moving to next question:', {
+            currentQuestionIndex,
+            sectionQuestionsLength: sectionQuestions.length,
+            currentSectionIndex,
+            totalSections: sections.length,
+            currentSectionId: currentSection?.id,
+            currentSectionTitle: currentSection?.title
+          });
           
           // Move to next question directly
           if (currentQuestionIndex < sectionQuestions.length - 1) {
-            console.log('➡️ Next question in same section');
+            console.log(`➡️ Next question in same section (${currentQuestionIndex + 1} → ${currentQuestionIndex + 2})`);
             setCurrentQuestionIndex(prev => prev + 1);
           } else if (currentSectionIndex < sections.length - 1) {
-            console.log('➡️ Next section');
+            console.log(`➡️ Next section (${currentSectionIndex + 1} → ${currentSectionIndex + 2})`);
             setCurrentSectionIndex(prev => prev + 1);
             setCurrentQuestionIndex(0);
           } else {
