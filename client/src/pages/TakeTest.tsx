@@ -166,11 +166,14 @@ export default function TakeTest() {
     fetchAllQuestions();
   }, [sections]);
 
-  const currentSection = sections[currentSectionIndex];
-  const sectionQuestions = allQuestions
-    .filter(q => q.sectionId === currentSection?.id)
-    .sort((a, b) => a.questionNumber - b.questionNumber);
-  const currentQuestion = sectionQuestions[currentQuestionIndex];
+  const currentSection = useMemo(() => sections[currentSectionIndex], [sections, currentSectionIndex]);
+  const sectionQuestions = useMemo(() => 
+    allQuestions
+      .filter(q => q.sectionId === currentSection?.id)
+      .sort((a, b) => a.questionNumber - b.questionNumber),
+    [allQuestions, currentSection]
+  );
+  const currentQuestion = useMemo(() => sectionQuestions[currentQuestionIndex], [sectionQuestions, currentQuestionIndex]);
 
   // Calculate total progress
   const completedQuestions = Object.keys(recordings).length;
@@ -531,18 +534,22 @@ export default function TakeTest() {
   // Initialize section timer with preparation phase - ONLY when question/section changes
   useEffect(() => {
     // Skip if mic test not completed yet
-    if (!micTestCompleted) return;
+    if (!micTestCompleted) {
+      console.log('⏸️ Skipping timer init - mic test not completed');
+      return;
+    }
     
     // Initialize timer for new question
     if (currentSection && currentQuestion) {
-      console.log(`🔄 Initializing question ${currentQuestionIndex + 1}`);
+      console.log(`🔄 Initializing question ${currentQuestionIndex + 1}, section ${currentSectionIndex + 1}`);
       const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
+      console.log(`⏱️ Setting preparation time: ${prepTime} seconds`);
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
+  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex]);
 
   // Section timer countdown with auto-progression
   useEffect(() => {
