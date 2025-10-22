@@ -35,7 +35,7 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
     const transcription = await openai.audio.transcriptions.create({
       file: file,
       model: "whisper-1",
-      language: "uz", // Uzbek language
+      // No language parameter - Whisper will auto-detect (supports 99+ languages including Uzbek)
     });
 
     return { text: transcription.text };
