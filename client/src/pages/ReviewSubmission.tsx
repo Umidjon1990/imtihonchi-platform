@@ -82,6 +82,12 @@ export default function ReviewSubmission() {
     enabled: !!submissionId,
   });
 
+  // Fetch submission answers
+  const { data: submissionAnswers = [], isLoading: answersLoading } = useQuery<any[]>({
+    queryKey: ["/api/submissions", submissionId, "answers"],
+    enabled: !!submissionId,
+  });
+
   useEffect(() => {
     if (existingResult) {
       setTotalScore(existingResult.score || 0);
@@ -117,7 +123,7 @@ export default function ReviewSubmission() {
     },
   });
 
-  if (submissionLoading || questionsLoading) {
+  if (submissionLoading || questionsLoading || answersLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Yuklanmoqda...</div>
@@ -140,9 +146,14 @@ export default function ReviewSubmission() {
     );
   }
 
-  const audioFiles = submission.audioFiles || {};
+  // Create a map of questionId -> audioUrl from submission answers
+  const audioFiles: { [questionId: string]: string } = {};
+  submissionAnswers.forEach((answer: any) => {
+    audioFiles[answer.questionId] = `/api/audio/${answer.audioUrl}`;
+  });
+
   const totalQuestions = allQuestions.length;
-  const answeredQuestions = Object.keys(audioFiles).length;
+  const answeredQuestions = submissionAnswers.length;
 
   return (
     <div className="min-h-screen bg-background">
