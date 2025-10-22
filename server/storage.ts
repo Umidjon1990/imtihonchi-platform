@@ -8,6 +8,7 @@ import {
   submissions,
   submissionAnswers,
   results,
+  aiEvaluations,
   type User,
   type UpsertUser,
   type TestCategory,
@@ -26,6 +27,8 @@ import {
   type InsertSubmissionAnswer,
   type Result,
   type InsertResult,
+  type AiEvaluation,
+  type InsertAiEvaluation,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, inArray } from "drizzle-orm";
@@ -81,10 +84,15 @@ export interface IStorage {
   // Submission Answer operations
   createSubmissionAnswer(answer: InsertSubmissionAnswer): Promise<SubmissionAnswer>;
   getSubmissionAnswers(submissionId: string): Promise<SubmissionAnswer[]>;
+  updateSubmissionAnswerTranscript(id: string, transcript: string): Promise<SubmissionAnswer | undefined>;
   
   // Result operations
   createResult(result: InsertResult): Promise<Result>;
   getResultBySubmissionId(submissionId: string): Promise<Result | undefined>;
+  
+  // AI Evaluation operations
+  createAiEvaluation(evaluation: InsertAiEvaluation): Promise<AiEvaluation>;
+  getAiEvaluationBySubmissionId(submissionId: string): Promise<AiEvaluation | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -391,6 +399,14 @@ export class DatabaseStorage implements IStorage {
     return answers;
   }
 
+  async updateSubmissionAnswerTranscript(id: string, transcript: string): Promise<SubmissionAnswer | undefined> {
+    const [updated] = await db.update(submissionAnswers)
+      .set({ transcript })
+      .where(eq(submissionAnswers.id, id))
+      .returning();
+    return updated;
+  }
+
   // Result operations
   async createResult(result: InsertResult): Promise<Result> {
     const [newResult] = await db.insert(results).values(result).returning();
@@ -400,6 +416,17 @@ export class DatabaseStorage implements IStorage {
   async getResultBySubmissionId(submissionId: string): Promise<Result | undefined> {
     const [result] = await db.select().from(results).where(eq(results.submissionId, submissionId));
     return result;
+  }
+
+  // AI Evaluation operations
+  async createAiEvaluation(evaluation: InsertAiEvaluation): Promise<AiEvaluation> {
+    const [newEvaluation] = await db.insert(aiEvaluations).values(evaluation).returning();
+    return newEvaluation;
+  }
+
+  async getAiEvaluationBySubmissionId(submissionId: string): Promise<AiEvaluation | undefined> {
+    const [evaluation] = await db.select().from(aiEvaluations).where(eq(aiEvaluations.submissionId, submissionId));
+    return evaluation;
   }
 }
 

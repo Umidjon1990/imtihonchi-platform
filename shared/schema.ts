@@ -104,6 +104,7 @@ export const submissionAnswers = pgTable("submission_answers", {
   submissionId: varchar("submission_id").notNull(),
   questionId: varchar("question_id").notNull(),
   audioUrl: text("audio_url").notNull(),
+  transcript: text("transcript"), // AI transcription from Whisper
   answeredAt: timestamp("answered_at").defaultNow().notNull(),
 });
 
@@ -117,6 +118,22 @@ export const results = pgTable("results", {
   studentNameOverride: text("student_name_override"), // O'qituvchi tomonidan kiritilgan ism (sertifikat uchun)
   certificateUrl: text("certificate_url"),
   gradedAt: timestamp("graded_at").defaultNow().notNull(),
+});
+
+// AI Evaluations from ChatGPT
+export const aiEvaluations = pgTable("ai_evaluations", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  submissionId: varchar("submission_id").notNull().unique(),
+  vocabularyScore: integer("vocabulary_score"), // 0-100
+  vocabularyFeedback: text("vocabulary_feedback"),
+  grammarScore: integer("grammar_score"), // 0-100
+  grammarFeedback: text("grammar_feedback"),
+  coherenceScore: integer("coherence_score"), // 0-100
+  coherenceFeedback: text("coherence_feedback"),
+  overallFeedback: text("overall_feedback"),
+  suggestedScore: integer("suggested_score"), // 0-100
+  suggestedCefrLevel: text("suggested_cefr_level"), // A1, A2, B1, B2, C1, C2
+  evaluatedAt: timestamp("evaluated_at").defaultNow().notNull(),
 });
 
 // Schemas
@@ -163,6 +180,11 @@ export const insertResultSchema = createInsertSchema(results).omit({
   gradedAt: true 
 });
 
+export const insertAiEvaluationSchema = createInsertSchema(aiEvaluations).omit({ 
+  id: true, 
+  evaluatedAt: true 
+});
+
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -182,3 +204,5 @@ export type SubmissionAnswer = typeof submissionAnswers.$inferSelect;
 export type InsertSubmissionAnswer = z.infer<typeof insertSubmissionAnswerSchema>;
 export type Result = typeof results.$inferSelect;
 export type InsertResult = z.infer<typeof insertResultSchema>;
+export type AiEvaluation = typeof aiEvaluations.$inferSelect;
+export type InsertAiEvaluation = z.infer<typeof insertAiEvaluationSchema>;
