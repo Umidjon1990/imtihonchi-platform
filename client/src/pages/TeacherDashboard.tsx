@@ -464,21 +464,6 @@ export default function TeacherDashboard() {
                 placeholder="50000"
               />
             </div>
-            <div>
-              <Label htmlFor="language">Test tili</Label>
-              <Select 
-                value={newTest.language} 
-                onValueChange={(value: "ar" | "en") => setNewTest({ ...newTest, language: value })}
-              >
-                <SelectTrigger id="language" data-testid="select-language">
-                  <SelectValue placeholder="Tilni tanlang" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ar">Arab tili 🇸🇦</SelectItem>
-                  <SelectItem value="en">Ingliz tili 🇬🇧</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateDialogOpen(false)}>

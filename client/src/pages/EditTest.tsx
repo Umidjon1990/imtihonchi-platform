@@ -410,21 +410,6 @@ export default function EditTest() {
                       }}
                     />
                   </div>
-                  <div>
-                    <Label htmlFor="language">Test tili</Label>
-                    <Select 
-                      value={test.language || "ar"} 
-                      onValueChange={(value: "ar" | "en") => updateTestMutation.mutate({ language: value })}
-                    >
-                      <SelectTrigger id="language" data-testid="select-language">
-                        <SelectValue placeholder="Tilni tanlang" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="ar">Arab tili 🇸🇦</SelectItem>
-                        <SelectItem value="en">Ingliz tili 🇬🇧</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </CardContent>
               </Card>
             </TabsContent>
