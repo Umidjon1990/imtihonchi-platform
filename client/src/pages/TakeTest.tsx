@@ -143,13 +143,23 @@ export default function TakeTest() {
     const fetchAllQuestions = async () => {
       if (sections.length === 0) return;
       
+      console.log('📥 [FETCH] Fetching questions for sections:', sections.map(s => ({ id: s.id, title: s.title, displayNumber: s.displayNumber })));
+      
       setQuestionsLoading(true);
       try {
         const questionsPromises = sections.map(section =>
           fetch(`/api/sections/${section.id}/questions`).then(res => res.json())
         );
         const questionsArrays = await Promise.all(questionsPromises);
+        
+        console.log('📦 [FETCH] Received questions per section:', questionsArrays.map((arr, i) => ({
+          section: sections[i].title,
+          count: arr.length,
+          questions: arr.map((q: any) => ({ number: q.questionNumber, text: q.questionText.substring(0, 30) }))
+        })));
+        
         const flatQuestions = questionsArrays.flat();
+        console.log('✅ [FETCH] Total questions:', flatQuestions.length);
         setAllQuestions(flatQuestions);
       } catch (error) {
         console.error("Error fetching questions:", error);
