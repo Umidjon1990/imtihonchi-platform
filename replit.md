@@ -141,6 +141,10 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - Tayyorgarlik vaqti tugagach avtomatik recording boshlanadi
     - Gapirish vaqti tugagach avtomatik keyingi savolga o'tiladi
     - Fazalarga qarab rangli timer (primary/green/red)
+    - **Flat list yondashuvi**: Barcha savollar bitta ro'yxatda (globalQuestionIndex)
+    - **Ref-based state management**: `globalQuestionIndexRef` va `flatQuestionListRef` 
+      ishlatib useEffect double-trigger muammosini hal qilindi
+    - Hech qaysi savol skip qilinmaydi - barcha 8 savol ketma-ket ko'rsatiladi
 
 ⏳ **Navbatda**:
 - O'qituvchi baholash tizimi (audio tinglab natija berish)
