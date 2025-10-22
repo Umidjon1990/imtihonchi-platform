@@ -131,6 +131,10 @@ export default function TakeTest() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // null until test starts
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testPhase, setTestPhase] = useState<'preparation' | 'speaking'>('preparation');
+  
+  // Submission tracking
+  const [submissionId, setSubmissionId] = useState<string | null>(null);
+  const submissionIdRef = useRef<string | null>(null);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -397,6 +401,86 @@ export default function TakeTest() {
     }
   };
 
+  // Create submission when test starts
+  const createSubmission = async () => {
+    try {
+      if (!purchase?.id || !test?.id) return;
+
+      const response = await apiRequest("/api/submissions", {
+        method: "POST",
+        body: JSON.stringify({
+          purchaseId: purchase.id,
+          testId: test.id,
+        }),
+      });
+
+      const submission = await response.json();
+      setSubmissionId(submission.id);
+      submissionIdRef.current = submission.id;
+      
+      console.log('✅ Submission created:', submission.id);
+    } catch (error) {
+      console.error('❌ Error creating submission:', error);
+      toast({
+        title: "Xatolik",
+        description: "Topshiriqni boshlashda xatolik yuz berdi",
+        variant: "destructive",
+      });
+      throw error;
+    }
+  };
+
+  // Upload answer to server immediately after recording
+  const uploadAnswer = async (questionId: string, audioBlob: Blob) => {
+    try {
+      const currentSubmissionId = submissionIdRef.current;
+      if (!currentSubmissionId) {
+        console.error('❌ No submission ID available');
+        return;
+      }
+
+      console.log('⬆️ Uploading answer for question:', questionId);
+
+      // Upload audio file to object storage
+      const formData = new FormData();
+      formData.append('audio', audioBlob);
+      
+      const uploadResponse = await fetch('/api/upload-audio', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Audio upload failed');
+      }
+
+      const { filename } = await uploadResponse.json();
+      console.log('✅ Audio uploaded:', filename);
+
+      // Save answer to database
+      const answerResponse = await apiRequest(`/api/submissions/${currentSubmissionId}/answer`, {
+        method: 'POST',
+        body: JSON.stringify({
+          questionId,
+          audioFile: filename,
+        }),
+      });
+
+      if (!answerResponse.ok) {
+        throw new Error('Answer submission failed');
+      }
+
+      console.log('✅ Answer saved to database');
+    } catch (error) {
+      console.error('❌ Error uploading answer:', error);
+      toast({
+        title: "Ogohlantirish",
+        description: "Javobni yuklashda muammo yuz berdi. Test davom etadi.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const startRecording = useCallback(async () => {
     try {
       if (!currentQuestion) return;
@@ -439,6 +523,11 @@ export default function TakeTest() {
               duration,
             },
           }));
+          
+          // Upload answer immediately in the background
+          uploadAnswer(questionId, audioBlob).catch(err => {
+            console.error('Background upload failed:', err);
+          });
         }
         
         stream.getTracks().forEach(track => track.stop());
@@ -641,11 +730,17 @@ export default function TakeTest() {
             recorder.onstop = () => {
               const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
               const url = URL.createObjectURL(blob);
+              const questionId = recordingQuestionIdRef.current!;
               
               setRecordings(prev => ({
                 ...prev,
-                [recordingQuestionIdRef.current!]: { blob, url, duration: recordingTime }
+                [questionId]: { blob, url, duration: recordingTime }
               }));
+              
+              // Upload answer immediately in the background
+              uploadAnswer(questionId, blob).catch(err => {
+                console.error('Background upload failed:', err);
+              });
               
               stream.getTracks().forEach(track => track.stop());
               setIsRecording(false);
@@ -684,12 +779,44 @@ export default function TakeTest() {
           const totalQuestions = flatQuestionListRef.current.length;
           console.log(`➡️ [AUTO] Moving to next question: ${currentIdxBeforeUpdate} → ${currentIdxBeforeUpdate + 1} (total: ${totalQuestions})`);
           
-          // Move to next question in flat list - NO SKIP!
-          setGlobalQuestionIndex(prevIdx => {
-            const nextIdx = prevIdx + 1;
-            console.log(`✅ [STATE UPDATE] Question index: ${prevIdx} → ${nextIdx}`);
-            return nextIdx;
-          });
+          // Check if this was the last question
+          if (currentIdxBeforeUpdate >= totalQuestions - 1) {
+            console.log('✅ [COMPLETE] Last question finished, completing submission');
+            
+            // Complete submission
+            const currentSubmissionId = submissionIdRef.current;
+            if (currentSubmissionId) {
+              try {
+                await apiRequest(`/api/submissions/${currentSubmissionId}/complete`, {
+                  method: 'POST',
+                });
+                console.log('✅ Submission completed');
+                
+                // Navigate to student dashboard after a short delay
+                setTimeout(() => {
+                  navigate('/student');
+                  toast({
+                    title: "Test yakunlandi",
+                    description: "Javoblaringiz muvaffaqiyatli yuklandi",
+                  });
+                }, 1000);
+              } catch (error) {
+                console.error('❌ Error completing submission:', error);
+                toast({
+                  title: "Xatolik",
+                  description: "Testni yakunlashda xatolik yuz berdi",
+                  variant: "destructive",
+                });
+              }
+            }
+          } else {
+            // Move to next question in flat list - NO SKIP!
+            setGlobalQuestionIndex(prevIdx => {
+              const nextIdx = prevIdx + 1;
+              console.log(`✅ [STATE UPDATE] Question index: ${prevIdx} → ${nextIdx}`);
+              return nextIdx;
+            });
+          }
         };
         
         progressToNext();
@@ -829,7 +956,14 @@ export default function TakeTest() {
                         Qayta yozish
                       </Button>
                       <Button 
-                        onClick={() => setMicTestCompleted(true)}
+                        onClick={async () => {
+                          try {
+                            await createSubmission();
+                            setMicTestCompleted(true);
+                          } catch (error) {
+                            // Error already handled in createSubmission
+                          }
+                        }}
                         className="flex-1"
                         data-testid="button-start-test"
                       >

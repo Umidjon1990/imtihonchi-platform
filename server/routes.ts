@@ -13,6 +13,7 @@ import {
   insertQuestionSchema,
   insertPurchaseSchema,
   insertSubmissionSchema,
+  insertSubmissionAnswerSchema,
   insertResultSchema,
 } from "@shared/schema";
 
@@ -724,12 +725,84 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = insertSubmissionSchema.parse({
         ...req.body,
         studentId: req.user.claims.sub,
+        status: 'in_progress', // Start with in_progress status
       });
       const submission = await storage.createSubmission(data);
       res.json(submission);
     } catch (error: any) {
       console.error("Error creating submission:", error);
       res.status(400).json({ message: error.message || "Topshiriq yuborishda xatolik" });
+    }
+  });
+
+  // Submit answer for a single question
+  app.post("/api/submissions/:id/answer", isAuthenticated, async (req: any, res) => {
+    try {
+      const submission = await storage.getSubmissionById(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      // Verify user owns this submission
+      if (submission.studentId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const data = insertSubmissionAnswerSchema.parse(req.body);
+      const answer = await storage.createSubmissionAnswer({
+        ...data,
+        submissionId: req.params.id,
+      });
+      
+      res.json(answer);
+    } catch (error: any) {
+      console.error("Error submitting answer:", error);
+      res.status(400).json({ message: error.message || "Javob yuborishda xatolik" });
+    }
+  });
+
+  // Complete submission (mark as submitted)
+  app.post("/api/submissions/:id/complete", isAuthenticated, async (req: any, res) => {
+    try {
+      const submission = await storage.getSubmissionById(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      // Verify user owns this submission
+      if (submission.studentId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const updated = await storage.completeSubmission(req.params.id);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error completing submission:", error);
+      res.status(400).json({ message: error.message || "Topshiriqni yakunlashda xatolik" });
+    }
+  });
+
+  // Get submission answers
+  app.get("/api/submissions/:id/answers", isAuthenticated, async (req: any, res) => {
+    try {
+      const submission = await storage.getSubmissionById(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      const user = await storage.getUser(req.user.claims.sub);
+      
+      // Allow access for student who owns it, or teacher/admin
+      if (submission.studentId !== req.user.claims.sub && 
+          user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const answers = await storage.getSubmissionAnswers(req.params.id);
+      res.json(answers);
+    } catch (error: any) {
+      console.error("Error fetching answers:", error);
+      res.status(500).json({ message: "Javoblarni olishda xatolik" });
     }
   });
 

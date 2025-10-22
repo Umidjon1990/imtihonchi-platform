@@ -6,6 +6,7 @@ import {
   questions,
   purchases,
   submissions,
+  submissionAnswers,
   results,
   type User,
   type UpsertUser,
@@ -21,6 +22,8 @@ import {
   type InsertPurchase,
   type Submission,
   type InsertSubmission,
+  type SubmissionAnswer,
+  type InsertSubmissionAnswer,
   type Result,
   type InsertResult,
 } from "@shared/schema";
@@ -73,6 +76,11 @@ export interface IStorage {
   createSubmission(submission: InsertSubmission): Promise<Submission>;
   getSubmissionById(id: string): Promise<Submission | undefined>;
   updateSubmission(id: string, submission: Partial<InsertSubmission>): Promise<Submission | undefined>;
+  completeSubmission(id: string): Promise<Submission | undefined>;
+  
+  // Submission Answer operations
+  createSubmissionAnswer(answer: InsertSubmissionAnswer): Promise<SubmissionAnswer>;
+  getSubmissionAnswers(submissionId: string): Promise<SubmissionAnswer[]>;
   
   // Result operations
   createResult(result: InsertResult): Promise<Result>;
@@ -359,6 +367,28 @@ export class DatabaseStorage implements IStorage {
   async updateSubmission(id: string, submissionData: Partial<InsertSubmission>): Promise<Submission | undefined> {
     const [updated] = await db.update(submissions).set(submissionData).where(eq(submissions.id, id)).returning();
     return updated;
+  }
+
+  async completeSubmission(id: string): Promise<Submission | undefined> {
+    const [updated] = await db.update(submissions)
+      .set({ status: 'submitted' })
+      .where(eq(submissions.id, id))
+      .returning();
+    return updated;
+  }
+
+  // Submission Answer operations
+  async createSubmissionAnswer(answer: InsertSubmissionAnswer): Promise<SubmissionAnswer> {
+    const [newAnswer] = await db.insert(submissionAnswers).values(answer).returning();
+    return newAnswer;
+  }
+
+  async getSubmissionAnswers(submissionId: string): Promise<SubmissionAnswer[]> {
+    const answers = await db.select()
+      .from(submissionAnswers)
+      .where(eq(submissionAnswers.submissionId, submissionId))
+      .orderBy(submissionAnswers.answeredAt);
+    return answers;
   }
 
   // Result operations

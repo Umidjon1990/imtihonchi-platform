@@ -94,9 +94,17 @@ export const submissions = pgTable("submissions", {
   purchaseId: varchar("purchase_id").notNull(),
   studentId: varchar("student_id").notNull(),
   testId: varchar("test_id").notNull(),
-  audioFiles: jsonb("audio_files").notNull(), // { sectionId: { questionId: audioUrl } }
+  audioFiles: jsonb("audio_files"), // Legacy: kept for backwards compatibility, now optional
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
-  status: text("status").notNull().default('submitted'), // submitted, graded
+  status: text("status").notNull().default('in_progress'), // in_progress, submitted, graded
+});
+
+export const submissionAnswers = pgTable("submission_answers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  submissionId: varchar("submission_id").notNull(),
+  questionId: varchar("question_id").notNull(),
+  audioUrl: text("audio_url").notNull(),
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
 });
 
 export const results = pgTable("results", {
@@ -144,6 +152,12 @@ export const insertSubmissionSchema = createInsertSchema(submissions).omit({
   submittedAt: true 
 });
 
+export const insertSubmissionAnswerSchema = createInsertSchema(submissionAnswers).omit({ 
+  id: true, 
+  submissionId: true, // Injected from route params
+  answeredAt: true 
+});
+
 export const insertResultSchema = createInsertSchema(results).omit({ 
   id: true, 
   gradedAt: true 
@@ -164,5 +178,7 @@ export type Purchase = typeof purchases.$inferSelect;
 export type InsertPurchase = z.infer<typeof insertPurchaseSchema>;
 export type Submission = typeof submissions.$inferSelect;
 export type InsertSubmission = z.infer<typeof insertSubmissionSchema>;
+export type SubmissionAnswer = typeof submissionAnswers.$inferSelect;
+export type InsertSubmissionAnswer = z.infer<typeof insertSubmissionAnswerSchema>;
 export type Result = typeof results.$inferSelect;
 export type InsertResult = z.infer<typeof insertResultSchema>;

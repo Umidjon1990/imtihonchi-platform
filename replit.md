@@ -23,8 +23,9 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 - `tests` - Testlar (o'qituvchilar tomonidan yaratilgan)
 - `test_sections` - Test bo'limlari (har bir test 3 bo'limga ega)
 - `questions` - Savollar (har bir bo'limda bir nechta savol)
-- `purchases` - Talabalar tomonidan sotib olingan testlar (Stripe to'lovlari)
-- `submissions` - Topshirilgan testlar (audio fayllar bilan)
+- `purchases` - Talabalar tomonidan sotib olingan testlar (manual to'lov)
+- `submissions` - Topshirilgan testlar (status: in_progress/submitted/graded)
+- `submission_answers` - Har bir savol uchun alohida audio javob
 - `results` - O'qituvchilar tomonidan berilgan natijalar va sertifikatlar
 
 ### Backend API Endpoints
@@ -63,8 +64,11 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 **Submissions**:
 - `GET /api/submissions/student` - Talabaning topshiriqlari
 - `GET /api/submissions/test/:testId` - Test bo'yicha topshiriqlar (teacher/admin)
-- `POST /api/submissions` - Yangi topshiriq
-- `POST /api/upload-audio` - Audio javob yuklash
+- `POST /api/submissions` - Yangi topshiriq yaratish (status: in_progress)
+- `POST /api/submissions/:id/answer` - Har bir savol uchun javob yuklash
+- `POST /api/submissions/:id/complete` - Topshiriqni yakunlash (status: submitted)
+- `GET /api/submissions/:id/answers` - Topshiriq javoblarini olish
+- `POST /api/upload-audio` - Audio faylni object storage'ga yuklash
 - `GET /api/audio/:filename` - Audio faylni tinglash
 
 **Results**:
@@ -145,6 +149,12 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - **Ref-based state management**: `globalQuestionIndexRef` va `flatQuestionListRef` 
       ishlatib useEffect double-trigger muammosini hal qilindi
     - Hech qaysi savol skip qilinmaydi - barcha 8 savol ketma-ket ko'rsatiladi
+14. Avtomatik yuklash tizimi (Progressive Submission):
+    - Test boshlanishida submission yaratiladi (status: in_progress)
+    - Har savol tugagach darhol audio yuklash background'da
+    - Har savol uchun alohida submission_answers jadvali yozuvi
+    - Oxirgi savol tugagach submission complete qilinadi (status: submitted)
+    - Frontend freeze muammosini hal qiladi
 
 ⏳ **Navbatda**:
 - O'qituvchi baholash tizimi (audio tinglab natija berish)
