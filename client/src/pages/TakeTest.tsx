@@ -531,32 +531,33 @@ export default function TakeTest() {
     }
   };
 
-  // Initialize section timer with preparation phase - ONLY when question/section changes
+  // Initialize section timer with preparation phase - ONLY when mic test completes OR question/section changes
   useEffect(() => {
-    // Skip if mic test not completed yet
-    if (!micTestCompleted) {
-      console.log('⏸️ Skipping timer init - mic test not completed');
-      return;
-    }
+    // CRITICAL: Only run this effect AFTER mic test is completed
+    if (!micTestCompleted) return;
     
     // Initialize timer for new question
     if (currentSection && currentQuestion) {
-      console.log(`🔄 Initializing question ${currentQuestionIndex + 1}, section ${currentSectionIndex + 1}`);
+      console.log(`🔄 [Timer Init] Question ${currentQuestionIndex + 1}, Section ${currentSectionIndex + 1}`);
       const prepTime = currentQuestion.preparationTime ?? currentSection.preparationTime ?? 5;
-      console.log(`⏱️ Setting preparation time: ${prepTime} seconds`);
+      console.log(`⏱️ [Timer Init] Preparation time: ${prepTime}s`);
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       // Reset auto-progress flag when starting new question
       autoProgressQueuedRef.current = false;
     }
-  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex]);
+  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
 
   // Section timer countdown with auto-progression
   useEffect(() => {
-    // Only countdown after mic test is completed
-    if (!micTestCompleted) return;
+    // CRITICAL: Only countdown after mic test is completed
+    if (!micTestCompleted) {
+      console.log('⏸️ [Timer Countdown] Blocked - mic test not completed');
+      return;
+    }
     
     if (timeRemaining > 0 && !isSubmitting) {
+      console.log(`⏱️ [Timer Countdown] ${timeRemaining}s remaining (${testPhase})`);
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => prev - 1);
       }, 1000);
