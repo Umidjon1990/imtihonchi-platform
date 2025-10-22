@@ -162,6 +162,7 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - "Javob berilgan" / "Javob berilmagan" statuslar
     - Audio URL guard (undefined holatlarni to'g'ri boshqarish)
     - Progress tracking (javob berilgan savollar soni)
+    - **Bug fix**: Backend `{url}` qaytaradi, frontend esa `filename` ajratib oladi
 
 ⏳ **Navbatda**:
 - Admin panel (kategoriyalar, foydalanuvchilar)

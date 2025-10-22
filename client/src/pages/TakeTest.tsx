@@ -456,7 +456,9 @@ export default function TakeTest() {
         throw new Error('Audio upload failed');
       }
 
-      const { filename } = await uploadResponse.json();
+      const { url } = await uploadResponse.json();
+      // Extract filename from url (/api/audio/{filename})
+      const filename = url.replace('/api/audio/', '');
       console.log('✅ Audio uploaded:', filename);
 
       // Save answer to database
