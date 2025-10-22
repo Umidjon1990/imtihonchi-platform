@@ -871,6 +871,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           cefrLevel: data.cefrLevel || '',
           gradedAt: new Date(),
           teacherName: `${teacher?.firstName || ''} ${teacher?.lastName || ''}`.trim(),
+          feedback: data.feedback || undefined,
         });
       } catch (certError) {
         console.error("Certificate generation error:", certError);

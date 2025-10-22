@@ -8,6 +8,7 @@ interface CertificateData {
   cefrLevel: string;
   gradedAt: Date;
   teacherName: string;
+  feedback?: string;
 }
 
 const objectStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
@@ -182,6 +183,81 @@ export async function generateCertificate(data: CertificateData): Promise<string
         .font('Helvetica')
         .fillColor('#94a3b8')
         .text('Imtihonchi - CEFR Og\'zaki Baholash Platformasi', 0, pageHeight - 70, { align: 'center' });
+
+      // ============================================
+      // PAGE 2: FEEDBACK / IZOHLAR
+      // ============================================
+      if (data.feedback && data.feedback.trim()) {
+        doc.addPage({
+          size: 'A4',
+          layout: 'landscape',
+          margins: { top: 50, bottom: 50, left: 50, right: 50 }
+        });
+
+        // Background border
+        doc
+          .rect(30, 30, pageWidth - 60, pageHeight - 60)
+          .lineWidth(3)
+          .stroke('#2563eb');
+
+        doc
+          .rect(40, 40, pageWidth - 80, pageHeight - 80)
+          .lineWidth(1)
+          .stroke('#2563eb');
+
+        // Title
+        doc
+          .fontSize(32)
+          .font('Helvetica-Bold')
+          .fillColor('#1e40af')
+          .text('O\'QITUVCHI IZOHLARI', 0, 80, { align: 'center' });
+
+        // Divider
+        doc
+          .moveTo(centerX - 150, 130)
+          .lineTo(centerX + 150, 130)
+          .lineWidth(2)
+          .stroke('#93c5fd');
+
+        // Student name reminder
+        doc
+          .fontSize(14)
+          .font('Helvetica')
+          .fillColor('#64748b')
+          .text(`Talaba: ${data.studentName}`, 0, 160, { align: 'center' });
+
+        doc
+          .fontSize(12)
+          .font('Helvetica')
+          .fillColor('#64748b')
+          .text(`Test: ${data.testTitle} | CEFR: ${data.cefrLevel} | Ball: ${data.score}/100`, 0, 180, { align: 'center' });
+
+        // Feedback box background
+        const feedbackBoxY = 220;
+        const feedbackBoxHeight = pageHeight - feedbackBoxY - 120;
+        
+        doc
+          .roundedRect(70, feedbackBoxY, pageWidth - 140, feedbackBoxHeight, 10)
+          .fillAndStroke('#f8fafc', '#cbd5e1');
+
+        // Feedback text
+        doc
+          .fontSize(13)
+          .font('Helvetica')
+          .fillColor('#334155')
+          .text(data.feedback, 90, feedbackBoxY + 30, {
+            width: pageWidth - 180,
+            align: 'left',
+            lineGap: 6
+          });
+
+        // Footer on page 2
+        doc
+          .fontSize(10)
+          .font('Helvetica')
+          .fillColor('#94a3b8')
+          .text('Imtihonchi - CEFR Og\'zaki Baholash Platformasi', 0, pageHeight - 70, { align: 'center' });
+      }
 
       doc.end();
     } catch (error) {
