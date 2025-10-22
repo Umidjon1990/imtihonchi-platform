@@ -537,8 +537,10 @@ export default function TakeTest() {
       setTimeRemaining(prepTime);
       setTestPhase('preparation');
       autoProgressQueuedRef.current = false;
+    } else {
+      console.log(`⚠️ [INIT] Waiting for data... section: ${!!currentSection}, question: ${!!currentQuestion}`);
     }
-  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex]);
+  }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
 
   // Timer countdown - run ONLY after mic test
   useEffect(() => {
