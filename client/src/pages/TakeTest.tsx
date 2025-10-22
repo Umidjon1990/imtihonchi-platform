@@ -445,7 +445,7 @@ export default function TakeTest() {
 
       // Upload audio file to object storage
       const formData = new FormData();
-      formData.append('audio', audioBlob);
+      formData.append('file', audioBlob);
       
       const uploadResponse = await fetch('/api/upload-audio', {
         method: 'POST',
