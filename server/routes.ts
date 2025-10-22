@@ -547,8 +547,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      // Upload to object storage
-      const uniqueName = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(req.file.originalname)}`;
+      // Upload to object storage - force .webm extension for MediaRecorder compatibility
+      const uniqueName = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
       const objectKey = `.private/audio/${uniqueName}`;
       await objectStorage.uploadFromBytes(objectKey, req.file.buffer);
       
