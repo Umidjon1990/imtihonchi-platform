@@ -596,16 +596,20 @@ export default function TakeTest() {
     // Don't countdown if timer not initialized yet
     if (timeRemaining === null) return;
     
+    // Get current values via ref to avoid stale closures
+    const section = sections[currentSectionIndex];
+    const question = sectionQuestions[currentQuestionIndex];
+    
     if (timeRemaining > 0 && !isSubmitting) {
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
       }, 1000);
-    } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
+    } else if (timeRemaining === 0 && section && question && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
       if (testPhase === 'preparation') {
         console.log('⏰ [PHASE] Preparation done, switching to speaking');
         // Preparation done - start speaking phase
-        const speakTime = currentQuestion.speakingTime ?? currentSection.speakingTime ?? 30;
+        const speakTime = question.speakingTime ?? section.speakingTime ?? 30;
         console.log(`⏱️ [PHASE] Speaking time: ${speakTime}s`);
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
@@ -636,7 +640,7 @@ export default function TakeTest() {
             };
             
             mediaRecorderRef.current = recorder;
-            recordingQuestionIdRef.current = currentQuestion.id;
+            recordingQuestionIdRef.current = question.id;
             recordingStartTimeRef.current = Date.now();
             
             recorder.start();
@@ -673,8 +677,8 @@ export default function TakeTest() {
             sectionQuestionsLength: sectionQLength,
             currentSectionIndex: currentSecIdx,
             totalSections: totalSec,
-            currentSectionId: currentSection?.id,
-            currentSectionTitle: currentSection?.title
+            currentSectionId: section?.id,
+            currentSectionTitle: section?.title
           });
           
           // Move to next question directly - use captured state
@@ -699,7 +703,7 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted]);
+  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted, currentSectionIndex, currentQuestionIndex, sections, sectionQuestions]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
