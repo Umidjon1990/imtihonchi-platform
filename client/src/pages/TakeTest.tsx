@@ -542,7 +542,7 @@ export default function TakeTest() {
     }
   }, [micTestCompleted, currentSectionIndex, currentQuestionIndex, currentSection, currentQuestion]);
 
-  // Timer countdown - run ONLY after mic test
+  // Timer countdown - run ONLY after mic test  
   useEffect(() => {
     // Absolutely block all timer activity before mic test completes
     if (!micTestCompleted) return;
@@ -564,47 +564,81 @@ export default function TakeTest() {
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
         
-        // Auto-start recording
+        // Auto-start recording - direct call without dependency
         if (!isRecording) {
           console.log('🎤 [AUTO] Starting recording');
-          startRecording();
+          navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            const recorder = new MediaRecorder(stream);
+            audioChunksRef.current = [];
+            
+            recorder.ondataavailable = (e) => {
+              if (e.data.size > 0) audioChunksRef.current.push(e.data);
+            };
+            
+            recorder.onstop = () => {
+              const blob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+              const url = URL.createObjectURL(blob);
+              
+              setRecordings(prev => ({
+                ...prev,
+                [recordingQuestionIdRef.current!]: { blob, url, duration: recordingTime }
+              }));
+              
+              stream.getTracks().forEach(track => track.stop());
+              setIsRecording(false);
+              stopWaveform();
+            };
+            
+            mediaRecorderRef.current = recorder;
+            recordingQuestionIdRef.current = currentQuestion.id;
+            recordingStartTimeRef.current = Date.now();
+            
+            recorder.start();
+            setIsRecording(true);
+          }).catch(err => {
+            console.error('Mikrofon xatosi:', err);
+          });
         }
       } else if (testPhase === 'speaking') {
         console.log('⏰ [PHASE] Speaking done, auto-progressing');
         // Mark auto-progress as queued to prevent re-triggers
         autoProgressQueuedRef.current = true;
         
-        // Speaking time done - auto stop recording and move to next
-        const handleAutoProgress = async () => {
-          console.log('🛑 [AUTO] About to stop recording, isRecording:', isRecording);
-          if (isRecording) {
-            console.log('🛑 [AUTO] Stopping recording');
-            await stopRecording();
-            console.log('✅ [AUTO] Recording stopped');
+        // Speaking time done - stop recording and move to next directly
+        const progressToNext = async () => {
+          console.log('🛑 [AUTO] Stopping recording...');
+          
+          // Stop recording directly
+          if (mediaRecorderRef.current && isRecording) {
+            mediaRecorderRef.current.stop();
           }
           
-          // Auto-move to next question after stop completes
-          console.log('⏰ [AUTO] Waiting 500ms before calling handleNextQuestion');
-          setTimeout(() => {
-            console.log('➡️ [AUTO] NOW calling handleNextQuestion');
-            console.log('Current state:', {
-              currentQuestionIndex,
-              sectionQuestionsLength: sectionQuestions.length,
-              currentSectionIndex,
-              sectionsLength: sections.length
-            });
-            handleNextQuestion();
-          }, 500);
+          // Wait a bit for recording to save
+          await new Promise(resolve => setTimeout(resolve, 300));
+          
+          console.log('➡️ [AUTO] Moving to next question, current:', currentQuestionIndex, 'total:', sectionQuestions.length);
+          
+          // Move to next question directly
+          if (currentQuestionIndex < sectionQuestions.length - 1) {
+            console.log('➡️ Next question in same section');
+            setCurrentQuestionIndex(prev => prev + 1);
+          } else if (currentSectionIndex < sections.length - 1) {
+            console.log('➡️ Next section');
+            setCurrentSectionIndex(prev => prev + 1);
+            setCurrentQuestionIndex(0);
+          } else {
+            console.log('✅ Test complete!');
+          }
         };
         
-        handleAutoProgress();
+        progressToNext();
       }
     }
 
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted, handleNextQuestion, startRecording, stopRecording]);
+  }, [timeRemaining, currentSection, currentQuestion, testPhase, isSubmitting, isRecording, micTestCompleted, currentQuestionIndex, sectionQuestions.length, currentSectionIndex, sections.length, recordingTime]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
