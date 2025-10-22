@@ -167,12 +167,21 @@ export default function TakeTest() {
   }, [sections]);
 
   const currentSection = useMemo(() => sections[currentSectionIndex], [sections, currentSectionIndex]);
-  const sectionQuestions = useMemo(() => 
-    allQuestions
+  const sectionQuestions = useMemo(() => {
+    const filtered = allQuestions
       .filter(q => q.sectionId === currentSection?.id)
-      .sort((a, b) => a.questionNumber - b.questionNumber),
-    [allQuestions, currentSection]
-  );
+      .sort((a, b) => a.questionNumber - b.questionNumber);
+    
+    console.log('🔍 [SECTION QUESTIONS]', {
+      sectionId: currentSection?.id,
+      sectionTitle: currentSection?.title,
+      totalQuestions: allQuestions.length,
+      filteredCount: filtered.length,
+      questions: filtered.map(q => ({ id: q.id, number: q.questionNumber, text: q.questionText.substring(0, 30) }))
+    });
+    
+    return filtered;
+  }, [allQuestions, currentSection]);
   const currentQuestion = useMemo(() => sectionQuestions[currentQuestionIndex], [sectionQuestions, currentQuestionIndex]);
 
   // Calculate total progress
@@ -504,7 +513,7 @@ export default function TakeTest() {
       await apiRequest("POST", "/api/submissions", {
         purchaseId,
         testId: test?.id,
-        answers: uploadedUrls,
+        audioFiles: uploadedUrls,
       });
 
       toast({
