@@ -238,14 +238,9 @@ export default function ReviewSubmission() {
               </Button>
             </Link>
             <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-lg font-bold" data-testid="text-test-title">
-                  {test.title}
-                </h1>
-                <Badge variant="outline" className="text-xs">
-                  {test.language === 'ar' ? '🇸🇦 Arab' : '🇬🇧 Ingliz'}
-                </Badge>
-              </div>
+              <h1 className="text-lg font-bold" data-testid="text-test-title">
+                {test.title}
+              </h1>
               <p className="text-sm text-muted-foreground">
                 Topshiriqni baholash
               </p>
@@ -303,7 +298,7 @@ export default function ReviewSubmission() {
                   AI Yordamchi
                 </CardTitle>
                 <CardDescription>
-                  ChatGPT yordamida {test.language === 'ar' ? 'Arab' : 'Ingliz'} tilini avtomatik baholash
+                  ChatGPT yordamida avtomatik baholash
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
