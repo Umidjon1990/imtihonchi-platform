@@ -29,8 +29,11 @@ export async function transcribeAudio(audioBuffer: Buffer, filename: string): Pr
   }
 
   try {
+    // Ensure filename has .webm extension
+    const webmFilename = filename.endsWith('.webm') ? filename : `${filename}.webm`;
+    
     // Use OpenAI.toFile for Node.js compatibility
-    const file = await OpenAI.toFile(audioBuffer, filename);
+    const file = await OpenAI.toFile(audioBuffer, webmFilename);
     
     const transcription = await openai.audio.transcriptions.create({
       file: file,
