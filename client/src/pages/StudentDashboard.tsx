@@ -268,7 +268,11 @@ export default function StudentDashboard() {
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {purchases.map((purchase) => {
                     const test = tests.find(t => t.id === purchase.testId);
-                    const hasSubmission = submissions.some(s => s.purchaseId === purchase.id);
+                    // Only consider submitted or graded submissions as "completed"
+                    const hasSubmission = submissions.some(s => 
+                      s.purchaseId === purchase.id && 
+                      (s.status === 'submitted' || s.status === 'graded')
+                    );
                     
                     if (!test) return null;
                     
