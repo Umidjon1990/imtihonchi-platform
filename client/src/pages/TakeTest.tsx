@@ -463,6 +463,7 @@ export default function TakeTest() {
 
       // Save answer to database
       const answerResponse = await apiRequest("POST", `/api/submissions/${currentSubmissionId}/answer`, {
+        submissionId: currentSubmissionId,
         questionId,
         audioFile: filename,
       });

@@ -154,7 +154,6 @@ export const insertSubmissionSchema = createInsertSchema(submissions).omit({
 
 export const insertSubmissionAnswerSchema = createInsertSchema(submissionAnswers).omit({ 
   id: true, 
-  submissionId: true, // Injected from route params
   answeredAt: true 
 });
 
