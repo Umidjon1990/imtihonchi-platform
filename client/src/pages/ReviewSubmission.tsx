@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Volume2, Check, User, FileText, Award } from "lucide-react";
+import { ArrowLeft, Volume2, Check, User, FileText, Award, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link } from "wouter";
@@ -37,6 +37,7 @@ export default function ReviewSubmission() {
   const [cefrLevel, setCefrLevel] = useState("");
   const [feedback, setFeedback] = useState("");
   const [studentNameOverride, setStudentNameOverride] = useState("");
+  const [showAiPanel, setShowAiPanel] = useState(false);
 
   const { data: submission, isLoading: submissionLoading } = useQuery<any>({
     queryKey: ["/api/submissions", submissionId],
@@ -93,6 +94,65 @@ export default function ReviewSubmission() {
   const { data: student } = useQuery<any>({
     queryKey: ["/api/users", submission?.studentId],
     enabled: !!submission?.studentId,
+  });
+
+  // Fetch AI evaluation
+  const { data: aiEvaluation, isLoading: aiEvaluationLoading } = useQuery<any>({
+    queryKey: ["/api/submissions", submissionId, "ai-evaluation"],
+    enabled: !!submissionId && showAiPanel,
+    retry: false,
+  });
+
+  // Transcribe mutation
+  const transcribeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/submissions/${submissionId}/transcribe`, {});
+      return response;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Transkripsiya tayyor",
+        description: `${data.transcribed} / ${data.total} audio yozuv matnli ko'rinishga o'tkazildi`,
+      });
+      // Invalidate answers to refetch with transcripts
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions", submissionId, "answers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Xatolik",
+        description: error.message || "Transkripsiya xatolik",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // AI evaluate mutation
+  const aiEvaluateMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", `/api/submissions/${submissionId}/ai-evaluate`, {});
+      return response;
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "AI Baholash Tayyor",
+        description: "ChatGPT tomonidan baholash yakunlandi",
+      });
+      setShowAiPanel(true);
+      // Prefill suggestions
+      setTotalScore(data.suggestedScore);
+      setCefrLevel(data.suggestedCefrLevel);
+      // Combine AI feedback
+      const combinedFeedback = `SO'Z BOYLIGI (${data.vocabularyScore}/100):\n${data.vocabularyFeedback}\n\nGRAMMATIKA (${data.grammarScore}/100):\n${data.grammarFeedback}\n\nIZCHILLIK (${data.coherenceScore}/100):\n${data.coherenceFeedback}\n\nUMUMIY XULOSA:\n${data.overallFeedback}`;
+      setFeedback(combinedFeedback);
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions", submissionId, "ai-evaluation"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Xatolik",
+        description: error.message || "AI baholash xatolik",
+        variant: "destructive",
+      });
+    },
   });
 
   useEffect(() => {
@@ -230,6 +290,46 @@ export default function ReviewSubmission() {
               </CardContent>
             </Card>
 
+            {/* AI Assistant Card */}
+            <Card className="border-primary/20">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                  AI Yordamchi
+                </CardTitle>
+                <CardDescription>
+                  ChatGPT yordamida avtomatik baholash
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => transcribeMutation.mutate()}
+                  disabled={transcribeMutation.isPending}
+                  data-testid="button-transcribe"
+                >
+                  {transcribeMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {transcribeMutation.isPending ? "Transkripsiya..." : "1. Audio → Matn"}
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => aiEvaluateMutation.mutate()}
+                  disabled={aiEvaluateMutation.isPending}
+                  data-testid="button-ai-evaluate"
+                >
+                  {aiEvaluateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {aiEvaluateMutation.isPending ? "Baholanmoqda..." : "2. AI Baholash"}
+                </Button>
+
+                <p className="text-xs text-muted-foreground">
+                  Avval audiolarni matnga o'giring, keyin AI baholash tugmasini bosing
+                </p>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -343,6 +443,8 @@ export default function ReviewSubmission() {
                         <div className="space-y-4">
                           {sectionQuestions.map((question: any, qIdx: number) => {
                             const audioUrl = audioFiles[question.id];
+                            const answer = submissionAnswers.find((a: any) => a.questionId === question.id);
+                            const transcript = answer?.transcript;
                             
                             return (
                               <Card key={question.id}>
@@ -385,6 +487,15 @@ export default function ReviewSubmission() {
                                         className="w-full"
                                         data-testid={`audio-${question.id}`}
                                       />
+                                      
+                                      {transcript && (
+                                        <div className="mt-4 pt-4 border-t">
+                                          <p className="text-xs text-muted-foreground mb-2 font-medium">TRANSKRIPSIYA:</p>
+                                          <p className="text-sm bg-background p-3 rounded border">
+                                            {transcript}
+                                          </p>
+                                        </div>
+                                      )}
                                     </div>
                                   ) : (
                                     <div className="p-4 bg-muted/30 rounded-lg border-2 text-center text-muted-foreground">

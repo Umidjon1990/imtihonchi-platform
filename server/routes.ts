@@ -6,6 +6,7 @@ import multer from "multer";
 import path from "path";
 import { Client } from "@replit/object-storage";
 import { generateCertificate } from "./utils/certificate";
+import { transcribeAudio, evaluateSpeaking } from "./utils/openai";
 import { 
   insertTestCategorySchema,
   insertTestSchema,
@@ -15,6 +16,7 @@ import {
   insertSubmissionSchema,
   insertSubmissionAnswerSchema,
   insertResultSchema,
+  insertAiEvaluationSchema,
 } from "@shared/schema";
 
 // Initialize Replit Object Storage client
@@ -927,6 +929,139 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error serving certificate:", error);
       res.status(500).json({ message: "Sertifikatni yuklashda xatolik" });
+    }
+  });
+
+  // AI Evaluation routes
+  // Transcribe all audio answers for a submission
+  app.post("/api/submissions/:id/transcribe", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat o'qituvchilar transkripsiya qila oladi" });
+      }
+
+      const submission = await storage.getSubmissionById(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      // Get all audio answers
+      const answers = await storage.getSubmissionAnswers(req.params.id);
+      
+      if (answers.length === 0) {
+        return res.status(400).json({ message: "Audio javoblar topilmadi" });
+      }
+
+      // Transcribe each audio file
+      const transcriptionPromises = answers.map(async (answer) => {
+        try {
+          // Skip if already transcribed
+          if (answer.transcript) {
+            return { answerId: answer.id, transcript: answer.transcript, skipped: true };
+          }
+
+          // Extract filename from URL
+          const audioUrl = answer.audioUrl;
+          const filename = audioUrl.split('/').pop() || 'audio.webm';
+          const objectKey = `.private/audio/${filename}`;
+
+          // Download audio from object storage
+          const downloadResult = await objectStorage.downloadAsBytes(objectKey);
+          
+          if (!downloadResult.ok) {
+            console.error(`Failed to download audio: ${filename}`);
+            return { answerId: answer.id, error: "Audio yuklab olinmadi" };
+          }
+
+          const [audioBuffer] = downloadResult.value;
+
+          // Transcribe using Whisper
+          const { text } = await transcribeAudio(audioBuffer, filename);
+
+          // Update answer with transcript
+          await storage.updateSubmissionAnswerTranscript(answer.id, text);
+
+          return { answerId: answer.id, transcript: text };
+        } catch (error: any) {
+          console.error(`Transcription error for answer ${answer.id}:`, error);
+          return { answerId: answer.id, error: error.message };
+        }
+      });
+
+      const results = await Promise.all(transcriptionPromises);
+      
+      res.json({ 
+        message: "Transkripsiya yakunlandi", 
+        results,
+        total: answers.length,
+        transcribed: results.filter(r => r.transcript).length,
+      });
+    } catch (error: any) {
+      console.error("Error transcribing:", error);
+      res.status(500).json({ message: "Transkripsiya xatolik" });
+    }
+  });
+
+  // Evaluate submission using ChatGPT
+  app.post("/api/submissions/:id/ai-evaluate", isAuthenticated, async (req: any, res) => {
+    try {
+      const user = await storage.getUser(req.user.claims.sub);
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat o'qituvchilar baholashi mumkin" });
+      }
+
+      const submission = await storage.getSubmissionById(req.params.id);
+      if (!submission) {
+        return res.status(404).json({ message: "Topshiriq topilmadi" });
+      }
+
+      // Check if already evaluated
+      const existingEvaluation = await storage.getAiEvaluationBySubmissionId(req.params.id);
+      if (existingEvaluation) {
+        return res.json(existingEvaluation);
+      }
+
+      // Get all transcripts
+      const answers = await storage.getSubmissionAnswers(req.params.id);
+      const transcripts = answers
+        .filter(a => a.transcript)
+        .map(a => a.transcript as string);
+
+      if (transcripts.length === 0) {
+        return res.status(400).json({ 
+          message: "Avval transkripsiya qiling",
+          needsTranscription: true
+        });
+      }
+
+      // Evaluate using GPT-4o
+      const evaluation = await evaluateSpeaking(transcripts);
+
+      // Save evaluation
+      const saved = await storage.createAiEvaluation({
+        submissionId: req.params.id,
+        ...evaluation,
+      });
+
+      res.json(saved);
+    } catch (error: any) {
+      console.error("Error evaluating:", error);
+      res.status(500).json({ message: error.message || "AI baholash xatolik" });
+    }
+  });
+
+  // Get AI evaluation for a submission
+  app.get("/api/submissions/:id/ai-evaluation", isAuthenticated, async (req: any, res) => {
+    try {
+      const evaluation = await storage.getAiEvaluationBySubmissionId(req.params.id);
+      if (!evaluation) {
+        return res.status(404).json({ message: "AI baholash topilmadi" });
+      }
+      res.json(evaluation);
+    } catch (error) {
+      console.error("Error fetching AI evaluation:", error);
+      res.status(500).json({ message: "AI baholashni olishda xatolik" });
     }
   });
 
