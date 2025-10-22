@@ -114,6 +114,7 @@ export const results = pgTable("results", {
   score: integer("score"),
   cefrLevel: text("cefr_level"), // A1, A2, B1, B2, C1, C2
   feedback: text("feedback"),
+  studentNameOverride: text("student_name_override"), // O'qituvchi tomonidan kiritilgan ism (sertifikat uchun)
   certificateUrl: text("certificate_url"),
   gradedAt: timestamp("graded_at").defaultNow().notNull(),
 });

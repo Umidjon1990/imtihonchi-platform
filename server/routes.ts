@@ -124,6 +124,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get user by ID (for teachers reviewing submissions)
+  app.get('/api/users/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const currentUser = await storage.getUser(req.user.claims.sub);
+      // Only teachers and admins can view other users
+      if (currentUser?.role !== 'teacher' && currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const user = await storage.getUser(req.params.id);
+      if (!user) {
+        return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+      }
+      
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Foydalanuvchini olishda xatolik" });
+    }
+  });
+
   // Test category routes
   app.get("/api/categories", async (req, res) => {
     try {
@@ -838,8 +859,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate certificate
       let certificateUrl = '';
       try {
+        // Use override name if provided, otherwise use student's database name
+        const studentName = data.studentNameOverride 
+          ? data.studentNameOverride 
+          : `${student?.firstName || ''} ${student?.lastName || ''}`.trim();
+        
         certificateUrl = await generateCertificate({
-          studentName: `${student?.firstName || ''} ${student?.lastName || ''}`.trim(),
+          studentName,
           testTitle: test?.title || '',
           score: data.score || 0,
           cefrLevel: data.cefrLevel || '',

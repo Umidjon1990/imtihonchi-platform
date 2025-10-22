@@ -36,6 +36,7 @@ export default function ReviewSubmission() {
   const [totalScore, setTotalScore] = useState(0);
   const [cefrLevel, setCefrLevel] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [studentNameOverride, setStudentNameOverride] = useState("");
 
   const { data: submission, isLoading: submissionLoading } = useQuery<any>({
     queryKey: ["/api/submissions", submissionId],
@@ -88,11 +89,18 @@ export default function ReviewSubmission() {
     enabled: !!submissionId,
   });
 
+  // Fetch student data
+  const { data: student } = useQuery<any>({
+    queryKey: ["/api/users", submission?.studentId],
+    enabled: !!submission?.studentId,
+  });
+
   useEffect(() => {
     if (existingResult) {
       setTotalScore(existingResult.score || 0);
       setCefrLevel(existingResult.cefrLevel || "");
       setFeedback(existingResult.feedback || "");
+      setStudentNameOverride(existingResult.studentNameOverride || "");
     }
   }, [existingResult]);
 
@@ -103,6 +111,7 @@ export default function ReviewSubmission() {
         score: totalScore,
         cefrLevel,
         feedback,
+        studentNameOverride: studentNameOverride || undefined,
       });
     },
     onSuccess: () => {
@@ -265,6 +274,22 @@ export default function ReviewSubmission() {
                     placeholder="Talabaga umumiy izoh va tavsiyalar..."
                     rows={4}
                     data-testid="textarea-feedback"
+                  />
+                </div>
+                <div className="border-t pt-4">
+                  <Label htmlFor="student-name-override">
+                    Talaba Ism-Familiyasi (Sertifikat uchun)
+                  </Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Database'dagi ism: {student?.firstName} {student?.lastName}. 
+                    Agar bu to'g'ri bo'lmasa, sertifikatda chiqishi kerak bo'lgan to'g'ri ism-familiyani kiriting.
+                  </p>
+                  <Input
+                    id="student-name-override"
+                    value={studentNameOverride}
+                    onChange={(e) => setStudentNameOverride(e.target.value)}
+                    placeholder={`${student?.firstName || ''} ${student?.lastName || ''}`.trim() || "Masalan: Abdulloh Karimov"}
+                    data-testid="input-student-name"
                   />
                 </div>
                 <Button
