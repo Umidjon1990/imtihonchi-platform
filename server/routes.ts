@@ -549,7 +549,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Upload to object storage
       const uniqueName = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}${path.extname(req.file.originalname)}`;
-      const objectKey = `.private/${uniqueName}`;
+      const objectKey = `.private/audio/${uniqueName}`;
       await objectStorage.uploadFromBytes(objectKey, req.file.buffer);
       
       const url = `/api/audio/${uniqueName}`;
