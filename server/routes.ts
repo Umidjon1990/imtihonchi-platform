@@ -568,7 +568,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const basename = path.basename(req.params.filename);
-      const objectKey = `.private/${basename}`;
+      const objectKey = `.private/audio/${basename}`;
       const result = await objectStorage.downloadAsBytes(objectKey);
       
       if (!result.ok) {
