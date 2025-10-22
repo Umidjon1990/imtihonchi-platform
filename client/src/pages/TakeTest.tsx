@@ -595,12 +595,16 @@ export default function TakeTest() {
       sectionTimerRef.current = window.setTimeout(() => {
         setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
       }, 1000);
-    } else if (timeRemaining === 0 && currentQuestion && !autoProgressQueuedRef.current) {
+    } else if (timeRemaining === 0 && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
+      // Get fresh data from state
+      const question = flatQuestionList[globalQuestionIndex];
+      if (!question) return;
+      
       if (testPhase === 'preparation') {
         console.log('⏰ [PHASE] Preparation done, switching to speaking');
         // Preparation done - start speaking phase
-        const speakTime = currentQuestion.speakingTime ?? currentQuestion.sectionSpeakingTime;
+        const speakTime = question.speakingTime ?? question.sectionSpeakingTime;
         console.log(`⏱️ [PHASE] Speaking time: ${speakTime}s`);
         setTimeRemaining(speakTime);
         setTestPhase('speaking');
@@ -631,7 +635,7 @@ export default function TakeTest() {
             };
             
             mediaRecorderRef.current = recorder;
-            recordingQuestionIdRef.current = currentQuestion.id;
+            recordingQuestionIdRef.current = question.id;
             recordingStartTimeRef.current = Date.now();
             
             recorder.start();
@@ -642,7 +646,7 @@ export default function TakeTest() {
         }
       } else if (testPhase === 'speaking') {
         console.log('⏰ [PHASE] Speaking done, auto-progressing');
-        // Mark auto-progress as queued to prevent re-triggers
+        // Mark auto-progress as queued to prevent re-triggers  
         autoProgressQueuedRef.current = true;
         
         // Speaking time done - stop recording and move to next directly
@@ -659,12 +663,12 @@ export default function TakeTest() {
           
           console.log(`➡️ [AUTO] Moving to next question: ${globalQuestionIndex} → ${globalQuestionIndex + 1} (total: ${flatQuestionList.length})`);
           
-          // Move to next question in flat list
-          if (globalQuestionIndex < flatQuestionList.length - 1) {
-            setGlobalQuestionIndex(prev => prev + 1);
-          } else {
-            console.log('✅ Test complete!');
-          }
+          // Move to next question in flat list - NO SKIP!
+          setGlobalQuestionIndex(prevIdx => {
+            const nextIdx = prevIdx + 1;
+            console.log(`✅ [STATE UPDATE] Question index: ${prevIdx} → ${nextIdx}`);
+            return nextIdx;
+          });
         };
         
         progressToNext();
@@ -674,7 +678,7 @@ export default function TakeTest() {
     return () => {
       if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
     };
-  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted, currentQuestion, globalQuestionIndex, flatQuestionList.length]);
+  }, [timeRemaining, testPhase, isSubmitting, isRecording, micTestCompleted, globalQuestionIndex, flatQuestionList]);
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
