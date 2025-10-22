@@ -155,9 +155,15 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - Har savol uchun alohida submission_answers jadvali yozuvi
     - Oxirgi savol tugagach submission complete qilinadi (status: submitted)
     - Frontend freeze muammosini hal qiladi
+15. O'qituvchi audio tinglash tizimi:
+    - ReviewSubmission sahifasida har savol uchun audio player
+    - submission_answers API'dan ma'lumot olish
+    - Har savol uchun alohida audio ko'rsatish
+    - "Javob berilgan" / "Javob berilmagan" statuslar
+    - Audio URL guard (undefined holatlarni to'g'ri boshqarish)
+    - Progress tracking (javob berilgan savollar soni)
 
 ⏳ **Navbatda**:
-- O'qituvchi baholash tizimi (audio tinglab natija berish)
 - Admin panel (kategoriyalar, foydalanuvchilar)
 - Sertifikat generatsiyasi
 
