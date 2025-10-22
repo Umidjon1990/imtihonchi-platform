@@ -99,7 +99,7 @@ export default function TakeTest() {
   const [recordings, setRecordings] = useState<{ [questionId: string]: AudioRecording }>({});
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
-  const [timeRemaining, setTimeRemaining] = useState(0);
+  const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // null until test starts
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testPhase, setTestPhase] = useState<'preparation' | 'speaking'>('preparation');
 
@@ -550,9 +550,12 @@ export default function TakeTest() {
     // Absolutely block all timer activity before mic test completes
     if (!micTestCompleted) return;
     
+    // Don't countdown if timer not initialized yet
+    if (timeRemaining === null) return;
+    
     if (timeRemaining > 0 && !isSubmitting) {
       sectionTimerRef.current = window.setTimeout(() => {
-        setTimeRemaining(prev => prev - 1);
+        setTimeRemaining(prev => (prev !== null ? prev - 1 : null));
       }, 1000);
     } else if (timeRemaining === 0 && currentSection && currentQuestion && !autoProgressQueuedRef.current) {
       // Time's up - handle phase transition
@@ -800,8 +803,8 @@ export default function TakeTest() {
           <div className="flex items-center gap-4">
             <div className="text-right">
               <p className="text-sm font-medium">Qolgan vaqt</p>
-              <p className={`text-lg font-bold ${timeRemaining < 30 ? 'text-destructive' : 'text-primary'}`} data-testid="text-timer">
-                {formatTime(timeRemaining)}
+              <p className={`text-lg font-bold ${(timeRemaining !== null && timeRemaining < 30) ? 'text-destructive' : 'text-primary'}`} data-testid="text-timer">
+                {timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}
               </p>
             </div>
             
@@ -865,10 +868,10 @@ export default function TakeTest() {
                 
                 <div className="relative">
                   <div className={`text-[120px] md:text-[160px] font-black leading-none tracking-tight font-mono ${
-                    timeRemaining < 30 ? 'text-destructive animate-pulse' : 
+                    (timeRemaining !== null && timeRemaining < 30) ? 'text-destructive animate-pulse' : 
                     testPhase === 'preparation' ? 'text-primary' : 'text-green-600 dark:text-green-400'
                   }`} data-testid="text-timer-large">
-                    {formatTime(timeRemaining)}
+                    {timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}
                   </div>
                   <p className="text-lg text-muted-foreground mt-2">
                     {testPhase === 'preparation' 
