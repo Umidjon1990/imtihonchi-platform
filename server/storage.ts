@@ -49,6 +49,7 @@ export interface IStorage {
   // Test operations
   getTests(categoryId?: string, teacherId?: string): Promise<Test[]>;
   getTestById(id: string): Promise<Test | undefined>;
+  getDemoTestsByMainTestId(mainTestId: string): Promise<Test[]>;
   createTest(test: InsertTest): Promise<Test>;
   updateTest(id: string, test: Partial<InsertTest>): Promise<Test | undefined>;
   deleteTest(id: string): Promise<void>;
@@ -67,6 +68,7 @@ export interface IStorage {
   
   // Purchase operations
   getPurchasesByStudent(studentId: string): Promise<Purchase[]>;
+  getPurchaseByStudentAndTest(studentId: string, testId: string): Promise<Purchase | undefined>;
   createPurchase(purchase: InsertPurchase): Promise<Purchase>;
   getPurchaseById(id: string): Promise<Purchase | undefined>;
   getPendingPurchases(): Promise<Purchase[]>;
@@ -183,6 +185,15 @@ export class DatabaseStorage implements IStorage {
     return test;
   }
 
+  async getDemoTestsByMainTestId(mainTestId: string): Promise<Test[]> {
+    return await db.select().from(tests).where(
+      and(
+        eq(tests.isDemo, true),
+        eq(tests.mainTestId, mainTestId)
+      )
+    );
+  }
+
   async createTest(test: InsertTest): Promise<Test> {
     const [newTest] = await db.insert(tests).values(test).returning();
     return newTest;
@@ -282,6 +293,19 @@ export class DatabaseStorage implements IStorage {
       .from(purchases)
       .where(eq(purchases.studentId, studentId))
       .orderBy(desc(purchases.purchasedAt));
+  }
+
+  async getPurchaseByStudentAndTest(studentId: string, testId: string): Promise<Purchase | undefined> {
+    const [purchase] = await db
+      .select()
+      .from(purchases)
+      .where(
+        and(
+          eq(purchases.studentId, studentId),
+          eq(purchases.testId, testId)
+        )
+      );
+    return purchase;
   }
 
   async createPurchase(purchase: InsertPurchase): Promise<Purchase> {

@@ -647,7 +647,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
+      // Approve the main purchase
       const updated = await storage.updatePurchaseStatus(req.params.id, 'approved');
+      
+      // Check if test has a demo version
+      const purchase = await storage.getPurchaseById(req.params.id);
+      if (purchase) {
+        const demoTests = await storage.getDemoTestsByMainTestId(purchase.testId);
+        
+        // Auto-create approved purchases for all demo tests
+        for (const demoTest of demoTests) {
+          // Check if student already has demo access
+          const existingDemoPurchase = await storage.getPurchaseByStudentAndTest(
+            purchase.studentId, 
+            demoTest.id
+          );
+          
+          if (!existingDemoPurchase) {
+            await storage.createPurchase({
+              studentId: purchase.studentId,
+              testId: demoTest.id,
+              status: 'approved', // Auto-approve demo
+              receiptUrl: null, // Demo doesn't need receipt
+            });
+          }
+        }
+      }
+      
       res.json(updated);
     } catch (error: any) {
       console.error("Error approving purchase:", error);

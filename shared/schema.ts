@@ -52,6 +52,8 @@ export const tests = pgTable("tests", {
   language: text("language").notNull().default('ar'), // ar (Arab), en (Ingliz)
   imageUrl: text("image_url"),
   isPublished: boolean("is_published").default(false).notNull(),
+  isDemo: boolean("is_demo").default(false).notNull(), // Demo test yoki yo'q
+  mainTestId: varchar("main_test_id"), // Agar demo bo'lsa, qaysi asosiy testga tegishli
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -98,6 +100,7 @@ export const submissions = pgTable("submissions", {
   audioFiles: jsonb("audio_files"), // Legacy: kept for backwards compatibility, now optional
   submittedAt: timestamp("submitted_at").defaultNow().notNull(),
   status: text("status").notNull().default('in_progress'), // in_progress, submitted, graded
+  isDemo: boolean("is_demo").default(false).notNull(), // Demo submission (audio storage'ga yozilmaydi)
 });
 
 export const submissionAnswers = pgTable("submission_answers", {
