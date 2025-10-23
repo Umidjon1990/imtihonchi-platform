@@ -566,6 +566,13 @@ export default function TakeTest() {
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setIsRecording(true);
+      
+      // Start waveform visualization immediately
+      setTimeout(() => {
+        if (analyzerRef.current && canvasRef.current) {
+          drawWaveform();
+        }
+      }, 100);
     } catch (error) {
       toast({
         title: "Xatolik",
