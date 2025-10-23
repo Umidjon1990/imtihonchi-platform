@@ -771,10 +771,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/submissions", isAuthenticated, async (req: any, res) => {
     try {
+      // Check if test is a demo test
+      const test = await storage.getTestById(req.body.testId);
+      const isDemo = test?.isDemo || false;
+      
       const data = insertSubmissionSchema.parse({
         ...req.body,
         studentId: req.user.claims.sub,
         status: 'in_progress', // Start with in_progress status
+        isDemo, // Mark as demo if test is demo
       });
       const submission = await storage.createSubmission(data);
       res.json(submission);
