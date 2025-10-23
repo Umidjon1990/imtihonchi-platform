@@ -858,6 +858,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const test = await storage.getTestById(submission.testId);
       const teacher = await storage.getUser(req.user.claims.sub);
 
+      // Get transcripts for certificate
+      const submissionAnswers = await storage.getSubmissionAnswers(data.submissionId);
+      const sections = await storage.getSectionsByTestId(submission.testId);
+      
+      // Get all questions for all sections (do this once, outside the loop)
+      const allQuestions: any[] = [];
+      for (const section of sections) {
+        const sectionQuestions = await storage.getQuestionsBySectionId(section.id);
+        allQuestions.push(...sectionQuestions);
+      }
+      
+      // Build transcripts array with question details
+      const transcripts: Array<{ questionNumber: number; questionText: string; transcript: string }> = [];
+      
+      for (const answer of submissionAnswers) {
+        if (answer.transcript) {
+          const question = allQuestions.find(q => q.id === answer.questionId);
+          if (question) {
+            transcripts.push({
+              questionNumber: question.questionNumber,
+              questionText: question.questionText,
+              transcript: answer.transcript
+            });
+          }
+        }
+      }
+      
+      // Sort transcripts by question number
+      transcripts.sort((a, b) => a.questionNumber - b.questionNumber);
+
       // Generate certificate
       let certificateUrl = '';
       try {
@@ -874,6 +904,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           gradedAt: new Date(),
           teacherName: `${teacher?.firstName || ''} ${teacher?.lastName || ''}`.trim(),
           feedback: data.feedback || undefined,
+          transcripts: transcripts.length > 0 ? transcripts : undefined,
         });
       } catch (certError) {
         console.error("Certificate generation error:", certError);
