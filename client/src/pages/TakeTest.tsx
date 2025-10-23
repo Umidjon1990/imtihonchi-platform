@@ -295,13 +295,15 @@ export default function TakeTest() {
       animationFrameRef.current = requestAnimationFrame(draw);
       analyzer.getByteTimeDomainData(dataArray);
 
-      // Clear canvas with fade effect
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      // Clear canvas completely (black background)
+      ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw wave
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = 'hsl(var(--primary))';
+      // Draw wave - bright cyan/blue
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#22d3ee'; // Bright cyan
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#22d3ee';
       ctx.beginPath();
 
       const sliceWidth = canvas.width / bufferLength;
@@ -322,6 +324,9 @@ export default function TakeTest() {
 
       ctx.lineTo(canvas.width, canvas.height / 2);
       ctx.stroke();
+      
+      // Reset shadow for next frame
+      ctx.shadowBlur = 0;
     };
 
     draw();
