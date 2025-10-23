@@ -147,6 +147,7 @@ export default function TakeTest() {
   // Wave visualization refs
   const analyzerRef = useRef<AnalyserNode | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const micTestCanvasRef = useRef<HTMLCanvasElement | null>(null); // Separate ref for mic test
   const animationFrameRef = useRef<number | null>(null);
 
   const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
@@ -270,7 +271,8 @@ export default function TakeTest() {
 
   // Start wave visualization when canvas is ready
   useEffect(() => {
-    if ((isRecording || isMicTesting) && analyzerRef.current && canvasRef.current) {
+    const activeCanvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
+    if ((isRecording || isMicTesting) && analyzerRef.current && activeCanvas) {
       drawWaveform();
       // Only cleanup if we actually started the waveform
       return () => {
@@ -281,9 +283,12 @@ export default function TakeTest() {
 
   // Wave visualization
   const drawWaveform = () => {
-    if (!analyzerRef.current || !canvasRef.current) return;
+    if (!analyzerRef.current) return;
     
-    const canvas = canvasRef.current;
+    // Use the correct canvas based on current mode
+    const canvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
+    if (!canvas) return;
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
@@ -337,12 +342,15 @@ export default function TakeTest() {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
     }
-    if (canvasRef.current) {
-      const ctx = canvasRef.current.getContext('2d');
-      if (ctx) {
-        ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+    // Clear both canvases (whichever is active)
+    [canvasRef.current, micTestCanvasRef.current].forEach(canvas => {
+      if (canvas) {
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
       }
-    }
+    });
     analyzerRef.current = null;
   };
 
@@ -568,18 +576,9 @@ export default function TakeTest() {
       setIsRecording(true);
       
       // Start waveform visualization immediately
-      console.log('🎙️ [WAVE] Recording started, setting up waveform...');
-      console.log('🎙️ [WAVE] analyzerRef:', !!analyzerRef.current);
-      console.log('🎙️ [WAVE] canvasRef:', !!canvasRef.current);
-      
       setTimeout(() => {
-        console.log('🎙️ [WAVE] Timeout - analyzerRef:', !!analyzerRef.current);
-        console.log('🎙️ [WAVE] Timeout - canvasRef:', !!canvasRef.current);
         if (analyzerRef.current && canvasRef.current) {
-          console.log('✅ [WAVE] Starting waveform animation!');
           drawWaveform();
-        } else {
-          console.error('❌ [WAVE] Cannot start waveform - missing refs');
         }
       }, 100);
     } catch (error) {
@@ -948,7 +947,7 @@ export default function TakeTest() {
                     {/* Wave visualization canvas */}
                     <div className="w-full bg-background border-2 rounded-lg overflow-hidden">
                       <canvas 
-                        ref={canvasRef}
+                        ref={micTestCanvasRef}
                         width={600}
                         height={120}
                         className="w-full h-[120px]"
