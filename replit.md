@@ -159,14 +159,18 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - ReviewSubmission sahifasida har savol uchun audio player
     - submission_answers API'dan ma'lumot olish
     - Har savol uchun alohida audio ko'rsatish
-    - "Javob berilgan" / "Javob berilmagan" statuslar
-    - Audio URL guard (undefined holatlarni to'g'ri boshqarish)
     - Progress tracking (javob berilgan savollar soni)
-    - **Bug fix**: Backend `{url}` qaytaradi, frontend esa `filename` ajratib oladi
+16. **3 sahifali PDF sertifikat**:
+    - **Sahifa 1 (landscape):** Sertifikat - CEFR darajasi, ball, talaba ismi, o'qituvchi imzosi
+    - **Sahifa 2 (portrait):** Talaba gaplari - barcha savollar va ularning transcriptlari (Whisper tomonidan)
+    - **Sahifa 3 (landscape):** AI izohlar va tavsiyalar - GPT-4o tahlili
+    - **Arabic font support:** Noto Sans Arabic ishlatiladi (Nix store'dan)
+    - **RTL support:** `features: ['rtla']` bilan Arabic matn to'g'ri ko'rsatiladi
+    - **Overflow handling:** Ko'p sahifaga o'tganda border va title avtomatik qayta chiziladi
+    - **Backend:** Barcha submission answers va question details olish va PDF'ga uzatish
 
 ⏳ **Navbatda**:
 - Admin panel (kategoriyalar, foydalanuvchilar)
-- Sertifikat generatsiyasi
 
 ## Dizayn Yo'riqnomalar
 

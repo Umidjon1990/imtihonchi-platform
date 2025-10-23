@@ -14,6 +14,9 @@ interface CertificateData {
 
 const objectStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
 
+// Arabic font path (Noto Sans Arabic from Nix store)
+const ARABIC_FONT_PATH = '/nix/store/g4hlmhda2xmap333kqnzlsz01k8djnp6-noto-fonts-24.3.1/share/fonts/noto/NotoSansArabic[wdth,wght].ttf';
+
 export async function generateCertificate(data: CertificateData): Promise<string> {
   return new Promise((resolve, reject) => {
     try {
@@ -22,6 +25,16 @@ export async function generateCertificate(data: CertificateData): Promise<string
         layout: 'landscape',
         margins: { top: 50, bottom: 50, left: 50, right: 50 }
       });
+
+      // Register Arabic font for Unicode support
+      let arabicFontAvailable = false;
+      try {
+        doc.registerFont('NotoSansArabic', ARABIC_FONT_PATH);
+        arabicFontAvailable = true;
+      } catch (fontError) {
+        console.warn('Arabic font not available, using Helvetica fallback:', fontError);
+        // Continue with Helvetica fallback
+      }
 
       const fileName = `certificate-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
       const objectKey = `.private/certificates/${fileName}`;
@@ -199,6 +212,14 @@ export async function generateCertificate(data: CertificateData): Promise<string
         const portraitPageHeight = doc.page.height;
         const portraitCenterX = portraitPageWidth / 2;
 
+        // Helper function to get safe font name
+        const getTextFont = (bold: boolean = false) => {
+          if (arabicFontAvailable) {
+            return 'NotoSansArabic';
+          }
+          return bold ? 'Helvetica-Bold' : 'Helvetica';
+        };
+
         // Helper function to draw transcript page frame
         const drawTranscriptPageFrame = () => {
           // Background border
@@ -254,22 +275,25 @@ export async function generateCertificate(data: CertificateData): Promise<string
             currentY = 160;
           }
 
-          // Question number and text
+          // Question number and text (use Arabic font if available)
+          const textOptions = arabicFontAvailable ? { features: ['rtla'] } : {};
+          
           doc
             .fontSize(11)
-            .font('Helvetica-Bold')
+            .font(getTextFont(true))
             .fillColor('#1e40af')
-            .text(`Savol ${item.questionNumber}:`, 70, currentY);
+            .text(`Savol ${item.questionNumber}:`, 70, currentY, textOptions);
 
           currentY += 15;
 
           doc
             .fontSize(10)
-            .font('Helvetica')
+            .font(getTextFont())
             .fillColor('#475569')
             .text(item.questionText, 70, currentY, {
               width: portraitPageWidth - 140,
-              lineGap: 3
+              lineGap: 3,
+              ...textOptions
             });
 
           currentY += doc.heightOfString(item.questionText, {
@@ -289,11 +313,12 @@ export async function generateCertificate(data: CertificateData): Promise<string
 
           doc
             .fontSize(10)
-            .font('Helvetica')
+            .font(getTextFont())
             .fillColor('#334155')
             .text(item.transcript, 80, currentY + 10, {
               width: portraitPageWidth - 160,
-              lineGap: 4
+              lineGap: 4,
+              ...textOptions
             });
 
           currentY += transcriptHeight + 40;
