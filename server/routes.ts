@@ -669,6 +669,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               testId: demoTest.id,
               status: 'approved', // Auto-approve demo
               receiptUrl: null, // Demo doesn't need receipt
+              isDemoAccess: true, // Mark as auto-granted demo access
             });
           }
         }

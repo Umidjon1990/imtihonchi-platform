@@ -90,6 +90,7 @@ export const purchases = pgTable("purchases", {
   purchasedAt: timestamp("purchased_at").defaultNow().notNull(),
   status: text("status").notNull().default('pending'), // pending, approved, rejected
   receiptUrl: text("receipt_url"), // URL to payment receipt image
+  isDemoAccess: boolean("is_demo_access").default(false).notNull(), // Demo testga avtomatik berilgan access
 });
 
 export const submissions = pgTable("submissions", {
