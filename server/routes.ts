@@ -1082,7 +1082,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...evaluation,
       });
 
-      res.json(saved);
+      // Map snake_case database fields to camelCase for frontend
+      const response = {
+        id: (saved as any).id,
+        submissionId: (saved as any).submission_id,
+        vocabularyScore: (saved as any).vocabulary_score,
+        vocabularyFeedback: (saved as any).vocabulary_feedback,
+        grammarScore: (saved as any).grammar_score,
+        grammarFeedback: (saved as any).grammar_feedback,
+        coherenceScore: (saved as any).coherence_score,
+        coherenceFeedback: (saved as any).coherence_feedback,
+        overallFeedback: (saved as any).overall_feedback,
+        suggestedScore: (saved as any).suggested_score,
+        suggestedCefrLevel: (saved as any).suggested_cefr_level,
+        evaluatedAt: (saved as any).evaluated_at,
+      };
+
+      res.json(response);
     } catch (error: any) {
       console.error("Error evaluating:", error);
       res.status(500).json({ message: error.message || "AI baholash xatolik" });
@@ -1096,7 +1112,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!evaluation) {
         return res.status(404).json({ message: "AI baholash topilmadi" });
       }
-      res.json(evaluation);
+      
+      // Map snake_case database fields to camelCase for frontend
+      const response = {
+        id: (evaluation as any).id,
+        submissionId: (evaluation as any).submission_id,
+        vocabularyScore: (evaluation as any).vocabulary_score,
+        vocabularyFeedback: (evaluation as any).vocabulary_feedback,
+        grammarScore: (evaluation as any).grammar_score,
+        grammarFeedback: (evaluation as any).grammar_feedback,
+        coherenceScore: (evaluation as any).coherence_score,
+        coherenceFeedback: (evaluation as any).coherence_feedback,
+        overallFeedback: (evaluation as any).overall_feedback,
+        suggestedScore: (evaluation as any).suggested_score,
+        suggestedCefrLevel: (evaluation as any).suggested_cefr_level,
+        evaluatedAt: (evaluation as any).evaluated_at,
+      };
+      
+      res.json(response);
     } catch (error) {
       console.error("Error fetching AI evaluation:", error);
       res.status(500).json({ message: "AI baholashni olishda xatolik" });
