@@ -1125,6 +1125,66 @@ export default function TakeTest() {
             </CardContent>
           </Card>
 
+          {/* Images and Key Facts - RIGHT AFTER QUESTION! */}
+          {(currentSection.imageUrl || currentQuestion.imageUrl || currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
+            <Card className="border-2 border-primary/10">
+              <CardContent className="space-y-6 pt-6">
+                {/* Section Image - Shows for all questions in this section */}
+                {currentSection.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border-2 border-primary/20 bg-muted/20 p-2">
+                    <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
+                      Bo'lim rasmi (barcha savollar uchun):
+                    </p>
+                    <img 
+                      src={currentSection.imageUrl} 
+                      alt="Bo'lim rasmi"
+                      className="w-full h-auto rounded-md"
+                      data-testid="section-image"
+                    />
+                  </div>
+                )}
+
+                {/* Question Image */}
+                {currentQuestion.imageUrl && (
+                  <div className="rounded-lg overflow-hidden border-2 border-primary/20">
+                    <img 
+                      src={currentQuestion.imageUrl} 
+                      alt="Savol rasmi"
+                      className="w-full h-auto rounded-md"
+                      data-testid="question-image"
+                    />
+                  </div>
+                )}
+
+                {/* Key Facts - Bo'lim 3 uchun */}
+                {(currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {currentQuestion.keyFactsPlus && (
+                      <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
+                          <span>➕</span> {currentQuestion.keyFactsPlusLabel || "Plus tomonlar"}
+                        </h4>
+                        <p className="text-sm text-green-900 dark:text-green-200 whitespace-pre-wrap">
+                          {currentQuestion.keyFactsPlus}
+                        </p>
+                      </div>
+                    )}
+                    {currentQuestion.keyFactsMinus && (
+                      <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
+                        <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
+                          <span>➖</span> {currentQuestion.keyFactsMinusLabel || "Minus tomonlar"}
+                        </h4>
+                        <p className="text-sm text-red-900 dark:text-red-200 whitespace-pre-wrap">
+                          {currentQuestion.keyFactsMinus}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Large Timer Display */}
           <Card className="border-4 border-primary/30">
             <CardContent className="pt-8 pb-8">
@@ -1174,65 +1234,6 @@ export default function TakeTest() {
               </div>
             </CardHeader>
           </Card>
-
-          {/* Images and Key Facts Card */}
-          {(currentSection.imageUrl || currentQuestion.imageUrl || currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
-            <Card className="border-2">
-              <CardContent className="space-y-6 pt-6">
-                {/* Section Image - Shows for all questions in this section */}
-                {currentSection.imageUrl && (
-                  <div className="rounded-lg overflow-hidden border-2 border-primary/20 bg-muted/20 p-2">
-                    <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
-                      Bo'lim rasmi (barcha savollar uchun):
-                    </p>
-                    <img 
-                      src={currentSection.imageUrl} 
-                      alt="Bo'lim rasmi"
-                      className="w-full h-auto rounded-md"
-                      data-testid="section-image"
-                    />
-                  </div>
-                )}
-
-                {/* Question Image */}
-                {currentQuestion.imageUrl && (
-                  <div className="rounded-lg overflow-hidden border">
-                    <img 
-                      src={currentQuestion.imageUrl} 
-                      alt="Savol rasmi"
-                      className="w-full h-auto"
-                    />
-                  </div>
-                )}
-
-                {/* Key Facts - Bo'lim 3 uchun */}
-                {(currentQuestion.keyFactsPlus || currentQuestion.keyFactsMinus) && (
-                  <div className="grid md:grid-cols-2 gap-4">
-                    {currentQuestion.keyFactsPlus && (
-                      <div className="p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <h4 className="text-sm font-semibold text-green-700 dark:text-green-400 mb-2 flex items-center gap-2">
-                          <span>➕</span> {currentQuestion.keyFactsPlusLabel || "Plus tomonlar"}
-                        </h4>
-                        <p className="text-sm text-green-900 dark:text-green-200 whitespace-pre-wrap">
-                          {currentQuestion.keyFactsPlus}
-                        </p>
-                      </div>
-                    )}
-                    {currentQuestion.keyFactsMinus && (
-                      <div className="p-4 bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800 rounded-lg">
-                        <h4 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-2 flex items-center gap-2">
-                          <span>➖</span> {currentQuestion.keyFactsMinusLabel || "Minus tomonlar"}
-                        </h4>
-                        <p className="text-sm text-red-900 dark:text-red-200 whitespace-pre-wrap">
-                          {currentQuestion.keyFactsMinus}
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
 
           {/* Recording Status Card */}
           <Card>
