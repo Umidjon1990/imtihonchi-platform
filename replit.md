@@ -190,6 +190,11 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - **O'qituvchiga ko'rinmaydi**: Demo submission'lar teacher dashboard'da chiqmaydi
     - **AI baholanmaydi**: Demo test uchun transcription va AI evaluation chaqirilmaydi
     - **Tekin amaliyot**: Talabalar asosiy testdan oldin platformani sinab ko'rishlari mumkin
+19. **Mobil Rasm Yuklash**:
+    - **Yaxshilangan UI**: Hidden file input + katta tugma (mobil uchun oson)
+    - **Kamera/Galereya**: Mobil qurilmalarda native picker avtomatik kamera va galereya tanlovini ko'rsatadi
+    - **Visual feedback**: Fayl tanlanganda toast notification
+    - **EditTest.tsx**: Bo'lim uchun rasm yuklash mobil-optimized
 
 ⏳ **Navbatda**:
 - Admin panel (kategoriyalar, foydalanuvchilar)

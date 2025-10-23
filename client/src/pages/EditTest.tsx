@@ -612,12 +612,36 @@ export default function EditTest() {
               <TabsContent value="file" className="space-y-4">
                 <div>
                   <Label htmlFor="section-image-file">Rasm tanlang</Label>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => {
+                        const input = document.getElementById("section-image-file") as HTMLInputElement;
+                        if (input) input.click();
+                      }}
+                      data-testid="button-select-image"
+                    >
+                      <Upload className="h-4 w-4 mr-2" />
+                      Galereya / Kamera
+                    </Button>
+                  </div>
                   <Input
                     id="section-image-file"
                     type="file"
                     accept="image/*"
                     data-testid="input-image-file"
-                    className="mt-2"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        toast({ 
+                          title: "Fayl tanlandi", 
+                          description: `${file.name} (${(file.size / 1024).toFixed(0)} KB)` 
+                        });
+                      }
+                    }}
                   />
                   <p className="text-xs text-muted-foreground mt-1">
                     JPG, PNG, GIF, WEBP (max 5MB)
