@@ -61,71 +61,69 @@ export async function evaluateSpeaking(transcripts: string[], language: 'ar' | '
     
     // Language-specific prompts
     const prompts = {
-      ar: `Siz CEFR og'zaki baholash mutaxassisisiz. Arab tilida gapirgan talabaning javoblarini baholang.
+      ar: `Siz CEFR og'zaki baholash mutaxassisisiz. Arab tilida gapirgan talabaga to'g'ridan-to'g'ri murojaat qilib baholang.
 
 TALABA JAVOBI (Arab tilida):
 ${combinedText}
 
-Quyidagi mezonlar bo'yicha baholang (optimistik yondashuv bilan):
+MUHIM: Har bir feedback 30-50 so'z bo'lsin, "Siz" shaklida yozing, konkret xatolar misollarini keltiring.
+
+Quyidagi mezonlar bo'yicha baholang:
 
 1. SO'Z BOYLIGI (0-100): Arab tilida lug'at boyligi, so'zlarni to'g'ri ishlatish
+   Format: "Siz [ball] ball oldingiz. [Yaxshi tomoni]. Lekin [xato misoli]. [Qisqa tavsiya]."
+
 2. GRAMMATIKA (0-100): Arab tili grammatikasi, jumla tuzilishi, morfologiya
+   Format: "Sizning grammatikangiz [ball] ballga loyiq. [Yaxshi tomoni]. Xato: [konkret misol]. [Tavsiya]."
+
 3. IZCHILLIK (0-100): Fikrlarning mantiqiy ketma-ketligi, ravonlik
+   Format: "Izchillik uchun [ball] ball. [Yaxshi tomoni]. Muammo: [misol]. [Tavsiya]."
 
-Har bir mezon uchun:
-- Ball (0-100)
-- Qisqa tavsif (3-4 jumla, o'zbek tilida)
-
-Umumiy xulosa:
-- Kuchli tomonlar
-- Yaxshilanishi kerak bo'lgan tomonlar
-- Umumiy tavsiyalar
-
-Umumiy ball (0-100) va CEFR daraja (A1, A2, B1, B2, C1, C2) taklif qiling.
+UMUMIY XULOSA (30-50 so'z):
+"Sizning CEFR darajangiz [daraja]. [Kuchli tomon]. [Yaxshilash kerak]. [Qisqa tavsiya]."
 
 JSON formatda javob bering:
 {
   "vocabularyScore": 85,
-  "vocabularyFeedback": "...",
+  "vocabularyFeedback": "Siz 85 ball oldingiz. So'z boyligingiz yaxshi, lekin ba'zi iboralarni takrorladingiz. Yanada turli sinonimlar ishlating.",
   "grammarScore": 80,
-  "grammarFeedback": "...",
+  "grammarFeedback": "Grammatikangiz 80 ballga loyiq. Jumla tuzilishi to'g'ri. Xato: fe'l zamonlarini aralashtirgansiz (masalan: كان va يكون). Zamonlarga e'tibor bering.",
   "coherenceScore": 75,
-  "coherenceFeedback": "...",
-  "overallFeedback": "...",
+  "coherenceFeedback": "Izchillik uchun 75 ball. Asosiy fikringiz aniq. Muammo: mavzular orasida o'tish yo'q. Bog'lovchilar (ثم، لكن، لأن) ko'proq ishlating.",
+  "overallFeedback": "Sizning CEFR darajangiz B1. So'z boyligi yaxshi, grammatika asosan to'g'ri. Izchillikni yaxshilang. Ko'proq mashq qiling!",
   "suggestedScore": 80,
   "suggestedCefrLevel": "B1"
 }`,
-      en: `Siz CEFR og'zaki baholash mutaxassisisiz. Ingliz tilida gapirgan talabaning javoblarini baholang.
+      en: `Siz CEFR og'zaki baholash mutaxassisisiz. Ingliz tilida gapirgan talabaga to'g'ridan-to'g'ri murojaat qilib baholang.
 
 TALABA JAVOBI (Ingliz tilida):
 ${combinedText}
 
-Quyidagi mezonlar bo'yicha baholang (optimistik yondashuv bilan):
+MUHIM: Har bir feedback 30-50 so'z bo'lsin, "Siz" shaklida yozing, konkret xatolar misollarini keltiring.
+
+Quyidagi mezonlar bo'yicha baholang:
 
 1. SO'Z BOYLIGI (0-100): Ingliz tilida lug'at boyligi, so'zlarni to'g'ri ishlatish
+   Format: "Siz [ball] ball oldingiz. [Yaxshi tomoni]. Lekin [xato misoli]. [Qisqa tavsiya]."
+
 2. GRAMMATIKA (0-100): Ingliz tili grammatikasi, jumla tuzilishi
+   Format: "Sizning grammatikangiz [ball] ballga loyiq. [Yaxshi tomoni]. Xato: [konkret misol]. [Tavsiya]."
+
 3. IZCHILLIK (0-100): Fikrlarning mantiqiy ketma-ketligi, ravonlik
+   Format: "Izchillik uchun [ball] ball. [Yaxshi tomoni]. Muammo: [misol]. [Tavsiya]."
 
-Har bir mezon uchun:
-- Ball (0-100)
-- Qisqa tavsif (3-4 jumla, o'zbek tilida)
-
-Umumiy xulosa:
-- Kuchli tomonlar
-- Yaxshilanishi kerak bo'lgan tomonlar
-- Umumiy tavsiyalar
-
-Umumiy ball (0-100) va CEFR daraja (A1, A2, B1, B2, C1, C2) taklif qiling.
+UMUMIY XULOSA (30-50 so'z):
+"Sizning CEFR darajangiz [daraja]. [Kuchli tomon]. [Yaxshilash kerak]. [Qisqa tavsiya]."
 
 JSON formatda javob bering:
 {
   "vocabularyScore": 85,
-  "vocabularyFeedback": "...",
+  "vocabularyFeedback": "Siz 85 ball oldingiz. So'z boyligingiz yaxshi, lekin ba'zi so'zlarni takrorladingiz (very, good). Sinonimlar (excellent, wonderful) ishlating.",
   "grammarScore": 80,
-  "grammarFeedback": "...",
+  "grammarFeedback": "Grammatikangiz 80 ballga loyiq. Asosan to'g'ri. Xato: 'He go' deb aytdingiz ('He goes' bo'lishi kerak). 3-shaxs -s qo'shishni unutmang.",
   "coherenceScore": 75,
-  "coherenceFeedback": "...",
-  "overallFeedback": "...",
+  "coherenceFeedback": "Izchillik uchun 75 ball. Fikrlaringiz tushunarli. Muammo: to'satdan mavzu o'zgardi. Linking words (however, therefore) ko'proq ishlating.",
+  "overallFeedback": "Sizning CEFR darajangiz B1. Lug'at yaxshi, grammatika asosan to'g'ri. Izchillikni oshiring. Davom eting!",
   "suggestedScore": 80,
   "suggestedCefrLevel": "B1"
 }`
