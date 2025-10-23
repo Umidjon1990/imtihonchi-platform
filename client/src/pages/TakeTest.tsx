@@ -568,9 +568,18 @@ export default function TakeTest() {
       setIsRecording(true);
       
       // Start waveform visualization immediately
+      console.log('🎙️ [WAVE] Recording started, setting up waveform...');
+      console.log('🎙️ [WAVE] analyzerRef:', !!analyzerRef.current);
+      console.log('🎙️ [WAVE] canvasRef:', !!canvasRef.current);
+      
       setTimeout(() => {
+        console.log('🎙️ [WAVE] Timeout - analyzerRef:', !!analyzerRef.current);
+        console.log('🎙️ [WAVE] Timeout - canvasRef:', !!canvasRef.current);
         if (analyzerRef.current && canvasRef.current) {
+          console.log('✅ [WAVE] Starting waveform animation!');
           drawWaveform();
+        } else {
+          console.error('❌ [WAVE] Cannot start waveform - missing refs');
         }
       }, 100);
     } catch (error) {
