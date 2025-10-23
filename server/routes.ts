@@ -870,23 +870,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Build transcripts array with question details
-      const transcripts: Array<{ questionNumber: number; questionText: string; transcript: string }> = [];
+      const transcripts: Array<{ 
+        questionNumber: number; 
+        questionText: string; 
+        transcript: string;
+        sectionNumber: number;
+      }> = [];
       
       for (const answer of submissionAnswers) {
         if (answer.transcript) {
           const question = allQuestions.find(q => q.id === answer.questionId);
           if (question) {
+            // Find section to get section number
+            const section = sections.find(s => s.id === question.sectionId);
             transcripts.push({
               questionNumber: question.questionNumber,
               questionText: question.questionText,
-              transcript: answer.transcript
+              transcript: answer.transcript,
+              sectionNumber: section?.sectionNumber ?? 0
             });
           }
         }
       }
       
-      // Sort transcripts by question number
-      transcripts.sort((a, b) => a.questionNumber - b.questionNumber);
+      // Sort transcripts by section number first, then question number
+      transcripts.sort((a, b) => {
+        if (a.sectionNumber !== b.sectionNumber) {
+          return a.sectionNumber - b.sectionNumber;
+        }
+        return a.questionNumber - b.questionNumber;
+      });
 
       // Generate certificate
       let certificateUrl = '';

@@ -9,7 +9,7 @@ interface CertificateData {
   gradedAt: Date;
   teacherName: string;
   feedback?: string;
-  transcripts?: Array<{ questionNumber: number; questionText: string; transcript: string }>;
+  transcripts?: Array<{ questionNumber: number; questionText: string; transcript: string; sectionNumber: number }>;
 }
 
 const objectStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
