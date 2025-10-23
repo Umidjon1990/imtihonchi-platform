@@ -411,12 +411,11 @@ export default function TakeTest() {
         throw new Error('Purchase yoki test ID topilmadi');
       }
 
-      const response = await apiRequest("POST", "/api/submissions", {
+      const submission = await apiRequest("POST", "/api/submissions", {
         purchaseId: purchase.id,
         testId: test.id,
       });
 
-      const submission = await response.json();
       setSubmissionId(submission.id);
       submissionIdRef.current = submission.id;
       
