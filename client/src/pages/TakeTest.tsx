@@ -442,23 +442,47 @@ export default function TakeTest() {
 
       console.log('⬆️ Uploading answer for question:', questionId);
 
-      // Upload audio file to object storage
-      const formData = new FormData();
-      formData.append('file', audioBlob);
-      
-      const uploadResponse = await fetch('/api/upload-audio', {
-        method: 'POST',
-        body: formData,
-      });
+      let filename: string;
 
-      if (!uploadResponse.ok) {
-        throw new Error('Audio upload failed');
+      // Demo mode: save to localStorage instead of server
+      if (test?.isDemo) {
+        console.log('📱 Demo mode: Saving audio to localStorage');
+        
+        // Convert blob to base64
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64 = reader.result as string;
+            resolve(base64);
+          };
+        });
+        reader.readAsDataURL(audioBlob);
+        const base64Audio = await base64Promise;
+        
+        // Store in localStorage
+        localStorage.setItem(`demo-audio-${questionId}`, base64Audio);
+        
+        filename = `demo-local-${questionId}`;
+        console.log('✅ Audio saved to localStorage');
+      } else {
+        // Regular mode: upload to server
+        const formData = new FormData();
+        formData.append('file', audioBlob);
+        
+        const uploadResponse = await fetch('/api/upload-audio', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error('Audio upload failed');
+        }
+
+        const { url } = await uploadResponse.json();
+        // Extract filename from url (/api/audio/{filename})
+        filename = url.replace('/api/audio/', '');
+        console.log('✅ Audio uploaded to server:', filename);
       }
-
-      const { url } = await uploadResponse.json();
-      // Extract filename from url (/api/audio/{filename})
-      const filename = url.replace('/api/audio/', '');
-      console.log('✅ Audio uploaded:', filename);
 
       // Save answer to database
       const answerResponse = await apiRequest("POST", `/api/submissions/${currentSubmissionId}/answer`, {
@@ -1030,9 +1054,16 @@ export default function TakeTest() {
       <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between gap-4">
           <div className="flex-1 min-w-0">
-            <h1 className="text-lg font-bold truncate" data-testid="text-test-title">
-              {test.title}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-bold truncate" data-testid="text-test-title">
+                {test.title}
+              </h1>
+              {test.isDemo && (
+                <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/50">
+                  📱 DEMO
+                </Badge>
+              )}
+            </div>
             <p className="text-xs text-muted-foreground">
               Savol {globalQuestionIndex + 1}/{flatQuestionList.length}
             </p>
