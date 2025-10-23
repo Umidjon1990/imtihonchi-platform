@@ -1074,6 +1074,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Evaluate using GPT-4o with test language
       const testLanguage = (test.language === 'en' || test.language === 'ar') ? test.language : 'ar';
+      console.log("Test language from DB:", test.language);
+      console.log("Using language for evaluation:", testLanguage);
+      console.log("Number of transcripts:", transcripts.length);
       const evaluation = await evaluateSpeaking(transcripts, testLanguage);
 
       // Save evaluation
