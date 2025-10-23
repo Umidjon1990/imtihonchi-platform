@@ -129,26 +129,20 @@ export default function ReviewSubmission() {
   // AI evaluate mutation
   const aiEvaluateMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest("POST", `/api/submissions/${submissionId}/ai-evaluate`, {}) as any;
-      console.log("🔍 AI Evaluation API Response:", response);
-      console.log("vocabularyScore:", response.vocabularyScore, "type:", typeof response.vocabularyScore);
-      console.log("grammarScore:", response.grammarScore, "type:", typeof response.grammarScore);
-      console.log("coherenceScore:", response.coherenceScore, "type:", typeof response.coherenceScore);
+      const response = await apiRequest("POST", `/api/submissions/${submissionId}/ai-evaluate`, {});
       return response;
     },
     onSuccess: (data: any) => {
-      console.log("✅ AI Evaluation onSuccess - data:", data);
       toast({
         title: "AI Baholash Tayyor",
         description: "ChatGPT tomonidan baholash yakunlandi",
       });
       setShowAiPanel(true);
       // Prefill suggestions
-      setTotalScore(data.suggestedScore || 0);
-      setCefrLevel(data.suggestedCefrLevel || "");
+      setTotalScore(data.suggestedScore);
+      setCefrLevel(data.suggestedCefrLevel);
       // Combine AI feedback
-      const combinedFeedback = `SO'Z BOYLIGI (${data.vocabularyScore || 'undefined'}/100):\n${data.vocabularyFeedback || 'undefined'}\n\nGRAMMATIKA (${data.grammarScore || 'undefined'}/100):\n${data.grammarFeedback || 'undefined'}\n\nIZCHILLIK (${data.coherenceScore || 'undefined'}/100):\n${data.coherenceFeedback || 'undefined'}\n\nUMUMIY XULOSA:\n${data.overallFeedback || 'undefined'}`;
-      console.log("📝 Combined Feedback:", combinedFeedback);
+      const combinedFeedback = `SO'Z BOYLIGI (${data.vocabularyScore}/100):\n${data.vocabularyFeedback}\n\nGRAMMATIKA (${data.grammarScore}/100):\n${data.grammarFeedback}\n\nIZCHILLIK (${data.coherenceScore}/100):\n${data.coherenceFeedback}\n\nUMUMIY XULOSA:\n${data.overallFeedback}`;
       setFeedback(combinedFeedback);
       queryClient.invalidateQueries({ queryKey: ["/api/submissions", submissionId, "ai-evaluation"] });
     },
