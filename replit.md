@@ -195,6 +195,12 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - **Kamera/Galereya**: Mobil qurilmalarda native picker avtomatik kamera va galereya tanlovini ko'rsatadi
     - **Visual feedback**: Fayl tanlanganda toast notification
     - **EditTest.tsx**: Bo'lim uchun rasm yuklash mobil-optimized
+20. **TakeTest UI Optimization**:
+    - **Rasm joylashuvi**: Savol ostida darhol ko'rsatiladi (savol → rasm → timer)
+    - **Compact timer**: 60px-80px (120px-160px o'rniga) - ekranda hammasi ko'rinadi
+    - **Birlashtirilgan karta**: Timer va audio javob holati bitta kartada
+    - **Waveform ichida**: Canvas va audio status timer ramkasi ichida
+    - **Kichik elementlar**: Audio holati, alert, va playerlar kichikroq o'lchamlarda
 
 ⏳ **Navbatda**:
 - Admin panel (kategoriyalar, foydalanuvchilar)

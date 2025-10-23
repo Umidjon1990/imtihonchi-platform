@@ -1185,36 +1185,84 @@ export default function TakeTest() {
             </Card>
           )}
 
-          {/* Large Timer Display */}
+          {/* Timer Display with Audio Status */}
           <Card className="border-4 border-primary/30">
-            <CardContent className="pt-8 pb-8">
-              <div className="text-center space-y-4">
-                <div className="flex items-center justify-center gap-3 mb-2">
-                  <Badge variant={testPhase === 'preparation' ? 'secondary' : 'default'} className="text-base px-4 py-2">
-                    {testPhase === 'preparation' ? '📖 Tayyorgarlik' : '🎤 Gapirish'}
-                  </Badge>
-                </div>
-                
-                <div className="relative">
-                  <div className={`text-[120px] md:text-[160px] font-black leading-none tracking-tight font-mono ${
-                    (timeRemaining !== null && timeRemaining < 30) ? 'text-destructive animate-pulse' : 
-                    testPhase === 'preparation' ? 'text-primary' : 'text-green-600 dark:text-green-400'
-                  }`} data-testid="text-timer-large">
-                    {timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}
+            <CardContent className="pt-6 pb-6">
+              <div className="space-y-4">
+                {/* Timer */}
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-3 mb-2">
+                    <Badge variant={testPhase === 'preparation' ? 'secondary' : 'default'} className="text-base px-4 py-2">
+                      {testPhase === 'preparation' ? '📖 Tayyorgarlik' : '🎤 Gapirish'}
+                    </Badge>
                   </div>
-                  <p className="text-lg text-muted-foreground mt-2">
-                    {testPhase === 'preparation' 
-                      ? 'Savol ustida o\'ylab, javob tayyorlang' 
-                      : 'Javobingizni aytib bering (yozilmoqda)'}
-                  </p>
+                  
+                  <div className="relative">
+                    <div className={`text-[60px] md:text-[80px] font-black leading-none tracking-tight font-mono ${
+                      (timeRemaining !== null && timeRemaining < 30) ? 'text-destructive animate-pulse' : 
+                      testPhase === 'preparation' ? 'text-primary' : 'text-green-600 dark:text-green-400'
+                    }`} data-testid="text-timer-large">
+                      {timeRemaining !== null ? formatTime(timeRemaining) : '--:--'}
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {testPhase === 'preparation' 
+                        ? 'Savol ustida o\'ylab, javob tayyorlang' 
+                        : 'Javobingizni aytib bering (yozilmoqda)'}
+                    </p>
+                  </div>
                 </div>
 
-                {testPhase === 'speaking' && (
-                  <div className="flex items-center justify-center gap-2 mt-4">
-                    <div className="w-4 h-4 bg-destructive rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium">Ovoz yozilmoqda</span>
+                {/* Audio Status - Inside Timer Card */}
+                <div className="pt-4 border-t">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold text-muted-foreground">Audio javob holati</h3>
+                    {isRecording && (
+                      <div className="flex items-center gap-2 text-destructive">
+                        <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                        <span className="text-xs font-mono">{formatTime(recordingTime)}</span>
+                      </div>
+                    )}
                   </div>
-                )}
+
+                  {/* Wave visualization during recording */}
+                  {isRecording && (
+                    <div className="w-full bg-background border rounded-lg overflow-hidden mb-3">
+                      <canvas 
+                        ref={canvasRef}
+                        width={800}
+                        height={80}
+                        className="w-full h-[80px]"
+                      />
+                    </div>
+                  )}
+
+                  {currentRecording ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-medium text-green-900 dark:text-green-100">Javob yozildi</p>
+                          <p className="text-xs text-green-700 dark:text-green-300">Davomiyligi: {formatTime(currentRecording.duration)}</p>
+                        </div>
+                      </div>
+                      <audio 
+                        src={currentRecording.url || undefined} 
+                        controls 
+                        className="w-full h-8"
+                        data-testid="audio-playback"
+                      />
+                    </div>
+                  ) : (
+                    <Alert className="py-2">
+                      <AlertCircle className="h-3 w-3" />
+                      <AlertDescription className="text-xs">
+                        {testPhase === 'preparation' 
+                          ? 'Tayyorgarlik vaqti tugagach, avtomatik yozuv boshlanadi'
+                          : 'Javob avtomatik yozilmoqda...'}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1233,62 +1281,6 @@ export default function TakeTest() {
                 </div>
               </div>
             </CardHeader>
-          </Card>
-
-          {/* Recording Status Card */}
-          <Card>
-            <CardContent className="space-y-4 pt-6">
-              <div className="space-y-4 p-6 bg-muted/30 rounded-lg border-2">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold">Audio javob holati</h3>
-                  {isRecording && (
-                    <div className="flex items-center gap-2 text-destructive">
-                      <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
-                      <span className="text-sm font-mono">{formatTime(recordingTime)}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Wave visualization during recording */}
-                {isRecording && (
-                  <div className="w-full bg-background border-2 rounded-lg overflow-hidden">
-                    <canvas 
-                      ref={canvasRef}
-                      width={800}
-                      height={120}
-                      className="w-full h-[120px]"
-                    />
-                  </div>
-                )}
-
-                {currentRecording ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3 p-4 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                      <Check className="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-green-900 dark:text-green-100">Javob yozildi</p>
-                        <p className="text-xs text-green-700 dark:text-green-300">Davomiyligi: {formatTime(currentRecording.duration)}</p>
-                      </div>
-                    </div>
-                    <audio 
-                      src={currentRecording.url || undefined} 
-                      controls 
-                      className="w-full"
-                      data-testid="audio-playback"
-                    />
-                  </div>
-                ) : (
-                  <Alert>
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>
-                      {testPhase === 'preparation' 
-                        ? 'Tayyorgarlik vaqti tugagach, avtomatik yozuv boshlanadi'
-                        : 'Javob avtomatik yozilmoqda...'}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-            </CardContent>
           </Card>
 
           {/* Auto-progression Info */}
