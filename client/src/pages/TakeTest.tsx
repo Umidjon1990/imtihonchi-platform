@@ -271,13 +271,26 @@ export default function TakeTest() {
 
   // Start wave visualization when canvas is ready
   useEffect(() => {
+    console.log('🎨 [EFFECT] Waveform effect triggered');
+    console.log('🎨 [EFFECT] isRecording:', isRecording);
+    console.log('🎨 [EFFECT] isMicTesting:', isMicTesting);
+    console.log('🎨 [EFFECT] analyzerRef:', !!analyzerRef.current);
+    console.log('🎨 [EFFECT] canvasRef:', !!canvasRef.current);
+    console.log('🎨 [EFFECT] micTestCanvasRef:', !!micTestCanvasRef.current);
+    
     const activeCanvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
+    console.log('🎨 [EFFECT] activeCanvas:', !!activeCanvas);
+    
     if ((isRecording || isMicTesting) && analyzerRef.current && activeCanvas) {
+      console.log('✅ [EFFECT] Starting waveform!');
       drawWaveform();
       // Only cleanup if we actually started the waveform
       return () => {
+        console.log('🧹 [EFFECT] Cleaning up waveform');
         stopWaveform();
       };
+    } else {
+      console.log('❌ [EFFECT] Cannot start waveform');
     }
   }, [isRecording, isMicTesting]);
 
