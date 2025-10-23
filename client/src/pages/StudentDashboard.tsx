@@ -276,23 +276,37 @@ export default function StudentDashboard() {
                     
                     if (!test) return null;
                     
+                    // Demo testni faqat 1 marta topshirish mumkin
+                    const isDemoCompleted = test.isDemo && hasSubmission;
+                    
                     return (
                       <Card key={purchase.id} className="flex flex-col" data-testid={`card-purchased-${purchase.id}`}>
                         <CardHeader>
                           <div className="flex items-start justify-between gap-2">
-                            <CardTitle className="line-clamp-2">{test.title}</CardTitle>
-                            {purchase.status === 'approved' && (
-                              <Badge variant="default">Tasdiqlangan</Badge>
-                            )}
-                            {purchase.status === 'pending' && (
-                              <Badge variant="secondary">Kutilmoqda</Badge>
-                            )}
-                            {purchase.status === 'rejected' && (
-                              <Badge variant="destructive">Rad etilgan</Badge>
-                            )}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CardTitle className="line-clamp-2">{test.title}</CardTitle>
+                                {test.isDemo && (
+                                  <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/50 shrink-0">
+                                    📱 DEMO
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="shrink-0">
+                              {purchase.status === 'approved' && !test.isDemo && (
+                                <Badge variant="default">Tasdiqlangan</Badge>
+                              )}
+                              {purchase.status === 'pending' && (
+                                <Badge variant="secondary">Kutilmoqda</Badge>
+                              )}
+                              {purchase.status === 'rejected' && (
+                                <Badge variant="destructive">Rad etilgan</Badge>
+                              )}
+                            </div>
                           </div>
                           <CardDescription>
-                            Sotib olingan: {new Date(purchase.purchasedAt).toLocaleDateString('uz-UZ')}
+                            {test.isDemo ? "Demo test - Amaliyot uchun" : `Sotib olingan: ${new Date(purchase.purchasedAt).toLocaleDateString('uz-UZ')}`}
                           </CardDescription>
                         </CardHeader>
                         <CardContent className="flex-1">
@@ -320,6 +334,15 @@ export default function StudentDashboard() {
                             >
                               Rad etilgan
                             </Button>
+                          ) : isDemoCompleted ? (
+                            <Button 
+                              variant="outline" 
+                              className="w-full" 
+                              disabled
+                              data-testid={`button-demo-completed-${purchase.id}`}
+                            >
+                              ✅ Demo tugatildi
+                            </Button>
                           ) : hasSubmission ? (
                             <Button 
                               variant="outline" 
@@ -332,7 +355,7 @@ export default function StudentDashboard() {
                           ) : (
                             <Link href={`/test/${purchase.id}`} className="w-full">
                               <Button className="w-full" data-testid={`button-start-${purchase.id}`}>
-                                Testni boshlash
+                                {test.isDemo ? "Demo'ni boshlash" : "Testni boshlash"}
                               </Button>
                             </Link>
                           )}
