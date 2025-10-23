@@ -199,37 +199,43 @@ export async function generateCertificate(data: CertificateData): Promise<string
         const portraitPageHeight = doc.page.height;
         const portraitCenterX = portraitPageWidth / 2;
 
-        // Background border
-        doc
-          .rect(30, 30, portraitPageWidth - 60, portraitPageHeight - 60)
-          .lineWidth(3)
-          .stroke('#2563eb');
+        // Helper function to draw transcript page frame
+        const drawTranscriptPageFrame = () => {
+          // Background border
+          doc
+            .rect(30, 30, portraitPageWidth - 60, portraitPageHeight - 60)
+            .lineWidth(3)
+            .stroke('#2563eb');
 
-        doc
-          .rect(40, 40, portraitPageWidth - 80, portraitPageHeight - 80)
-          .lineWidth(1)
-          .stroke('#2563eb');
+          doc
+            .rect(40, 40, portraitPageWidth - 80, portraitPageHeight - 80)
+            .lineWidth(1)
+            .stroke('#2563eb');
 
-        // Title
-        doc
-          .fontSize(28)
-          .font('Helvetica-Bold')
-          .fillColor('#1e40af')
-          .text('TALABA GAPLARI', 0, 70, { align: 'center' });
+          // Title
+          doc
+            .fontSize(28)
+            .font('Helvetica-Bold')
+            .fillColor('#1e40af')
+            .text('TALABA GAPLARI', 0, 70, { align: 'center' });
 
-        // Divider
-        doc
-          .moveTo(portraitCenterX - 100, 110)
-          .lineTo(portraitCenterX + 100, 110)
-          .lineWidth(2)
-          .stroke('#93c5fd');
+          // Divider
+          doc
+            .moveTo(portraitCenterX - 100, 110)
+            .lineTo(portraitCenterX + 100, 110)
+            .lineWidth(2)
+            .stroke('#93c5fd');
 
-        // Student name reminder
-        doc
-          .fontSize(12)
-          .font('Helvetica')
-          .fillColor('#64748b')
-          .text(`Talaba: ${data.studentName}`, 0, 130, { align: 'center' });
+          // Student name reminder
+          doc
+            .fontSize(12)
+            .font('Helvetica')
+            .fillColor('#64748b')
+            .text(`Talaba: ${data.studentName}`, 0, 130, { align: 'center' });
+        };
+
+        // Draw frame on first transcript page
+        drawTranscriptPageFrame();
 
         let currentY = 160;
 
@@ -242,7 +248,10 @@ export async function generateCertificate(data: CertificateData): Promise<string
               layout: 'portrait',
               margins: { top: 50, bottom: 50, left: 50, right: 50 }
             });
-            currentY = 70;
+            
+            // Redraw frame on new page
+            drawTranscriptPageFrame();
+            currentY = 160;
           }
 
           // Question number and text
