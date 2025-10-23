@@ -181,6 +181,15 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - GPT-4o arab tilida to'g'ri baholash
     - Feedback textarea'da to'liq AI tahlil ko'rsatiladi
     - Sertifikatda AI feedback to'g'ri saqlanadi
+18. **Demo Test Tizimi**:
+    - **Schema**: `tests.isDemo`, `tests.mainTestId`, `purchases.isDemoAccess`, `submissions.isDemo`
+    - **Avtomatik access**: Asosiy test sotib olinganda demo test ham beriladi
+    - **localStorage audio**: Demo testda audio server'ga yuklanmaydi (localStorage'da saqlanadi)
+    - **Bir marta**: Demo test faqat 1 marta topshiriladi, qayta kirib bo'lmaydi
+    - **UI badges**: Student Dashboard'da sariq "📱 DEMO" badge'lar ko'rsatiladi
+    - **O'qituvchiga ko'rinmaydi**: Demo submission'lar teacher dashboard'da chiqmaydi
+    - **AI baholanmaydi**: Demo test uchun transcription va AI evaluation chaqirilmaydi
+    - **Tekin amaliyot**: Talabalar asosiy testdan oldin platformani sinab ko'rishlari mumkin
 
 ⏳ **Navbatda**:
 - Admin panel (kategoriyalar, foydalanuvchilar)
