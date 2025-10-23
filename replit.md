@@ -109,6 +109,12 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 - Key faktlar (Plus/Minus tomonlar) sozlanadi
 - Har bir savol uchun custom label (masalan: "Afzalliklari", "Kamchiliklari")
 
+## Muhim Xususiyatlar
+
+### API Response Format
+- Backend API'lar **camelCase** formatda JSON qaytaradi (frontend bilan mos)
+- `apiRequest` funksiyasi avtomatik ravishda `res.json()` qaytaradi
+
 ## Joriy Holat
 
 ✅ **Bajarilgan**:
@@ -166,8 +172,15 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
     - **Sahifa 3 (landscape):** AI izohlar va tavsiyalar - GPT-4o tahlili
     - **Arabic font support:** Noto Sans Arabic ishlatiladi (Nix store'dan)
     - **RTL support:** `features: ['rtla']` bilan Arabic matn to'g'ri ko'rsatiladi
+    - **Font fallback:** Graceful degradation - agar Arabic font topilmasa Helvetica ishlatiladi
     - **Overflow handling:** Ko'p sahifaga o'tganda border va title avtomatik qayta chiziladi
     - **Backend:** Barcha submission answers va question details olish va PDF'ga uzatish
+17. **AI Baholash Tizimi (Fixed)**:
+    - Backend: Drizzle ORM snake_case dan camelCase'ga mapping
+    - Frontend: `apiRequest` to'g'ri JSON qaytaradi (Response obyekt emas)
+    - GPT-4o arab tilida to'g'ri baholash
+    - Feedback textarea'da to'liq AI tahlil ko'rsatiladi
+    - Sertifikatda AI feedback to'g'ri saqlanadi
 
 ⏳ **Navbatda**:
 - Admin panel (kategoriyalar, foydalanuvchilar)

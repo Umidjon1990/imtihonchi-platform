@@ -1074,9 +1074,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Evaluate using GPT-4o with test language
       const testLanguage = (test.language === 'en' || test.language === 'ar') ? test.language : 'ar';
-      console.log("Test language from DB:", test.language);
-      console.log("Using language for evaluation:", testLanguage);
-      console.log("Number of transcripts:", transcripts.length);
       const evaluation = await evaluateSpeaking(transcripts, testLanguage);
 
       // Save evaluation
@@ -1084,9 +1081,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         submissionId: req.params.id,
         ...evaluation,
       });
-
-      console.log("Saved AI evaluation object keys:", Object.keys(saved));
-      console.log("Saved AI evaluation:", JSON.stringify(saved, null, 2));
 
       res.json(saved);
     } catch (error: any) {
@@ -1102,9 +1096,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!evaluation) {
         return res.status(404).json({ message: "AI baholash topilmadi" });
       }
-      
-      console.log("Fetched AI evaluation object keys:", Object.keys(evaluation));
-      console.log("Fetched AI evaluation:", JSON.stringify(evaluation, null, 2));
       
       res.json(evaluation);
     } catch (error) {
