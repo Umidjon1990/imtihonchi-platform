@@ -257,22 +257,11 @@ export default function TakeTest() {
     
     // Use the correct canvas based on current mode
     const canvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
-    console.log('🎨 [DRAW] drawWaveform called');
-    console.log('🎨 [DRAW] isMicTesting:', isMicTesting);
-    console.log('🎨 [DRAW] canvas:', !!canvas);
-    
-    if (!canvas) {
-      console.log('❌ [DRAW] No canvas found');
-      return;
-    }
+    if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.log('❌ [DRAW] No canvas context');
-      return;
-    }
+    if (!ctx) return;
 
-    console.log('✅ [DRAW] Starting animation loop');
     const analyzer = analyzerRef.current;
     const bufferLength = analyzer.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
@@ -281,13 +270,13 @@ export default function TakeTest() {
       animationFrameRef.current = requestAnimationFrame(draw);
       analyzer.getByteTimeDomainData(dataArray);
 
-      // Clear canvas completely (black background)
+      // Black background
       ctx.fillStyle = '#000000';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Draw wave - bright cyan/blue
+      // Bright cyan waveform with glow
       ctx.lineWidth = 3;
-      ctx.strokeStyle = '#22d3ee'; // Bright cyan
+      ctx.strokeStyle = '#22d3ee';
       ctx.shadowBlur = 10;
       ctx.shadowColor = '#22d3ee';
       ctx.beginPath();
@@ -310,13 +299,11 @@ export default function TakeTest() {
 
       ctx.lineTo(canvas.width, canvas.height / 2);
       ctx.stroke();
-      
-      // Reset shadow for next frame
       ctx.shadowBlur = 0;
     };
 
     draw();
-  }, [isMicTesting]); // Add isMicTesting as dependency to fix closure issue
+  }, [isMicTesting]);
 
   // Recording timer (for both mic test and actual recording)
   useEffect(() => {
@@ -338,27 +325,25 @@ export default function TakeTest() {
 
   // Start wave visualization when canvas is ready
   useEffect(() => {
-    console.log('🎨 [EFFECT] Waveform effect triggered');
-    console.log('🎨 [EFFECT] isRecording:', isRecording);
-    console.log('🎨 [EFFECT] isMicTesting:', isMicTesting);
-    console.log('🎨 [EFFECT] analyzerRef:', !!analyzerRef.current);
-    console.log('🎨 [EFFECT] canvasRef:', !!canvasRef.current);
-    console.log('🎨 [EFFECT] micTestCanvasRef:', !!micTestCanvasRef.current);
+    if (!isRecording && !isMicTesting) return;
+    if (!analyzerRef.current) return;
     
-    const activeCanvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
-    console.log('🎨 [EFFECT] activeCanvas:', !!activeCanvas);
+    // Wait for canvas to be ready
+    const checkCanvas = () => {
+      const activeCanvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
+      if (activeCanvas) {
+        drawWaveform();
+      } else {
+        // Canvas not ready yet, try again shortly
+        setTimeout(checkCanvas, 50);
+      }
+    };
     
-    if ((isRecording || isMicTesting) && analyzerRef.current && activeCanvas) {
-      console.log('✅ [EFFECT] Starting waveform!');
-      drawWaveform();
-      // Only cleanup if we actually started the waveform
-      return () => {
-        console.log('🧹 [EFFECT] Cleaning up waveform');
-        stopWaveform();
-      };
-    } else {
-      console.log('❌ [EFFECT] Cannot start waveform');
-    }
+    checkCanvas();
+    
+    return () => {
+      stopWaveform();
+    };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isRecording, isMicTesting]); // Don't add drawWaveform - causes infinite loop
 
