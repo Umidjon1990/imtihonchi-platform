@@ -251,60 +251,28 @@ export default function TakeTest() {
   const progress = totalQuestions > 0 ? (completedQuestions / totalQuestions) * 100 : 0;
 
 
-  // Recording timer (for both mic test and actual recording)
-  useEffect(() => {
-    if (isRecording || isMicTesting) {
-      recordingTimerRef.current = window.setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-    } else {
-      if (recordingTimerRef.current) {
-        clearInterval(recordingTimerRef.current);
-      }
-      setRecordingTime(0);
-    }
-
-    return () => {
-      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
-    };
-  }, [isRecording, isMicTesting]);
-
-  // Start wave visualization when canvas is ready
-  useEffect(() => {
-    console.log('🎨 [EFFECT] Waveform effect triggered');
-    console.log('🎨 [EFFECT] isRecording:', isRecording);
-    console.log('🎨 [EFFECT] isMicTesting:', isMicTesting);
-    console.log('🎨 [EFFECT] analyzerRef:', !!analyzerRef.current);
-    console.log('🎨 [EFFECT] canvasRef:', !!canvasRef.current);
-    console.log('🎨 [EFFECT] micTestCanvasRef:', !!micTestCanvasRef.current);
-    
-    const activeCanvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
-    console.log('🎨 [EFFECT] activeCanvas:', !!activeCanvas);
-    
-    if ((isRecording || isMicTesting) && analyzerRef.current && activeCanvas) {
-      console.log('✅ [EFFECT] Starting waveform!');
-      drawWaveform();
-      // Only cleanup if we actually started the waveform
-      return () => {
-        console.log('🧹 [EFFECT] Cleaning up waveform');
-        stopWaveform();
-      };
-    } else {
-      console.log('❌ [EFFECT] Cannot start waveform');
-    }
-  }, [isRecording, isMicTesting]);
-
   // Wave visualization
-  const drawWaveform = () => {
+  const drawWaveform = useCallback(() => {
     if (!analyzerRef.current) return;
     
     // Use the correct canvas based on current mode
     const canvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
-    if (!canvas) return;
+    console.log('🎨 [DRAW] drawWaveform called');
+    console.log('🎨 [DRAW] isMicTesting:', isMicTesting);
+    console.log('🎨 [DRAW] canvas:', !!canvas);
+    
+    if (!canvas) {
+      console.log('❌ [DRAW] No canvas found');
+      return;
+    }
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.log('❌ [DRAW] No canvas context');
+      return;
+    }
 
+    console.log('✅ [DRAW] Starting animation loop');
     const analyzer = analyzerRef.current;
     const bufferLength = analyzer.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
@@ -348,7 +316,50 @@ export default function TakeTest() {
     };
 
     draw();
-  };
+  }, [isMicTesting]); // Add isMicTesting as dependency to fix closure issue
+
+  // Recording timer (for both mic test and actual recording)
+  useEffect(() => {
+    if (isRecording || isMicTesting) {
+      recordingTimerRef.current = window.setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    } else {
+      if (recordingTimerRef.current) {
+        clearInterval(recordingTimerRef.current);
+      }
+      setRecordingTime(0);
+    }
+
+    return () => {
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+    };
+  }, [isRecording, isMicTesting]);
+
+  // Start wave visualization when canvas is ready
+  useEffect(() => {
+    console.log('🎨 [EFFECT] Waveform effect triggered');
+    console.log('🎨 [EFFECT] isRecording:', isRecording);
+    console.log('🎨 [EFFECT] isMicTesting:', isMicTesting);
+    console.log('🎨 [EFFECT] analyzerRef:', !!analyzerRef.current);
+    console.log('🎨 [EFFECT] canvasRef:', !!canvasRef.current);
+    console.log('🎨 [EFFECT] micTestCanvasRef:', !!micTestCanvasRef.current);
+    
+    const activeCanvas = isMicTesting ? micTestCanvasRef.current : canvasRef.current;
+    console.log('🎨 [EFFECT] activeCanvas:', !!activeCanvas);
+    
+    if ((isRecording || isMicTesting) && analyzerRef.current && activeCanvas) {
+      console.log('✅ [EFFECT] Starting waveform!');
+      drawWaveform();
+      // Only cleanup if we actually started the waveform
+      return () => {
+        console.log('🧹 [EFFECT] Cleaning up waveform');
+        stopWaveform();
+      };
+    } else {
+      console.log('❌ [EFFECT] Cannot start waveform');
+    }
+  }, [isRecording, isMicTesting, drawWaveform]); // Add drawWaveform to dependencies
 
   const stopWaveform = () => {
     if (animationFrameRef.current) {
