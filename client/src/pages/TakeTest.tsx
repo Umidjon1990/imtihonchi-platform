@@ -359,7 +359,8 @@ export default function TakeTest() {
     } else {
       console.log('❌ [EFFECT] Cannot start waveform');
     }
-  }, [isRecording, isMicTesting, drawWaveform]); // Add drawWaveform to dependencies
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRecording, isMicTesting]); // Don't add drawWaveform - causes infinite loop
 
   const stopWaveform = () => {
     if (animationFrameRef.current) {
@@ -1268,23 +1269,21 @@ export default function TakeTest() {
                     )}
                   </div>
 
-                  {/* Wave visualization during recording */}
-                  {isRecording && (
-                    <div className="w-full bg-muted/50 border-2 border-primary/20 rounded-lg overflow-hidden mb-3 p-2">
-                      <div className="relative bg-background rounded overflow-hidden">
-                        <canvas 
-                          ref={canvasRef}
-                          width={800}
-                          height={100}
-                          className="w-full h-[100px]"
-                        />
-                        <div className="absolute top-2 right-2 flex items-center gap-2 bg-destructive/90 px-2 py-1 rounded text-xs text-white">
-                          <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-                          <span className="font-mono">REC</span>
-                        </div>
+                  {/* Wave visualization during recording - ALWAYS RENDER! */}
+                  <div className={`w-full bg-muted/50 border-2 border-primary/20 rounded-lg overflow-hidden mb-3 p-2 ${!isRecording ? 'hidden' : ''}`}>
+                    <div className="relative bg-background rounded overflow-hidden">
+                      <canvas 
+                        ref={canvasRef}
+                        width={800}
+                        height={100}
+                        className="w-full h-[100px]"
+                      />
+                      <div className="absolute top-2 right-2 flex items-center gap-2 bg-destructive/90 px-2 py-1 rounded text-xs text-white">
+                        <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
+                        <span className="font-mono">REC</span>
                       </div>
                     </div>
-                  )}
+                  </div>
 
                   {currentRecording ? (
                     <div className="space-y-2">
