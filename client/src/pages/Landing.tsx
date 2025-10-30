@@ -33,7 +33,7 @@ export default function Landing() {
           ) : (
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">
-                {user?.email || user?.username}
+                {user?.email || user?.firstName || 'Foydalanuvchi'}
               </span>
               <Button 
                 variant="outline"

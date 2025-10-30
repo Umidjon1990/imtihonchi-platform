@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { uploadToR2, getFilePath, generateFilename } from "../r2-storage";
+import { uploadToObjectStorage, getFilePath, generateFilename } from "../objectStorage";
 
 interface CertificateData {
   studentName: string;
@@ -48,7 +48,7 @@ export async function generateCertificate(data: CertificateData): Promise<string
       doc.on('end', async () => {
         try {
           const pdfBuffer = Buffer.concat(chunks);
-          await uploadToR2(filePath, pdfBuffer, 'application/pdf');
+          await uploadToObjectStorage(filePath, pdfBuffer, 'application/pdf');
           resolve(publicPath);
         } catch (error) {
           reject(error);
