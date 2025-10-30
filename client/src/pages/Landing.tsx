@@ -1,11 +1,18 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { SignIn, SignedIn, SignedOut, UserButton } from "@clerk/clerk-react";
-import { CheckCircle2, Clock, Mic, Award } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Clock, Mic, Award, LogOut } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function Landing() {
-  const [showSignIn, setShowSignIn] = useState(false);
+  const { user, isAuthenticated, isLoading } = useAuth();
+
+  const handleLogin = () => {
+    window.location.href = '/api/login';
+  };
+
+  const handleLogout = () => {
+    window.location.href = '/api/logout';
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -15,37 +22,32 @@ export default function Landing() {
             <Mic className="h-6 w-6 text-primary" />
             <h1 className="text-2xl font-bold">Imtihonchi</h1>
           </div>
-          <SignedOut>
+          {!isAuthenticated ? (
             <Button 
-              onClick={() => setShowSignIn(true)}
+              onClick={handleLogin}
               data-testid="button-login"
+              disabled={isLoading}
             >
               Kirish
             </Button>
-          </SignedOut>
-          <SignedIn>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+          ) : (
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                {user?.email || user?.username}
+              </span>
+              <Button 
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                data-testid="button-logout"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Chiqish
+              </Button>
+            </div>
+          )}
         </div>
       </header>
-
-      {/* Clerk Sign In Modal */}
-      {showSignIn && (
-        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="relative">
-            <button
-              onClick={() => setShowSignIn(false)}
-              className="absolute -top-12 right-0 text-foreground hover:text-primary"
-            >
-              ✕ Yopish
-            </button>
-            <SignIn 
-              routing="hash"
-              afterSignInUrl="/"
-            />
-          </div>
-        </div>
-      )}
 
       <main>
         <section className="py-20 lg:py-24">
@@ -58,17 +60,17 @@ export default function Landing() {
                 Professional ingliz tilini og'zaki baholash tizimi. Talabalar uchun sodda, 
                 o'qituvchilar uchun kuchli, adminlar uchun boshqariladigan.
               </p>
-              <SignedOut>
+              {!isAuthenticated ? (
                 <Button 
                   size="lg" 
                   className="text-lg px-8"
-                  onClick={() => setShowSignIn(true)}
+                  onClick={handleLogin}
                   data-testid="button-get-started"
+                  disabled={isLoading}
                 >
                   Boshlash
                 </Button>
-              </SignedOut>
-              <SignedIn>
+              ) : (
                 <Button 
                   size="lg" 
                   className="text-lg px-8"
@@ -77,7 +79,7 @@ export default function Landing() {
                 >
                   Dashboard
                 </Button>
-              </SignedIn>
+              )}
             </div>
           </div>
         </section>
