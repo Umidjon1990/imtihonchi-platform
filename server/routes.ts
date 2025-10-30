@@ -1,7 +1,7 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { clerkMiddleware, requireAuth, requireRole } from "./clerk-auth";
+import { requireAuth, requireRole } from "./clerk-auth";
 import { uploadToR2, getR2SignedUrl, downloadFromR2, generateFilename, getFilePath } from "./r2-storage";
 import multer from "multer";
 import path from "path";
@@ -72,9 +72,6 @@ const uploadSectionImage = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Apply Clerk middleware to all routes
-  app.use(clerkMiddleware);
-
   // Auth routes
   app.get('/api/auth/user', requireAuth, async (req: Request, res) => {
     try {

@@ -1,10 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { clerkMiddleware, attachUser } from "./clerk-auth";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// IMPORTANT: Clerk middleware must be registered FIRST
+app.use(clerkMiddleware());
+app.use(attachUser);
 
 app.use((req, res, next) => {
   const start = Date.now();

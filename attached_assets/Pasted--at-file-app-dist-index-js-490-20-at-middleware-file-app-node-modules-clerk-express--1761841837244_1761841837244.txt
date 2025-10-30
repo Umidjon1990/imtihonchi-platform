@@ -1,0 +1,93 @@
+    at file:///app/dist/index.js:490:20
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+Example:
+import express from 'express';
+import { clerkMiddleware } from '@clerk/express';
+const app = express();
+app.use(clerkMiddleware());
+Example:
+  For more info, check out the docs: https://clerk.com/docs,
+import express from 'express';
+import { clerkMiddleware } from '@clerk/express';
+const app = express();
+app.use(clerkMiddleware());
+  For more info, check out the docs: https://clerk.com/docs,
+  or come say hi in our discord server: https://clerk.com/discord
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+import express from 'express';
+import { clerkMiddleware } from '@clerk/express';
+Example:
+  
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+const app = express();
+import express from 'express';
+    at file:///app/dist/index.js:490:20
+app.use(clerkMiddleware());
+import { clerkMiddleware } from '@clerk/express';
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+  For more info, check out the docs: https://clerk.com/docs,
+Example:
+  or come say hi in our discord server: https://clerk.com/discord
+  
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+    at file:///app/dist/index.js:490:20
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+  
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+    at file:///app/dist/index.js:490:20
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+const app = express();
+app.use(clerkMiddleware());
+  For more info, check out the docs: https://clerk.com/docs,
+  or come say hi in our discord server: https://clerk.com/discord
+import express from 'express';
+import { clerkMiddleware } from '@clerk/express';
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+const app = express();
+app.use(clerkMiddleware());
+Example:
+import express from 'express';
+  For more info, check out the docs: https://clerk.com/docs,
+import { clerkMiddleware } from '@clerk/express';
+  or come say hi in our discord server: https://clerk.com/discord
+const app = express();
+app.use(clerkMiddleware());
+  For more info, check out the docs: https://clerk.com/docs,
+  or come say hi in our discord server: https://clerk.com/discord
+  
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+    at file:///app/dist/index.js:490:20
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+Example:
+  
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+    at file:///app/dist/index.js:490:20
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+    at file:///app/dist/index.js:490:20
+const app = express();
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+    at middleware (file:///app/node_modules/@clerk/express/dist/index.mjs:155:7)
+Example:
+app.use(clerkMiddleware());
+Clerk middleware error: Error: 🔒 Clerk: The "clerkMiddleware" should be registered before using "getAuth".
+Example:
+  For more info, check out the docs: https://clerk.com/docs,
+import express from 'express';
+  or come say hi in our discord server: https://clerk.com/discord
+  
+import express from 'express';
+import { clerkMiddleware } from '@clerk/express';
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+import { clerkMiddleware } from '@clerk/express';
+const app = express();
+app.use(clerkMiddleware());
+  For more info, check out the docs: https://clerk.com/docs,
+  or come say hi in our discord server: https://clerk.com/discord
+  
+    at getAuth (file:///app/node_modules/@clerk/express/dist/index.mjs:176:11)
+    at file:///app/dist/index.js:490:20
+    at mi
