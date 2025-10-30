@@ -1,8 +1,8 @@
 import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { requireAuth, requireRole } from "./clerk-auth";
-import { uploadToR2, getR2SignedUrl, downloadFromR2, generateFilename, getFilePath } from "./r2-storage";
+import { setupAuth, isAuthenticated } from "./replitAuth";
+import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath } from "./objectStorageUtils";
 import multer from "multer";
 import path from "path";
 import { generateCertificate } from "./utils/certificate";
@@ -73,7 +73,7 @@ const uploadSectionImage = multer({
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
-  app.get('/api/auth/user', requireAuth, async (req: Request, res) => {
+  app.get('/api/auth/user', isAuthenticated, async (req: Request, res) => {
     try {
       const userId = req.userId!;
       const user = await storage.getUser(userId);
@@ -85,7 +85,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User management routes (admin only)
-  app.get('/api/users', requireRole('admin'), async (req: Request, res) => {
+  app.get('/api/users', isAuthenticated, async (req: Request, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);
@@ -95,7 +95,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/users/:id/role', requireRole('admin'), async (req: Request, res) => {
+  app.patch('/api/users/:id/role', isAuthenticated, async (req: Request, res) => {
     try {
       const { role } = req.body;
       if (!['admin', 'teacher', 'student'].includes(role)) {
@@ -111,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user by ID (for teachers reviewing submissions)
-  app.get('/api/users/:id', requireAuth, async (req: Request, res) => {
+  app.get('/api/users/:id', isAuthenticated, async (req: Request, res) => {
     try {
       const userId = req.userId!;
       const currentUser = await storage.getUser(userId);
@@ -143,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/categories", requireAuth, async (req: Request, res) => {
+  app.post("/api/categories", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'admin') {
@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/categories/:id", requireAuth, async (req: Request, res) => {
+  app.patch("/api/categories/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'admin') {
@@ -178,7 +178,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/categories/:id", requireAuth, async (req: Request, res) => {
+  app.delete("/api/categories/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'admin') {
@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/tests", requireAuth, async (req: Request, res) => {
+  app.post("/api/tests", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/tests/:id", requireAuth, async (req: Request, res) => {
+  app.patch("/api/tests/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       const test = await storage.getTestById(req.params.id);
@@ -261,7 +261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/tests/:id", requireAuth, async (req: Request, res) => {
+  app.delete("/api/tests/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       const test = await storage.getTestById(req.params.id);
@@ -293,7 +293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/sections", requireAuth, async (req: Request, res) => {
+  app.post("/api/sections", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/sections/:id", requireAuth, async (req: Request, res) => {
+  app.patch("/api/sections/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -341,7 +341,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Upload section image
-  app.post("/api/upload-section-image", requireAuth, uploadSectionImage.single("file"), async (req: Request, res) => {
+  app.post("/api/upload-section-image", isAuthenticated, uploadSectionImage.single("file"), async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -352,10 +352,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      // Upload to R2
+      // Upload to Object Storage
       const filename = generateFilename(req.file.originalname, 'section-');
       const filePath = getFilePath('image', filename);
-      await uploadToR2(filePath, req.file.buffer, req.file.mimetype);
+      await uploadToObjectStorage(filePath, req.file.buffer, req.file.mimetype);
       
       const url = `/api/section-images/${filename}`;
       res.json({ url });
@@ -372,8 +372,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const basename = path.basename(req.params.filename);
       const filePath = getFilePath('image', basename);
       
-      // Get signed URL from R2
-      const signedUrl = await getR2SignedUrl(filePath);
+      // Get URL from Object Storage
+      const signedUrl = await getObjectStorageUrl(filePath);
       
       // Redirect to signed URL
       res.redirect(signedUrl);
@@ -394,7 +394,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/questions", requireAuth, async (req: Request, res) => {
+  app.post("/api/questions", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -410,7 +410,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/questions/:id", requireAuth, async (req: Request, res) => {
+  app.patch("/api/questions/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -425,7 +425,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/questions/:id", requireAuth, async (req: Request, res) => {
+  app.delete("/api/questions/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -440,7 +440,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/sections/:id", requireAuth, async (req: Request, res) => {
+  app.delete("/api/sections/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -456,7 +456,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Purchase routes
-  app.get("/api/purchases", requireAuth, async (req: Request, res) => {
+  app.get("/api/purchases", isAuthenticated, async (req: Request, res) => {
     try {
       const userId = req.userId!;
       const purchases = await storage.getPurchasesByStudent(userId);
@@ -467,16 +467,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upload-receipt", requireAuth, uploadReceipt.single("file"), async (req: Request, res) => {
+  app.post("/api/upload-receipt", isAuthenticated, uploadReceipt.single("file"), async (req: Request, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      // Upload to R2
+      // Upload to Object Storage
       const filename = generateFilename(req.file.originalname, 'receipt-');
       const filePath = getFilePath('receipt', filename);
-      await uploadToR2(filePath, req.file.buffer, req.file.mimetype);
+      await uploadToObjectStorage(filePath, req.file.buffer, req.file.mimetype);
       
       const url = `/api/receipts/${filename}`;
       res.json({ url });
@@ -486,7 +486,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/receipts/:filename", requireAuth, async (req: Request, res) => {
+  app.get("/api/receipts/:filename", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin' && user?.role !== 'student') {
@@ -496,8 +496,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const basename = path.basename(req.params.filename);
       const filePath = getFilePath('receipt', basename);
       
-      // Get signed URL from R2
-      const signedUrl = await getR2SignedUrl(filePath);
+      // Get URL from Object Storage
+      const signedUrl = await getObjectStorageUrl(filePath);
       
       // Redirect to signed URL
       res.redirect(signedUrl);
@@ -507,16 +507,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upload-audio", requireAuth, uploadAudio.single("file"), async (req: Request, res) => {
+  app.post("/api/upload-audio", isAuthenticated, uploadAudio.single("file"), async (req: Request, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
       
-      // Upload to R2 - force .webm extension for MediaRecorder compatibility
+      // Upload to Object Storage - force .webm extension for MediaRecorder compatibility
       const filename = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
       const filePath = getFilePath('audio', filename);
-      await uploadToR2(filePath, req.file.buffer, 'audio/webm');
+      await uploadToObjectStorage(filePath, req.file.buffer, 'audio/webm');
       
       const url = `/api/audio/${filename}`;
       res.json({ url });
@@ -526,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/audio/:filename", requireAuth, async (req: Request, res) => {
+  app.get("/api/audio/:filename", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (!user) {
@@ -536,8 +536,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const basename = path.basename(req.params.filename);
       const filePath = getFilePath('audio', basename);
       
-      // Get signed URL from R2
-      const signedUrl = await getR2SignedUrl(filePath);
+      // Get URL from Object Storage
+      const signedUrl = await getObjectStorageUrl(filePath);
       
       // Redirect to signed URL
       res.redirect(signedUrl);
@@ -547,7 +547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/purchases", requireAuth, async (req: Request, res) => {
+  app.post("/api/purchases", isAuthenticated, async (req: Request, res) => {
     try {
       const data = insertPurchaseSchema.parse({
         ...req.body,
@@ -561,7 +561,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/purchases/pending", requireAuth, async (req: Request, res) => {
+  app.get("/api/purchases/pending", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -576,7 +576,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/purchases/:id", requireAuth, async (req: Request, res) => {
+  app.get("/api/purchases/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const purchase = await storage.getPurchaseById(req.params.id);
       if (!purchase) {
@@ -596,7 +596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/purchases/:id/approve", requireAuth, async (req: Request, res) => {
+  app.patch("/api/purchases/:id/approve", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -638,7 +638,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/purchases/:id/reject", requireAuth, async (req: Request, res) => {
+  app.patch("/api/purchases/:id/reject", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -654,7 +654,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submission routes
-  app.get("/api/submissions/student", requireAuth, async (req: Request, res) => {
+  app.get("/api/submissions/student", isAuthenticated, async (req: Request, res) => {
     try {
       const userId = req.userId!;
       const submissions = await storage.getSubmissionsByStudent(userId);
@@ -665,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/submissions/teacher", requireAuth, async (req: Request, res) => {
+  app.get("/api/submissions/teacher", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -680,7 +680,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/submissions/:id", requireAuth, async (req: Request, res) => {
+  app.get("/api/submissions/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const submission = await storage.getSubmissionById(req.params.id);
       if (!submission) {
@@ -711,7 +711,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/submissions/test/:testId", requireAuth, async (req: Request, res) => {
+  app.get("/api/submissions/test/:testId", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -726,7 +726,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/submissions", requireAuth, async (req: Request, res) => {
+  app.post("/api/submissions", isAuthenticated, async (req: Request, res) => {
     try {
       // Check if test is a demo test
       const test = await storage.getTestById(req.body.testId);
@@ -747,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Submit answer for a single question
-  app.post("/api/submissions/:id/answer", requireAuth, async (req: Request, res) => {
+  app.post("/api/submissions/:id/answer", isAuthenticated, async (req: Request, res) => {
     try {
       const submission = await storage.getSubmissionById(req.params.id);
       if (!submission) {
@@ -779,7 +779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Complete submission (mark as submitted)
-  app.post("/api/submissions/:id/complete", requireAuth, async (req: Request, res) => {
+  app.post("/api/submissions/:id/complete", isAuthenticated, async (req: Request, res) => {
     try {
       const submission = await storage.getSubmissionById(req.params.id);
       if (!submission) {
@@ -800,7 +800,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get submission answers
-  app.get("/api/submissions/:id/answers", requireAuth, async (req: Request, res) => {
+  app.get("/api/submissions/:id/answers", isAuthenticated, async (req: Request, res) => {
     try {
       const submission = await storage.getSubmissionById(req.params.id);
       if (!submission) {
@@ -824,7 +824,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Result routes
-  app.post("/api/results", requireAuth, async (req: Request, res) => {
+  app.post("/api/results", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -941,14 +941,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Certificate download endpoint
-  app.get("/api/certificates/:filename", requireAuth, async (req: Request, res) => {
+  app.get("/api/certificates/:filename", isAuthenticated, async (req: Request, res) => {
     try {
       // Sanitize filename to prevent path traversal
       const filename = path.basename(req.params.filename);
       const filePath = getFilePath('certificate', filename);
       
-      // Download from R2
-      const fileData = await downloadFromR2(filePath);
+      // Download from Object Storage
+      const fileData = await downloadFromObjectStorage(filePath);
 
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -961,7 +961,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // AI Evaluation routes
   // Transcribe all audio answers for a submission
-  app.post("/api/submissions/:id/transcribe", requireAuth, async (req: Request, res) => {
+  app.post("/api/submissions/:id/transcribe", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -993,8 +993,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const filename = audioUrl.split('/').pop() || 'audio.webm';
           const filePath = getFilePath('audio', filename);
 
-          // Download audio from R2
-          const audioBuffer = await downloadFromR2(filePath);
+          // Download audio from Object Storage
+          const audioBuffer = await downloadFromObjectStorage(filePath);
 
           // Transcribe using Whisper
           const { text } = await transcribeAudio(audioBuffer, filename);
@@ -1024,7 +1024,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Evaluate submission using ChatGPT
-  app.post("/api/submissions/:id/ai-evaluate", requireAuth, async (req: Request, res) => {
+  app.post("/api/submissions/:id/ai-evaluate", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(req.userId!);
       if (user?.role !== 'teacher' && user?.role !== 'admin') {
@@ -1079,7 +1079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get AI evaluation for a submission
-  app.get("/api/submissions/:id/ai-evaluation", requireAuth, async (req: Request, res) => {
+  app.get("/api/submissions/:id/ai-evaluation", isAuthenticated, async (req: Request, res) => {
     try {
       const evaluation = await storage.getAiEvaluationBySubmissionId(req.params.id);
       if (!evaluation) {
