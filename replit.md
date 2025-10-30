@@ -115,9 +115,28 @@ Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, 
 - Backend API'lar **camelCase** formatda JSON qaytaradi (frontend bilan mos)
 - `apiRequest` funksiyasi avtomatik ravishda `res.json()` qaytaradi
 
+## Railway Migration Status
+
+**🚂 MIGRATION IN PROGRESS**
+
+**✅ Completed:**
+- Backend auth: Replit Auth → Clerk (clerk-auth.ts)
+- Backend storage: Replit Object Storage → Cloudflare R2 (r2-storage.ts)
+- All routes updated to use Clerk middleware and R2 functions
+- Frontend auth: ClerkProvider, useAuth hook updated
+- Landing page: Clerk SignIn/SignUp UI integrated
+- User sync: Clerk users automatically synced to database
+- Environment variables: .env.example updated with Railway keys
+- Deployment docs: RAILWAY_SETUP.md with step-by-step guide
+
+**⏳ Not Fully Tested Yet:**
+- Local testing with real Clerk/R2 credentials
+- Railway deployment and production testing
+- Certificate RTL features (minor TypeScript warnings)
+
 ## Joriy Holat
 
-✅ **Bajarilgan**:
+✅ **Bajarilgan (Replit Environment)**:
 1. Replit Auth integratsiyasi (OIDC)
 2. Database schema va migratsiyalar
 3. Backend API endpointlari (CRUD)

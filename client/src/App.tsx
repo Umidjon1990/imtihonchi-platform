@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { ClerkProvider, PUBLISHABLE_KEY } from "@/lib/clerk";
 import { useAuth } from "@/hooks/useAuth";
 import { RoleGuard } from "@/components/RoleGuard";
 import NotFound from "@/pages/not-found";
@@ -118,11 +119,13 @@ function Router() {
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Router />
-        <Toaster />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <ClerkProvider publishableKey={PUBLISHABLE_KEY}>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Router />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ClerkProvider>
   );
 }
