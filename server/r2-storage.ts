@@ -63,6 +63,35 @@ export async function getR2SignedUrl(key: string, expiresIn = 3600): Promise<str
 }
 
 /**
+ * Download file from R2 as Buffer (for processing)
+ */
+export async function downloadFromR2(key: string): Promise<Buffer> {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    const response = await r2Client.send(command);
+    
+    if (!response.Body) {
+      throw new Error('No file body returned');
+    }
+
+    // Convert stream to buffer
+    const chunks: Uint8Array[] = [];
+    for await (const chunk of response.Body as any) {
+      chunks.push(chunk);
+    }
+    
+    return Buffer.concat(chunks);
+  } catch (error) {
+    console.error('R2 download error:', error);
+    throw new Error('Failed to download file from R2');
+  }
+}
+
+/**
  * Delete file from R2
  */
 export async function deleteFromR2(key: string): Promise<void> {

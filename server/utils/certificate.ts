@@ -1,5 +1,5 @@
 import PDFDocument from "pdfkit";
-import { Client } from "@replit/object-storage";
+import { uploadToR2, getFilePath, generateFilename } from "../r2-storage";
 
 interface CertificateData {
   studentName: string;
@@ -11,8 +11,6 @@ interface CertificateData {
   feedback?: string;
   transcripts?: Array<{ questionNumber: number; questionText: string; transcript: string; sectionNumber: number }>;
 }
-
-const objectStorage = new Client({ bucketId: process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID });
 
 // Arabic font path (Noto Sans Arabic from Nix store)
 const ARABIC_FONT_PATH = '/nix/store/g4hlmhda2xmap333kqnzlsz01k8djnp6-noto-fonts-24.3.1/share/fonts/noto/NotoSansArabic[wdth,wght].ttf';
@@ -36,8 +34,8 @@ export async function generateCertificate(data: CertificateData): Promise<string
         // Continue with Helvetica fallback
       }
 
-      const fileName = `certificate-${Date.now()}-${Math.random().toString(36).substring(7)}.pdf`;
-      const objectKey = `.private/certificates/${fileName}`;
+      const fileName = generateFilename('certificate.pdf', 'cert-');
+      const filePath = getFilePath('certificate', fileName);
       const publicPath = `/api/certificates/${fileName}`;
 
       // Collect PDF chunks in memory
@@ -50,7 +48,7 @@ export async function generateCertificate(data: CertificateData): Promise<string
       doc.on('end', async () => {
         try {
           const pdfBuffer = Buffer.concat(chunks);
-          await objectStorage.uploadFromBytes(objectKey, pdfBuffer);
+          await uploadToR2(filePath, pdfBuffer, 'application/pdf');
           resolve(publicPath);
         } catch (error) {
           reject(error);
