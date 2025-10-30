@@ -159,7 +159,7 @@ const DEMO_MOCK_DATA = {
 
 export default function TakeTest() {
   const [, demoParams] = useRoute("/take-test/demo");
-  const [, purchaseParams] = useRoute("/test/:purchaseId");
+  const [, purchaseParams] = useRoute("/take-test/:purchaseId");
   const isDemo = !!demoParams;
   const purchaseId = purchaseParams?.purchaseId;
   const [, navigate] = useLocation();
