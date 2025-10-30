@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { clerkClient } from '@clerk/clerk-sdk-node';
+import { clerkMiddleware as baseClerkMiddleware, getAuth, requireAuth as baseRequireAuth, clerkClient } from '@clerk/express';
 import { storage } from './storage';
 
 export interface ClerkUser {
@@ -20,8 +20,9 @@ declare global {
 }
 
 // Sync Clerk user to database
-async function syncUserToDatabase(clerkUser: any) {
+async function syncUserToDatabase(userId: string) {
   try {
+    const clerkUser = await clerkClient.users.getUser(userId);
     await storage.upsertUser({
       id: clerkUser.id,
       email: clerkUser.emailAddresses[0]?.emailAddress || '',
@@ -34,65 +35,62 @@ async function syncUserToDatabase(clerkUser: any) {
   }
 }
 
-// Middleware to verify Clerk session and attach user to request
+// Custom middleware that uses Clerk's clerkMiddleware and adds req.userId
 export async function clerkMiddleware(req: Request, res: Response, next: NextFunction) {
-  try {
-    // Get session token from Authorization header or cookie
-    const sessionToken = 
-      req.headers.authorization?.replace('Bearer ', '') ||
-      req.cookies?.__session;
-
-    if (!sessionToken) {
-      return next(); // No session - continue without user
+  // First, run Clerk's base middleware
+  baseClerkMiddleware()(req, res, async () => {
+    try {
+      // Get auth state from request
+      const auth = getAuth(req);
+      
+      if (auth?.userId) {
+        // Sync user to database
+        await syncUserToDatabase(auth.userId);
+        
+        // Attach userId to request for compatibility
+        req.userId = auth.userId;
+        
+        // Get and attach full user info
+        const clerkUser = await clerkClient.users.getUser(auth.userId);
+        req.clerkUser = {
+          id: clerkUser.id,
+          email: clerkUser.emailAddresses[0]?.emailAddress || '',
+          firstName: clerkUser.firstName || '',
+          lastName: clerkUser.lastName || '',
+        };
+      }
+      
+      next();
+    } catch (error) {
+      console.error('Clerk middleware error:', error);
+      next(); // Continue without user on error
     }
-
-    // Verify session with Clerk
-    const session = await clerkClient.sessions.verifySession(sessionToken, sessionToken);
-
-    if (!session) {
-      return next();
-    }
-
-    // Get user from Clerk
-    const clerkUser = await clerkClient.users.getUser(session.userId);
-
-    // Sync user to database
-    await syncUserToDatabase(clerkUser);
-
-    // Attach user to request
-    req.userId = clerkUser.id;
-    req.clerkUser = {
-      id: clerkUser.id,
-      email: clerkUser.emailAddresses[0]?.emailAddress || '',
-      firstName: clerkUser.firstName || '',
-      lastName: clerkUser.lastName || '',
-    };
-
-    next();
-  } catch (error) {
-    console.error('Clerk auth error:', error);
-    next(); // Continue without user on error
-  }
+  });
 }
 
 // Middleware to require authentication
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
-  if (!req.userId || !req.clerkUser) {
+  const auth = getAuth(req);
+  
+  if (!auth?.userId) {
     return res.status(401).json({ message: 'Unauthorized' });
   }
+  
   next();
 }
 
 // Middleware to require specific role
 export function requireRole(role: 'admin' | 'teacher' | 'student') {
   return async (req: Request, res: Response, next: NextFunction) => {
-    if (!req.userId) {
+    const auth = getAuth(req);
+    
+    if (!auth?.userId) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
     try {
       // Get user metadata from Clerk
-      const clerkUser = await clerkClient.users.getUser(req.userId);
+      const clerkUser = await clerkClient.users.getUser(auth.userId);
       const userRole = clerkUser.publicMetadata?.role as string;
 
       if (!userRole) {
