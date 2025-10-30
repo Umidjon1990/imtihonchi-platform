@@ -95,6 +95,13 @@ function Router() {
               </RoleGuard>
             )}
           </Route>
+          <Route path="/take-test/demo">
+            {() => (
+              <RoleGuard allowedRoles={['student']}>
+                <TakeTest />
+              </RoleGuard>
+            )}
+          </Route>
           <Route path="/test/:id">
             {() => (
               <RoleGuard allowedRoles={['student']}>

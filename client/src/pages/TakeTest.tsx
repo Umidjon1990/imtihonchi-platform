@@ -109,9 +109,59 @@ function flattenSections(tree: HierarchicalSection[]): HierarchicalSection[] {
   return result;
 }
 
+// Mock data for demo test
+const DEMO_MOCK_DATA = {
+  test: {
+    id: 'demo-test',
+    title: 'Demo Test - CEFR Og\'zaki Baholash',
+    description: 'Platformani sinab ko\'rish uchun qisqartirilgan test',
+    imageUrl: null,
+    categoryId: 'demo-category',
+    teacherId: 'system',
+    price: 0,
+    language: 'uz',
+    isPublished: true,
+    isDemo: true,
+    mainTestId: null,
+    createdAt: new Date(),
+  } as Test,
+  sections: [
+    {
+      id: 'demo-section-1',
+      testId: 'demo-test',
+      sectionNumber: 1,
+      title: 'Bo\'lim 1: Shaxsiy ma\'lumotlar',
+      instructions: 'O\'zingiz haqingizda qisqacha gaplang',
+      preparationTime: 5, // 5 sekund tayyorgarlik
+      speakingTime: 20, // 20 sekund gapirish
+      parentSectionId: null,
+    } as TestSection,
+  ],
+  questions: [
+    {
+      id: 'demo-q1',
+      sectionId: 'demo-section-1',
+      questionNumber: 1,
+      questionText: 'Ismingiz nima? Qayerda yashaysiz?',
+      preparationTime: null, // section default ishlatadi
+      speakingTime: null,
+    } as Question,
+    {
+      id: 'demo-q2',
+      sectionId: 'demo-section-1',
+      questionNumber: 2,
+      questionText: 'Sevimli mashg\'ulotingiz nima?',
+      preparationTime: null,
+      speakingTime: null,
+    } as Question,
+  ],
+};
+
 export default function TakeTest() {
-  const [, params] = useRoute("/test/:purchaseId");
-  const purchaseId = params?.purchaseId;
+  const [, demoParams] = useRoute("/take-test/demo");
+  const [, purchaseParams] = useRoute("/test/:purchaseId");
+  const isDemo = !!demoParams;
+  const purchaseId = purchaseParams?.purchaseId;
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -152,21 +202,26 @@ export default function TakeTest() {
 
   const { data: purchase, isLoading: purchaseLoading } = useQuery<Purchase>({
     queryKey: ["/api/purchases", purchaseId],
-    enabled: !!purchaseId,
+    enabled: !isDemo && !!purchaseId, // Skip if demo
   });
 
-  const { data: test, isLoading: testLoading } = useQuery<Test>({
+  // Use mock data for demo, otherwise fetch real data
+  const test = isDemo ? DEMO_MOCK_DATA.test : undefined;
+  const { data: fetchedTest, isLoading: testLoading } = useQuery<Test>({
     queryKey: ["/api/tests", purchase?.testId],
-    enabled: !!purchase?.testId,
+    enabled: !isDemo && !!purchase?.testId,
   });
+  const finalTest = isDemo ? test : fetchedTest;
 
-  const { data: rawSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
-    queryKey: ["/api/tests", test?.id, "sections"],
-    enabled: !!test?.id,
+  const rawSections = isDemo ? DEMO_MOCK_DATA.sections : [];
+  const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
+    queryKey: ["/api/tests", finalTest?.id, "sections"],
+    enabled: !isDemo && !!finalTest?.id,
   });
+  const finalSections = isDemo ? rawSections : fetchedSections;
 
   // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
-  const sectionTree = useMemo(() => buildSectionTree(rawSections), [rawSections]);
+  const sectionTree = useMemo(() => buildSectionTree(finalSections), [finalSections]);
   const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
 
   // Fetch all questions for all sections
@@ -176,6 +231,13 @@ export default function TakeTest() {
   useEffect(() => {
     const fetchAllQuestions = async () => {
       if (sections.length === 0) return;
+      
+      // For demo, use mock questions
+      if (isDemo) {
+        setAllQuestions(DEMO_MOCK_DATA.questions);
+        setQuestionsLoading(false);
+        return;
+      }
       
       console.log('📥 [FETCH] Fetching questions for sections:', sections.map(s => ({ id: s.id, title: s.title, displayNumber: s.displayNumber })));
       
@@ -208,7 +270,7 @@ export default function TakeTest() {
     };
 
     fetchAllQuestions();
-  }, [sections]);
+  }, [sections, isDemo]);
 
   // Flat list of all questions with section info embedded
   const flatQuestionList = useMemo(() => {
@@ -424,19 +486,27 @@ export default function TakeTest() {
     }
   };
 
-  // Create submission when test starts
+  // Create submission when test starts (skip for demo)
   const createSubmission = async () => {
+    // Demo mode: No submission needed
+    if (isDemo) {
+      console.log('📱 Demo mode: Skipping submission creation');
+      setSubmissionId('demo-submission');
+      submissionIdRef.current = 'demo-submission';
+      return;
+    }
+
     try {
-      console.log('🚀 Creating submission...', { purchaseId: purchase?.id, testId: test?.id });
+      console.log('🚀 Creating submission...', { purchaseId: purchase?.id, testId: finalTest?.id });
       
-      if (!purchase?.id || !test?.id) {
-        console.error('❌ Missing purchase or test ID', { purchase, test });
+      if (!purchase?.id || !finalTest?.id) {
+        console.error('❌ Missing purchase or test ID', { purchase, test: finalTest });
         throw new Error('Purchase yoki test ID topilmadi');
       }
 
       const submission = await apiRequest("POST", "/api/submissions", {
         purchaseId: purchase.id,
-        testId: test.id,
+        testId: finalTest.id,
       });
 
       setSubmissionId(submission.id);
@@ -465,10 +535,8 @@ export default function TakeTest() {
 
       console.log('⬆️ Uploading answer for question:', questionId);
 
-      let filename: string;
-
       // Demo mode: save to localStorage instead of server
-      if (test?.isDemo) {
+      if (isDemo) {
         console.log('📱 Demo mode: Saving audio to localStorage');
         
         // Convert blob to base64
@@ -485,27 +553,27 @@ export default function TakeTest() {
         // Store in localStorage
         localStorage.setItem(`demo-audio-${questionId}`, base64Audio);
         
-        filename = `demo-local-${questionId}`;
         console.log('✅ Audio saved to localStorage');
-      } else {
-        // Regular mode: upload to server
-        const formData = new FormData();
-        formData.append('file', audioBlob);
-        
-        const uploadResponse = await fetch('/api/upload-audio', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Audio upload failed');
-        }
-
-        const { url } = await uploadResponse.json();
-        // Extract filename from url (/api/audio/{filename})
-        filename = url.replace('/api/audio/', '');
-        console.log('✅ Audio uploaded to server:', filename);
+        return; // Skip database save for demo
       }
+
+      // Regular mode: upload to server
+      const formData = new FormData();
+      formData.append('file', audioBlob);
+      
+      const uploadResponse = await fetch('/api/upload-audio', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error('Audio upload failed');
+      }
+
+      const { url } = await uploadResponse.json();
+      // Extract filename from url (/api/audio/{filename})
+      const filename = url.replace('/api/audio/', '');
+      console.log('✅ Audio uploaded to server:', filename);
 
       // Save answer to database
       const answerResponse = await apiRequest("POST", `/api/submissions/${currentSubmissionId}/answer`, {
@@ -834,7 +902,17 @@ export default function TakeTest() {
           if (currentIdxBeforeUpdate >= totalQuestions - 1) {
             console.log('✅ [COMPLETE] Last question finished, completing submission');
             
-            // Complete submission
+            // Complete submission (skip for demo)
+            if (isDemo) {
+              console.log('📱 Demo mode: Skipping submission completion');
+              navigate('/student');
+              toast({
+                title: "Demo Test Yakunlandi!",
+                description: "Platformamizni sinab ko'rganingiz uchun rahmat! Haqiqiy testlarni sotib olib, sertifikat olishingiz mumkin.",
+              });
+              return;
+            }
+
             const currentSubmissionId = submissionIdRef.current;
             if (currentSubmissionId) {
               try {
