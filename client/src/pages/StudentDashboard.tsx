@@ -199,6 +199,52 @@ export default function StudentDashboard() {
             </TabsList>
 
             <TabsContent value="available" className="space-y-6">
+              {/* UNIVERSAL DEMO TEST - Hamma uchun ochiq! */}
+              <Card className="border-2 border-primary/50 bg-gradient-to-br from-primary/5 to-primary/10" data-testid="card-demo-test">
+                <CardHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <CardTitle className="text-2xl">Demo Test - Bepul Sinab Ko'ring</CardTitle>
+                        <Badge variant="default" className="text-xs">
+                          BEPUL
+                        </Badge>
+                      </div>
+                      <CardDescription>
+                        Platformamizni sinab ko'ring! CEFR og'zaki baholash testining qisqartirilgan versiyasi. 
+                        Natijalar bazaga saqlanmaydi va o'qituvchi tomonidan baholanmaydi.
+                      </CardDescription>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>~5-10 daqiqa (qisqartirilgan)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <BookOpen className="h-4 w-4" />
+                      <span>Platformani tanishish uchun ideal</span>
+                    </div>
+                    <div className="p-3 bg-muted/50 rounded-lg border">
+                      <p className="text-xs text-muted-foreground">
+                        ℹ️ Bu demo test. Natijalaringiz saqlanmaydi va sertifikat berilmaydi.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Link href="/take-test/demo" className="w-full">
+                    <Button className="w-full" size="lg" data-testid="button-start-demo">
+                      <BookOpen className="h-4 w-4 mr-2" />
+                      Demo Testni Boshlash
+                    </Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+
+              {/* Mavjud Testlar */}
               {testsLoading ? (
                 <div className="text-center py-12">Yuklanmoqda...</div>
               ) : availableTests.length === 0 ? (
