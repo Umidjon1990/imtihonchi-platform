@@ -967,7 +967,8 @@ export default function TakeTest() {
       );
     }
     
-    if (!purchase || !test) {
+    // Demo mode uchun purchase kerak emas
+    if ((!isDemo && !purchase) || !finalTest) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-lg text-destructive">Ma'lumot topilmadi</div>
@@ -1117,8 +1118,8 @@ export default function TakeTest() {
     );
   }
 
-  // Check if data is valid
-  if (!purchase || !test || sections.length === 0 || allQuestions.length === 0) {
+  // Check if data is valid (demo mode uchun purchase kerak emas)
+  if ((!isDemo && !purchase) || !finalTest || sections.length === 0 || allQuestions.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg text-destructive">Test ma'lumotlari topilmadi</div>
@@ -1164,9 +1165,9 @@ export default function TakeTest() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold truncate" data-testid="text-test-title">
-                {test.title}
+                {finalTest.title}
               </h1>
-              {test.isDemo && (
+              {finalTest.isDemo && (
                 <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/50">
                   📱 DEMO
                 </Badge>
