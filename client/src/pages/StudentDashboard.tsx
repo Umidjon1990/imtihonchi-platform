@@ -427,7 +427,7 @@ export default function StudentDashboard() {
                               Topshirilgan
                             </Button>
                           ) : (
-                            <Link href={`/test/${purchase.id}`} className="w-full">
+                            <Link href={`/take-test/${purchase.id}`} className="w-full">
                               <Button className="w-full" data-testid={`button-start-${purchase.id}`}>
                                 {test.isDemo ? "Demo'ni boshlash" : "Testni boshlash"}
                               </Button>
