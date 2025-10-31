@@ -16,7 +16,7 @@ import ReviewSubmission from "@/pages/ReviewSubmission";
 import { useEffect, useState } from "react";
 
 function Router() {
-  const { user, isLoading, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('darkMode');
@@ -33,14 +33,6 @@ function Router() {
     }
     localStorage.setItem('darkMode', String(darkMode));
   }, [darkMode]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Yuklanmoqda...</div>
-      </div>
-    );
-  }
 
   return (
     <Switch>
