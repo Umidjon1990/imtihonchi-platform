@@ -116,7 +116,10 @@ export default function StudentDashboard() {
 
   const publishedTests = tests.filter(t => t.isPublished);
   const purchasedTestIds = new Set(purchases.map(p => p.testId));
-  const availableTests = publishedTests.filter(t => !purchasedTestIds.has(t.id));
+  // Mavjud testlar: sotib olinMAgan yoki demo testlar
+  const availableTests = publishedTests.filter(t => 
+    !purchasedTestIds.has(t.id) || t.isDemo // Demo testlar har doim ko'rinadi
+  );
 
   const createPurchaseMutation = useMutation({
     mutationFn: async () => {
@@ -256,7 +259,7 @@ export default function StudentDashboard() {
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {availableTests.map((test) => (
-                    <Card key={test.id} className="flex flex-col" data-testid={`card-test-${test.id}`}>
+                    <Card key={test.id} className={`flex flex-col ${test.isDemo ? 'border-2 border-yellow-500/50 bg-gradient-to-br from-yellow-500/5 to-yellow-500/10' : ''}`} data-testid={`card-test-${test.id}`}>
                       {test.imageUrl && (
                         <div className="aspect-video w-full overflow-hidden rounded-t-xl">
                           <img 
@@ -267,7 +270,14 @@ export default function StudentDashboard() {
                         </div>
                       )}
                       <CardHeader>
-                        <CardTitle className="line-clamp-2">{test.title}</CardTitle>
+                        <div className="flex items-start gap-2 mb-1">
+                          <CardTitle className="line-clamp-2 flex-1">{test.title}</CardTitle>
+                          {test.isDemo && (
+                            <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/50 shrink-0">
+                              📱 DEMO
+                            </Badge>
+                          )}
+                        </div>
                         <CardDescription className="line-clamp-3">
                           {test.description}
                         </CardDescription>
@@ -276,24 +286,42 @@ export default function StudentDashboard() {
                         <div className="space-y-2 text-sm">
                           <div className="flex items-center gap-2 text-muted-foreground">
                             <Clock className="h-4 w-4" />
-                            <span>~30 daqiqa</span>
+                            <span>~{test.isDemo ? '5-10' : '30'} daqiqa</span>
                           </div>
-                          <div className="text-2xl font-bold text-primary">
-                            {test.price.toLocaleString()} so'm
-                          </div>
+                          {test.isDemo ? (
+                            <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">
+                              BEPUL
+                            </div>
+                          ) : (
+                            <div className="text-2xl font-bold text-primary">
+                              {test.price.toLocaleString()} so'm
+                            </div>
+                          )}
                         </div>
                       </CardContent>
                       <CardFooter>
-                        <Button 
-                          className="w-full" 
-                          onClick={() => {
-                            setSelectedTest(test);
-                            setBuyDialogOpen(true);
-                          }}
-                          data-testid={`button-buy-${test.id}`}
-                        >
-                          Sotib olish
-                        </Button>
+                        {test.isDemo ? (
+                          <Link href="/take-test/demo" className="w-full">
+                            <Button 
+                              className="w-full" 
+                              data-testid={`button-start-demo-${test.id}`}
+                            >
+                              <BookOpen className="h-4 w-4 mr-2" />
+                              Demo Testni Boshlash
+                            </Button>
+                          </Link>
+                        ) : (
+                          <Button 
+                            className="w-full" 
+                            onClick={() => {
+                              setSelectedTest(test);
+                              setBuyDialogOpen(true);
+                            }}
+                            data-testid={`button-buy-${test.id}`}
+                          >
+                            Sotib olish
+                          </Button>
+                        )}
                       </CardFooter>
                     </Card>
                   ))}
