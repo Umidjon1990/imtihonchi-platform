@@ -470,6 +470,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/purchases/:id", isAuthenticated, async (req: Request, res) => {
+    try {
+      const userId = req.user?.claims?.sub!;
+      const purchase = await storage.getPurchaseById(req.params.id);
+      
+      if (!purchase) {
+        return res.status(404).json({ message: "Xarid topilmadi" });
+      }
+      
+      // Faqat o'z xaridini ko'rish mumkin (yoki teacher/admin)
+      const user = await storage.getUser(userId);
+      if (purchase.studentId !== userId && user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+      
+      res.json(purchase);
+    } catch (error) {
+      console.error("Error fetching purchase:", error);
+      res.status(500).json({ message: "Xaridni olishda xatolik" });
+    }
+  });
+
   app.post("/api/upload-receipt", isAuthenticated, uploadReceipt.single("file"), async (req: Request, res) => {
     try {
       if (!req.file) {
