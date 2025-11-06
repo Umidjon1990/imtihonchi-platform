@@ -429,7 +429,15 @@ export default function TakeTest() {
   const startMicTest = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      
+      // Check supported MIME types for better compatibility
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : 'audio/mp4';
+      
+      const mediaRecorder = new MediaRecorder(stream, { mimeType });
       
       // Setup Web Audio API for wave visualization
       const audioContext = new AudioContext();
@@ -443,32 +451,51 @@ export default function TakeTest() {
       recordingStartTimeRef.current = Date.now();
       
       mediaRecorder.ondataavailable = (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
       };
       
       mediaRecorder.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        const duration = recordingStartTimeRef.current 
-          ? Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
-          : 0;
-        
-        setMicTestRecording({
-          blob: audioBlob,
-          url: audioUrl,
-          duration,
-        });
-        
-        stream.getTracks().forEach(track => track.stop());
-        audioContext.close();
-        stopWaveform();
-        recordingStartTimeRef.current = null;
+        try {
+          if (audioChunksRef.current.length === 0) {
+            throw new Error('No audio data recorded');
+          }
+          
+          const audioBlob = new Blob(audioChunksRef.current, { type: mimeType });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          const duration = recordingStartTimeRef.current 
+            ? Math.floor((Date.now() - recordingStartTimeRef.current) / 1000)
+            : 0;
+          
+          setMicTestRecording({
+            blob: audioBlob,
+            url: audioUrl,
+            duration,
+          });
+          
+          stream.getTracks().forEach(track => track.stop());
+          audioContext.close();
+          stopWaveform();
+          recordingStartTimeRef.current = null;
+        } catch (error) {
+          console.error('Error processing mic test recording:', error);
+          toast({
+            title: "Xatolik",
+            description: "Audio yozuvni saqlashda xatolik yuz berdi. Qayta urinib ko'ring.",
+            variant: "destructive",
+          });
+          stream.getTracks().forEach(track => track.stop());
+          audioContext.close();
+          stopWaveform();
+        }
       };
       
-      mediaRecorder.start();
+      mediaRecorder.start(100); // Collect data every 100ms
       mediaRecorderRef.current = mediaRecorder;
       setIsMicTesting(true);
     } catch (error) {
+      console.error('Mic test error:', error);
       toast({
         title: "Xatolik",
         description: "Mikrofonga ruxsat berilmadi. Brauzer sozlamalarini tekshiring.",
@@ -904,11 +931,9 @@ export default function TakeTest() {
             // Complete submission (skip for demo)
             if (isDemo) {
               console.log('📱 Demo mode: Skipping submission completion');
-              navigate('/student');
-              toast({
-                title: "Demo Test Yakunlandi!",
-                description: "Platformamizni sinab ko'rganingiz uchun rahmat! Haqiqiy testlarni sotib olib, sertifikat olishingiz mumkin.",
-              });
+              // Save demo completed flag in localStorage
+              localStorage.setItem('demo-completed', 'true');
+              navigate('/demo-result');
               return;
             }
 

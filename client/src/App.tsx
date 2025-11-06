@@ -10,6 +10,7 @@ import Landing from "@/pages/Landing";
 import PhoneLogin from "@/pages/PhoneLogin";
 import PublicTestCatalog from "@/pages/PublicTestCatalog";
 import PurchaseTest from "@/pages/PurchaseTest";
+import DemoResult from "@/pages/DemoResult";
 import StudentDashboard from "@/pages/StudentDashboard";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -43,6 +44,7 @@ function Router() {
       <Route path="/" component={Landing} />
       <Route path="/tests" component={PublicTestCatalog} />
       <Route path="/take-test/demo" component={TakeTest} />
+      <Route path="/demo-result" component={DemoResult} />
       <Route path="/tests/:testId/purchase" component={PurchaseTest} />
       
       {!isAuthenticated ? (
