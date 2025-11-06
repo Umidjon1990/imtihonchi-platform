@@ -3,9 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BookOpen, Headphones, PenTool, Mic, Award, LogOut, CheckCircle2, Mail, Phone, MapPin } from "lucide-react";
 import { SiTelegram, SiInstagram, SiYoutube } from "react-icons/si";
 import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 
 export default function Landing() {
   const { user, isAuthenticated, isLoading } = useAuth();
+  
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
 
   const handleReplitLogin = () => {
     window.location.href = '/api/login';
@@ -286,8 +291,11 @@ export default function Landing() {
                       <Mail className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Email</p>
-                        <a href="mailto:info@arabictest.uz" className="text-sm text-muted-foreground hover:text-primary">
-                          info@arabictest.uz
+                        <a 
+                          href={`mailto:${settings?.contactEmail || 'info@arabictest.uz'}`} 
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          {settings?.contactEmail || 'info@arabictest.uz'}
                         </a>
                       </div>
                     </div>
@@ -295,8 +303,11 @@ export default function Landing() {
                       <Phone className="h-5 w-5 text-primary mt-0.5" />
                       <div>
                         <p className="font-medium">Telefon</p>
-                        <a href="tel:+998901234567" className="text-sm text-muted-foreground hover:text-primary">
-                          +998 (90) 123-45-67
+                        <a 
+                          href={`tel:${settings?.contactPhone?.replace(/\s/g, '') || '+998901234567'}`} 
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          {settings?.contactPhone || '+998 (90) 123-45-67'}
                         </a>
                       </div>
                     </div>
@@ -305,7 +316,7 @@ export default function Landing() {
                       <div>
                         <p className="font-medium">Manzil</p>
                         <p className="text-sm text-muted-foreground">
-                          Toshkent shahri, O'zbekiston
+                          {settings?.contactAddress || "Toshkent shahri, O'zbekiston"}
                         </p>
                       </div>
                     </div>
@@ -322,12 +333,19 @@ export default function Landing() {
                       <div className="flex-1">
                         <p className="font-medium">Telegram</p>
                         <a 
-                          href="https://t.me/arabictest" 
+                          href={settings?.telegramLink?.startsWith('http') 
+                            ? settings.telegramLink 
+                            : settings?.telegramLink?.startsWith('@') 
+                              ? `https://t.me/${settings.telegramLink.slice(1)}` 
+                              : settings?.telegramLink 
+                                ? `https://t.me/${settings.telegramLink}` 
+                                : 'https://t.me/arabictest'
+                          }
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-sm text-muted-foreground hover:text-primary"
                         >
-                          @arabictest
+                          {settings?.telegramLink || '@arabictest'}
                         </a>
                       </div>
                     </div>
@@ -336,12 +354,19 @@ export default function Landing() {
                       <div className="flex-1">
                         <p className="font-medium">Instagram</p>
                         <a 
-                          href="https://instagram.com/arabictest" 
+                          href={settings?.instagramLink?.startsWith('http') 
+                            ? settings.instagramLink 
+                            : settings?.instagramLink?.startsWith('@') 
+                              ? `https://instagram.com/${settings.instagramLink.slice(1)}` 
+                              : settings?.instagramLink 
+                                ? `https://instagram.com/${settings.instagramLink}` 
+                                : 'https://instagram.com/arabictest'
+                          }
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-sm text-muted-foreground hover:text-primary"
                         >
-                          @arabictest
+                          {settings?.instagramLink || '@arabictest'}
                         </a>
                       </div>
                     </div>
@@ -350,12 +375,19 @@ export default function Landing() {
                       <div className="flex-1">
                         <p className="font-medium">YouTube</p>
                         <a 
-                          href="https://youtube.com/@arabictest" 
+                          href={settings?.youtubeLink?.startsWith('http') 
+                            ? settings.youtubeLink 
+                            : settings?.youtubeLink?.startsWith('@') 
+                              ? `https://youtube.com/${settings.youtubeLink}` 
+                              : settings?.youtubeLink 
+                                ? `https://youtube.com/@${settings.youtubeLink}` 
+                                : 'https://youtube.com/@arabictest'
+                          }
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="text-sm text-muted-foreground hover:text-primary"
                         >
-                          @arabictest
+                          {settings?.youtubeLink || '@arabictest'}
                         </a>
                       </div>
                     </div>
@@ -400,7 +432,14 @@ export default function Landing() {
                 <h4 className="font-semibold mb-4">Ijtimoiy Tarmoqlar</h4>
                 <div className="flex gap-4">
                   <a 
-                    href="https://t.me/arabictest" 
+                    href={settings?.telegramLink?.startsWith('http') 
+                      ? settings.telegramLink 
+                      : settings?.telegramLink?.startsWith('@') 
+                        ? `https://t.me/${settings.telegramLink.slice(1)}` 
+                        : settings?.telegramLink 
+                          ? `https://t.me/${settings.telegramLink}` 
+                          : 'https://t.me/arabictest'
+                    }
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="hover-elevate active-elevate-2 p-2 rounded-lg bg-background"
@@ -409,7 +448,14 @@ export default function Landing() {
                     <SiTelegram className="h-5 w-5 text-[#0088cc]" />
                   </a>
                   <a 
-                    href="https://instagram.com/arabictest" 
+                    href={settings?.instagramLink?.startsWith('http') 
+                      ? settings.instagramLink 
+                      : settings?.instagramLink?.startsWith('@') 
+                        ? `https://instagram.com/${settings.instagramLink.slice(1)}` 
+                        : settings?.instagramLink 
+                          ? `https://instagram.com/${settings.instagramLink}` 
+                          : 'https://instagram.com/arabictest'
+                    }
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="hover-elevate active-elevate-2 p-2 rounded-lg bg-background"
@@ -418,7 +464,14 @@ export default function Landing() {
                     <SiInstagram className="h-5 w-5 text-[#E4405F]" />
                   </a>
                   <a 
-                    href="https://youtube.com/@arabictest" 
+                    href={settings?.youtubeLink?.startsWith('http') 
+                      ? settings.youtubeLink 
+                      : settings?.youtubeLink?.startsWith('@') 
+                        ? `https://youtube.com/${settings.youtubeLink}` 
+                        : settings?.youtubeLink 
+                          ? `https://youtube.com/@${settings.youtubeLink}` 
+                          : 'https://youtube.com/@arabictest'
+                    }
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="hover-elevate active-elevate-2 p-2 rounded-lg bg-background"
