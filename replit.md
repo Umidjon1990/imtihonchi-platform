@@ -35,6 +35,7 @@ ArabicTest - CEFR standartlariga asoslangan arab tili bilimini baholash platform
 - `submissions` - Topshirilgan testlar (status: in_progress/submitted/graded)
 - `submission_answers` - Har bir savol uchun alohida audio javob
 - `results` - O'qituvchilar tomonidan berilgan natijalar va sertifikatlar
+- `settings` - Platforma sozlamalari (aloqa ma'lumotlari va ijtimoiy tarmoqlar)
 
 ### Backend API Endpoints
 
@@ -83,12 +84,17 @@ ArabicTest - CEFR standartlariga asoslangan arab tili bilimini baholash platform
 - `POST /api/results` - Natija berish (teacher/admin)
 - `GET /api/results/:submissionId` - Topshiriq natijasi
 
+**Settings**:
+- `GET /api/settings` - Platforma sozlamalarini olish (public)
+- `PATCH /api/settings` - Sozlamalarni yangilash (admin only)
+
 ## Rollar va Vazifalari
 
 ### Admin
 - Kategoriyalarni yaratish va boshqarish
 - Barcha testlarni ko'rish va boshqarish
-- Foydalanuvchilarni boshqarish (keyingi bosqichda)
+- Platforma sozlamalarini tahrirlash (aloqa ma'lumotlari, ijtimoiy tarmoqlar)
+- Foydalanuvchilarni boshqarish
 
 ### O'qituvchi
 - Testlar yaratish va tahrirlash
@@ -218,9 +224,16 @@ ArabicTest - CEFR standartlariga asoslangan arab tili bilimini baholash platform
     - **Birlashtirilgan karta**: Timer va audio javob holati bitta kartada
     - **Waveform ichida**: Canvas va audio status timer ramkasi ichida
     - **Kichik elementlar**: Audio holati, alert, va playerlar kichikroq o'lchamlarda
+21. **Settings Management System**:
+    - **Database**: `settings` jadvali (id='default', contact_email, contact_phone, contact_address, telegram_link, instagram_link, youtube_link)
+    - **Backend API**: GET /api/settings (public), PATCH /api/settings (admin only)
+    - **Admin Dashboard**: Settings tab - aloqa va ijtimoiy tarmoqlarni tahrir qilish
+    - **Landing Page**: API'dan settings ma'lumotlarini olish (useQuery)
+    - **Smart URL handling**: Telegram/Instagram/YouTube handle'larni avtomatik URL'ga aylantirish
+    - **Fallback values**: Settings bo'lmasa default qiymatlar ko'rsatiladi
 
 ⏳ **Navbatda**:
-- Admin panel (kategoriyalar, foydalanuvchilar)
+- E2E testing (playwright)
 
 ## Dizayn Yo'riqnomalar
 
