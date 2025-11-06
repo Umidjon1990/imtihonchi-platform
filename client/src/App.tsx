@@ -8,6 +8,7 @@ import { RoleGuard } from "@/components/RoleGuard";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import PhoneLogin from "@/pages/PhoneLogin";
+import PublicTestCatalog from "@/pages/PublicTestCatalog";
 import StudentDashboard from "@/pages/StudentDashboard";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -37,9 +38,12 @@ function Router() {
 
   return (
     <Switch>
+      {/* Public routes */}
+      <Route path="/" component={Landing} />
+      <Route path="/tests" component={PublicTestCatalog} />
+      
       {!isAuthenticated ? (
         <>
-          <Route path="/" component={Landing} />
           <Route path="/phone-login" component={PhoneLogin} />
           <Route path="/:rest*">
             {() => <Redirect to="/" />}

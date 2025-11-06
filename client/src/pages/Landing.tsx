@@ -72,26 +72,41 @@ export default function Landing() {
                 Arab tili bilimingizni to'liq baholash platformasi - yozma, o'qish, tinglash va og'zaki 
                 ko'nikmalaringizni sinab ko'ring. CEFR standartlariga asoslangan professional baholash tizimi.
               </p>
-              {!isAuthenticated ? (
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button 
                   size="lg" 
                   className="text-lg px-8"
-                  onClick={handleReplitLogin}
-                  data-testid="button-get-started"
-                  disabled={isLoading}
+                  onClick={() => window.location.href = '/tests'}
+                  data-testid="button-view-tests"
                 >
-                  Boshlash
+                  Testlarni ko'rish
                 </Button>
-              ) : (
-                <Button 
-                  size="lg" 
-                  className="text-lg px-8"
-                  onClick={() => window.location.href = '/'}
-                  data-testid="button-dashboard"
-                >
-                  Dashboard
-                </Button>
-              )}
+                {!isAuthenticated ? (
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    className="text-lg px-8"
+                    onClick={handleReplitLogin}
+                    data-testid="button-get-started"
+                    disabled={isLoading}
+                  >
+                    Kirish
+                  </Button>
+                ) : (
+                  <Button 
+                    size="lg" 
+                    variant="outline"
+                    className="text-lg px-8"
+                    onClick={() => {
+                      if (user?.role === 'admin') window.location.href = '/admin';
+                      else if (user?.role === 'teacher') window.location.href = '/teacher';
+                      else window.location.href = '/student';
+                    }}
+                    data-testid="button-dashboard"
+                  >
+                    Dashboard
+                  </Button>
+                )}</div>
             </div>
           </div>
         </section>
