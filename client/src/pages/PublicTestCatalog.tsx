@@ -122,20 +122,18 @@ export default function PublicTestCatalog() {
           </Card>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tests
-              .filter(test => !test.isDemo)
-              .map(test => {
+            {tests.map(test => {
                 const purchased = isPurchased(test.id);
                 const pending = hasPendingPurchase(test.id);
-                const hasDemo = tests.some(t => t.isDemo && t.mainTestId === test.id);
+                const isDemo = test.isDemo;
 
                 return (
                   <Card key={test.id} data-testid={`card-test-${test.id}`}>
                     <CardHeader>
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <CardTitle className="text-xl">{test.title}</CardTitle>
-                        {hasDemo && (
-                          <Badge variant="secondary" className="text-xs">
+                        {isDemo && (
+                          <Badge variant="secondary" className="text-xs bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
                             📱 DEMO
                           </Badge>
                         )}
@@ -175,18 +173,15 @@ export default function PublicTestCatalog() {
                     </CardContent>
 
                     <CardFooter className="flex flex-col gap-2">
-                      {hasDemo && (
+                      {isDemo ? (
                         <Button
-                          variant="outline"
-                          className="w-full"
+                          className="w-full bg-yellow-600 hover:bg-yellow-700 dark:bg-yellow-600 dark:hover:bg-yellow-700"
                           onClick={handleDemoTest}
                           data-testid={`button-demo-${test.id}`}
                         >
-                          📱 Demo testni boshlash
+                          📱 Demo testni topshirish
                         </Button>
-                      )}
-
-                      {purchased ? (
+                      ) : purchased ? (
                         <Button
                           className="w-full"
                           onClick={() => setLocation('/student')}
