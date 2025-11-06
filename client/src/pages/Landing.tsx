@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { BookOpen, Headphones, PenTool, Mic, Award, LogOut, CheckCircle2 } from "lucide-react";
+import { BookOpen, Headphones, PenTool, Mic, Award, LogOut, CheckCircle2, Mail, Phone, MapPin } from "lucide-react";
+import { SiTelegram, SiInstagram, SiYoutube } from "react-icons/si";
 import { useAuth } from "@/hooks/useAuth";
 
 export default function Landing() {
@@ -196,7 +197,7 @@ export default function Landing() {
           <div className="container mx-auto px-4">
             <div className="max-w-4xl mx-auto">
               <h3 className="text-3xl font-bold text-center mb-12">Nima Uchun ArabicTest?</h3>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-3 gap-6">
                 <Card className="hover-elevate">
                   <CardHeader>
                     <div className="flex items-start gap-3">
@@ -205,20 +206,6 @@ export default function Landing() {
                         <CardTitle className="mb-2">CEFR Standartlari</CardTitle>
                         <CardDescription>
                           Xalqaro tan olingan CEFR standartlariga asoslangan professional baholash tizimi
-                        </CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                </Card>
-
-                <Card className="hover-elevate">
-                  <CardHeader>
-                    <div className="flex items-start gap-3">
-                      <CheckCircle2 className="h-6 w-6 text-primary mt-1 flex-shrink-0" />
-                      <div>
-                        <CardTitle className="mb-2">AI Baholash</CardTitle>
-                        <CardDescription>
-                          Sun'iy intellekt yordamida tez va aniq baholash - natijani bir necha daqiqada oling
                         </CardDescription>
                       </div>
                     </div>
@@ -256,11 +243,191 @@ export default function Landing() {
             </div>
           </div>
         </section>
+
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h3 className="text-3xl font-bold text-center mb-4">Biz Haqimizda</h3>
+              <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
+                ArabicTest - arab tili bilimini CEFR standartlariga asoslangan holda baholash platformasi. 
+                Biz o'quvchilarga sifatli ta'lim va baholash xizmatlarini taqdim etamiz.
+              </p>
+              <Card className="hover-elevate">
+                <CardContent className="pt-6">
+                  <p className="text-muted-foreground leading-relaxed">
+                    Platformamiz orqali siz arab tilini to'rt asosiy ko'nikma - o'qish, tinglash, yozish va gapirish 
+                    bo'yicha sinab ko'rishingiz mumkin. Professional o'qituvchilar va zamonaviy texnologiyalar 
+                    yordamida sizning bilimingiz aniq va adolatli baholanadi. Har bir test CEFR xalqaro standartlariga 
+                    mos ravishda tuzilgan va natijalaringiz rasmiy sertifikat bilan tasdiqlanadi.
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="max-w-4xl mx-auto">
+              <h3 className="text-3xl font-bold text-center mb-12">Biz Bilan Bog'lanish</h3>
+              <div className="grid md:grid-cols-2 gap-8">
+                <Card className="hover-elevate">
+                  <CardHeader>
+                    <CardTitle>Aloqa Ma'lumotlari</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Mail className="h-5 w-5 text-primary mt-0.5" />
+                      <div>
+                        <p className="font-medium">Email</p>
+                        <a href="mailto:info@arabictest.uz" className="text-sm text-muted-foreground hover:text-primary">
+                          info@arabictest.uz
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Phone className="h-5 w-5 text-primary mt-0.5" />
+                      <div>
+                        <p className="font-medium">Telefon</p>
+                        <a href="tel:+998901234567" className="text-sm text-muted-foreground hover:text-primary">
+                          +998 (90) 123-45-67
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <MapPin className="h-5 w-5 text-primary mt-0.5" />
+                      <div>
+                        <p className="font-medium">Manzil</p>
+                        <p className="text-sm text-muted-foreground">
+                          Toshkent shahri, O'zbekiston
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="hover-elevate">
+                  <CardHeader>
+                    <CardTitle>Ijtimoiy Tarmoqlar</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-3">
+                      <SiTelegram className="h-5 w-5 text-[#0088cc]" />
+                      <div className="flex-1">
+                        <p className="font-medium">Telegram</p>
+                        <a 
+                          href="https://t.me/arabictest" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          @arabictest
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <SiInstagram className="h-5 w-5 text-[#E4405F]" />
+                      <div className="flex-1">
+                        <p className="font-medium">Instagram</p>
+                        <a 
+                          href="https://instagram.com/arabictest" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          @arabictest
+                        </a>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <SiYoutube className="h-5 w-5 text-[#FF0000]" />
+                      <div className="flex-1">
+                        <p className="font-medium">YouTube</p>
+                        <a 
+                          href="https://youtube.com/@arabictest" 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-muted-foreground hover:text-primary"
+                        >
+                          @arabictest
+                        </a>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <footer className="border-t py-8">
-        <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; 2024 ArabicTest. Arab tili bilimini baholash platformasi.</p>
+      <footer className="border-t py-12 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <BookOpen className="h-6 w-6 text-primary" />
+                  <h3 className="text-lg font-bold">ArabicTest</h3>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Arab tili bilimini CEFR standartlariga asoslangan holda professional baholash platformasi.
+                </p>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4">Tezkor Havolalar</h4>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div>
+                    <a href="#features" className="hover:text-primary">Imkoniyatlar</a>
+                  </div>
+                  <div>
+                    <a href="#about" className="hover:text-primary">Biz haqimizda</a>
+                  </div>
+                  <div>
+                    <a href="#contact" className="hover:text-primary">Bog'lanish</a>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-semibold mb-4">Ijtimoiy Tarmoqlar</h4>
+                <div className="flex gap-4">
+                  <a 
+                    href="https://t.me/arabictest" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover-elevate active-elevate-2 p-2 rounded-lg bg-background"
+                    data-testid="link-telegram"
+                  >
+                    <SiTelegram className="h-5 w-5 text-[#0088cc]" />
+                  </a>
+                  <a 
+                    href="https://instagram.com/arabictest" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover-elevate active-elevate-2 p-2 rounded-lg bg-background"
+                    data-testid="link-instagram"
+                  >
+                    <SiInstagram className="h-5 w-5 text-[#E4405F]" />
+                  </a>
+                  <a 
+                    href="https://youtube.com/@arabictest" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="hover-elevate active-elevate-2 p-2 rounded-lg bg-background"
+                    data-testid="link-youtube"
+                  >
+                    <SiYoutube className="h-5 w-5 text-[#FF0000]" />
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t pt-6 text-center text-sm text-muted-foreground">
+              <p>© 2024 ArabicTest. Barcha huquqlar himoyalangan.</p>
+            </div>
+          </div>
         </div>
       </footer>
     </div>
