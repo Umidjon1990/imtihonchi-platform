@@ -141,6 +141,19 @@ export const aiEvaluations = pgTable("ai_evaluations", {
   evaluatedAt: timestamp("evaluated_at").defaultNow().notNull(),
 });
 
+// Platform Settings (global - single row)
+export const settings = pgTable("settings", {
+  id: varchar("id").primaryKey().default('default'),
+  contactEmail: varchar("contact_email"),
+  contactPhone: varchar("contact_phone"),
+  contactAddress: text("contact_address"),
+  telegramLink: varchar("telegram_link"),
+  instagramLink: varchar("instagram_link"),
+  youtubeLink: varchar("youtube_link"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Schemas
 export const upsertUserSchema = createInsertSchema(users).omit({ 
   createdAt: true, 
@@ -190,6 +203,14 @@ export const insertAiEvaluationSchema = createInsertSchema(aiEvaluations).omit({
   evaluatedAt: true 
 });
 
+export const insertSettingsSchema = createInsertSchema(settings).omit({ 
+  id: true, 
+  createdAt: true, 
+  updatedAt: true 
+});
+
+export const updateSettingsSchema = insertSettingsSchema.partial();
+
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -211,3 +232,6 @@ export type Result = typeof results.$inferSelect;
 export type InsertResult = z.infer<typeof insertResultSchema>;
 export type AiEvaluation = typeof aiEvaluations.$inferSelect;
 export type InsertAiEvaluation = z.infer<typeof insertAiEvaluationSchema>;
+export type Settings = typeof settings.$inferSelect;
+export type InsertSettings = z.infer<typeof insertSettingsSchema>;
+export type UpdateSettings = z.infer<typeof updateSettingsSchema>;
