@@ -782,7 +782,7 @@ export default function TakeTest() {
       // Create submission
       await apiRequest("POST", "/api/submissions", {
         purchaseId,
-        testId: test?.id,
+        testId: finalTest?.id,
         audioFiles: uploadedUrls,
       });
 
