@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Users, FolderOpen, TrendingUp, Plus, Pencil, Trash2, LogOut, ArrowLeft } from "lucide-react";
+import { FileText, Users, FolderOpen, TrendingUp, Plus, Pencil, Trash2, LogOut, ArrowLeft, Settings as SettingsIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
@@ -69,6 +69,14 @@ export default function AdminDashboard() {
   const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
 
+  // Settings state
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactAddress, setContactAddress] = useState("");
+  const [telegramLink, setTelegramLink] = useState("");
+  const [instagramLink, setInstagramLink] = useState("");
+  const [youtubeLink, setYoutubeLink] = useState("");
+
   const { data: categories = [], isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
@@ -80,6 +88,23 @@ export default function AdminDashboard() {
   const { data: allUsers = [] } = useQuery<any[]>({
     queryKey: ["/api/users"],
   });
+
+  const { data: settings, isLoading: settingsLoading } = useQuery<any>({
+    queryKey: ["/api/settings"],
+    refetchOnMount: true,
+  });
+
+  // Update settings state when data loads
+  useEffect(() => {
+    if (settings) {
+      setContactEmail(settings.contactEmail || "");
+      setContactPhone(settings.contactPhone || "");
+      setContactAddress(settings.contactAddress || "");
+      setTelegramLink(settings.telegramLink || "");
+      setInstagramLink(settings.instagramLink || "");
+      setYoutubeLink(settings.youtubeLink || "");
+    }
+  }, [settings]);
 
   const createCategoryMutation = useMutation({
     mutationFn: async () => {
@@ -145,6 +170,30 @@ export default function AdminDashboard() {
     },
   });
 
+  const updateSettingsMutation = useMutation({
+    mutationFn: async () => {
+      await apiRequest("PATCH", "/api/settings", {
+        contactEmail: contactEmail || undefined,
+        contactPhone: contactPhone || undefined,
+        contactAddress: contactAddress || undefined,
+        telegramLink: telegramLink || undefined,
+        instagramLink: instagramLink || undefined,
+        youtubeLink: youtubeLink || undefined,
+      });
+    },
+    onSuccess: () => {
+      toast({ title: "Sozlamalar saqlandi" });
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Xatolik",
+        description: error.message || "Sozlamalarni saqlashda xatolik",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleLogout = () => {
     window.location.href = "/api/logout";
   };
@@ -190,10 +239,11 @@ export default function AdminDashboard() {
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview" data-testid="tab-overview">Umumiy Ma'lumot</TabsTrigger>
             <TabsTrigger value="categories" data-testid="tab-categories">Kategoriyalar</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Foydalanuvchilar</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings">Sozlamalar</TabsTrigger>
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
@@ -360,6 +410,111 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <h2 className="text-2xl font-bold">Platforma Sozlamalari</h2>
+            
+            {settingsLoading ? (
+              <div className="text-center py-12">Yuklanmoqda...</div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Aloqa Ma'lumotlari</CardTitle>
+                    <CardDescription>
+                      Landing sahifada ko'rsatiladigan aloqa ma'lumotlari
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-email">Email</Label>
+                      <Input
+                        id="contact-email"
+                        type="email"
+                        value={contactEmail}
+                        onChange={(e) => setContactEmail(e.target.value)}
+                        placeholder="info@arabictest.uz"
+                        data-testid="input-contact-email"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-phone">Telefon</Label>
+                      <Input
+                        id="contact-phone"
+                        value={contactPhone}
+                        onChange={(e) => setContactPhone(e.target.value)}
+                        placeholder="+998 (90) 123-45-67"
+                        data-testid="input-contact-phone"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="contact-address">Manzil</Label>
+                      <Input
+                        id="contact-address"
+                        value={contactAddress}
+                        onChange={(e) => setContactAddress(e.target.value)}
+                        placeholder="Toshkent shahri, O'zbekiston"
+                        data-testid="input-contact-address"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Ijtimoiy Tarmoqlar</CardTitle>
+                    <CardDescription>
+                      Landing sahifada ko'rsatiladigan ijtimoiy tarmoq havolalari
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="telegram-link">Telegram</Label>
+                      <Input
+                        id="telegram-link"
+                        value={telegramLink}
+                        onChange={(e) => setTelegramLink(e.target.value)}
+                        placeholder="@arabictest"
+                        data-testid="input-telegram-link"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="instagram-link">Instagram</Label>
+                      <Input
+                        id="instagram-link"
+                        value={instagramLink}
+                        onChange={(e) => setInstagramLink(e.target.value)}
+                        placeholder="@arabictest"
+                        data-testid="input-instagram-link"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="youtube-link">YouTube</Label>
+                      <Input
+                        id="youtube-link"
+                        value={youtubeLink}
+                        onChange={(e) => setYoutubeLink(e.target.value)}
+                        placeholder="@arabictest"
+                        data-testid="input-youtube-link"
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="md:col-span-2">
+                  <CardFooter className="pt-6 flex justify-end">
+                    <Button
+                      onClick={() => updateSettingsMutation.mutate()}
+                      disabled={updateSettingsMutation.isPending}
+                      data-testid="button-save-settings"
+                    >
+                      {updateSettingsMutation.isPending ? "Saqlanmoqda..." : "Sozlamalarni Saqlash"}
+                    </Button>
+                  </CardFooter>
+                </Card>
+              </div>
             )}
           </TabsContent>
         </Tabs>
