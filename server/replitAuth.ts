@@ -135,6 +135,12 @@ export async function setupAuth(app: Express) {
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
 
+  // Support Google OAuth (simple authentication check)
+  if (user && user.id && !user.expires_at) {
+    return next();
+  }
+
+  // Support Replit Auth (with token refresh)
   if (!req.isAuthenticated() || !user.expires_at) {
     return res.status(401).json({ message: "Unauthorized" });
   }

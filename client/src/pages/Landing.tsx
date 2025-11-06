@@ -8,11 +8,11 @@ export default function Landing() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
   const handleLogin = () => {
-    window.location.href = '/api/login';
+    window.location.href = '/auth/google';
   };
 
   const handleLogout = () => {
-    window.location.href = '/api/logout';
+    window.location.href = '/auth/google/logout';
   };
 
   return (

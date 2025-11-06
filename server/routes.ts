@@ -2,6 +2,8 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupGoogleAuth } from "./googleAuth";
+import passport from "passport";
 import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath, ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import multer from "multer";
 import path from "path";
@@ -75,10 +77,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth
   await setupAuth(app);
 
+  // Setup Google OAuth
+  setupGoogleAuth();
+
+  // Google OAuth routes
+  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+
+  app.get('/auth/google/callback',
+    passport.authenticate('google', { failureRedirect: '/' }),
+    (req, res) => {
+      // Successful authentication, redirect to dashboard
+      res.redirect('/');
+    }
+  );
+
+  // Google logout route
+  app.get('/auth/google/logout', (req, res) => {
+    req.logout(() => {
+      res.redirect('/');
+    });
+  });
+
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: Request, res) => {
     try {
-      const userId = req.user?.claims?.sub!;
+      // Support both Google OAuth and Replit Auth
+      const userId = (req.user as any)?.id || req.user?.claims?.sub!;
       const user = await storage.getUser(userId);
       res.json(user);
     } catch (error) {
