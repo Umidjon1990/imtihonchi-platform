@@ -9,6 +9,7 @@ import {
   submissionAnswers,
   results,
   aiEvaluations,
+  settings,
   type User,
   type UpsertUser,
   type TestCategory,
@@ -29,6 +30,8 @@ import {
   type InsertResult,
   type AiEvaluation,
   type InsertAiEvaluation,
+  type Settings,
+  type UpdateSettings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, inArray } from "drizzle-orm";
@@ -95,6 +98,10 @@ export interface IStorage {
   // AI Evaluation operations
   createAiEvaluation(evaluation: InsertAiEvaluation): Promise<AiEvaluation>;
   getAiEvaluationBySubmissionId(submissionId: string): Promise<AiEvaluation | undefined>;
+  
+  // Settings operations
+  getSettings(): Promise<Settings | undefined>;
+  updateSettings(updates: UpdateSettings): Promise<Settings>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -451,6 +458,30 @@ export class DatabaseStorage implements IStorage {
   async getAiEvaluationBySubmissionId(submissionId: string): Promise<AiEvaluation | undefined> {
     const [evaluation] = await db.select().from(aiEvaluations).where(eq(aiEvaluations.submissionId, submissionId));
     return evaluation;
+  }
+
+  // Settings operations
+  async getSettings(): Promise<Settings | undefined> {
+    const [settingsData] = await db.select().from(settings).where(eq(settings.id, 'default'));
+    return settingsData;
+  }
+
+  async updateSettings(updates: UpdateSettings): Promise<Settings> {
+    const [updatedSettings] = await db
+      .insert(settings)
+      .values({
+        id: 'default',
+        ...updates,
+      })
+      .onConflictDoUpdate({
+        target: settings.id,
+        set: {
+          ...updates,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return updatedSettings;
   }
 }
 

@@ -21,6 +21,7 @@ import {
   insertSubmissionAnswerSchema,
   insertResultSchema,
   insertAiEvaluationSchema,
+  updateSettingsSchema,
 } from "@shared/schema";
 
 // Configure multer for receipt uploads (memory storage)
@@ -275,6 +276,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error: any) {
       console.error("Error deleting category:", error);
       res.status(400).json({ message: error.message || "Kategoriyani o'chirishda xatolik" });
+    }
+  });
+
+  // Settings routes
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settingsData = await storage.getSettings();
+      res.json(settingsData || {});
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "Sozlamalarni olishda xatolik" });
+    }
+  });
+
+  app.patch("/api/settings", isAuthenticated, async (req: Request, res) => {
+    try {
+      const user = await storage.getUser(getUserId(req));
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const data = updateSettingsSchema.parse(req.body);
+      const updatedSettings = await storage.updateSettings(data);
+      res.json(updatedSettings);
+    } catch (error: any) {
+      console.error("Error updating settings:", error);
+      res.status(400).json({ message: error.message || "Sozlamalarni yangilashda xatolik" });
     }
   });
 
