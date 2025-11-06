@@ -307,6 +307,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Test routes
+  // Get demo test (public endpoint)
+  app.get("/api/demo-test", async (req, res) => {
+    try {
+      const demoTests = await storage.getTests(undefined, undefined);
+      const demoTest = demoTests.find(t => t.isDemo);
+      
+      if (!demoTest) {
+        return res.status(404).json({ message: "Demo test topilmadi" });
+      }
+      
+      res.json(demoTest);
+    } catch (error) {
+      console.error("Error fetching demo test:", error);
+      res.status(500).json({ message: "Demo testni olishda xatolik" });
+    }
+  });
+
   app.get("/api/tests", async (req, res) => {
     try {
       const { categoryId, teacherId } = req.query;

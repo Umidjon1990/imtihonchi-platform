@@ -205,20 +205,26 @@ export default function TakeTest() {
     enabled: !isDemo && !!purchaseId, // Skip if demo
   });
 
-  // Use mock data for demo, otherwise fetch real data
-  const test = isDemo ? DEMO_MOCK_DATA.test : undefined;
+  // Fetch demo test if in demo mode
+  const { data: demoTest, isLoading: demoTestLoading } = useQuery<Test>({
+    queryKey: ["/api/demo-test"],
+    enabled: isDemo,
+  });
+
+  // Fetch regular test if not demo
   const { data: fetchedTest, isLoading: testLoading } = useQuery<Test>({
     queryKey: ["/api/tests", purchase?.testId],
     enabled: !isDemo && !!purchase?.testId,
   });
-  const finalTest = isDemo ? test : fetchedTest;
+  
+  const finalTest = isDemo ? demoTest : fetchedTest;
 
-  const rawSections = isDemo ? DEMO_MOCK_DATA.sections : [];
+  // Fetch sections for demo or regular test
   const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
     queryKey: ["/api/tests", finalTest?.id, "sections"],
-    enabled: !isDemo && !!finalTest?.id,
+    enabled: !!finalTest?.id,
   });
-  const finalSections = isDemo ? rawSections : fetchedSections;
+  const finalSections = fetchedSections;
 
   // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
   const sectionTree = useMemo(() => buildSectionTree(finalSections), [finalSections]);
@@ -231,13 +237,6 @@ export default function TakeTest() {
   useEffect(() => {
     const fetchAllQuestions = async () => {
       if (sections.length === 0) return;
-      
-      // For demo, use mock questions
-      if (isDemo) {
-        setAllQuestions(DEMO_MOCK_DATA.questions);
-        setQuestionsLoading(false);
-        return;
-      }
       
       console.log('📥 [FETCH] Fetching questions for sections:', sections.map(s => ({ id: s.id, title: s.title, displayNumber: s.displayNumber })));
       
@@ -959,7 +958,7 @@ export default function TakeTest() {
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
-    if (purchaseLoading || testLoading) {
+    if (purchaseLoading || testLoading || demoTestLoading) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-lg">Yuklanmoqda...</div>
