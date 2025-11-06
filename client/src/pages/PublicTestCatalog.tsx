@@ -29,8 +29,8 @@ export default function PublicTestCatalog() {
 
   const handlePurchaseTest = (testId: string) => {
     if (!isAuthenticated) {
-      sessionStorage.setItem('returnUrl', `/tests/${testId}/purchase`);
-      window.location.href = '/api/login';
+      const returnUrl = encodeURIComponent(`/tests/${testId}/purchase`);
+      window.location.href = `/api/login?returnUrl=${returnUrl}`;
       return;
     }
     setLocation(`/tests/${testId}/purchase`);

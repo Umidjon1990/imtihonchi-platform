@@ -9,6 +9,7 @@ import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
 import PhoneLogin from "@/pages/PhoneLogin";
 import PublicTestCatalog from "@/pages/PublicTestCatalog";
+import PurchaseTest from "@/pages/PurchaseTest";
 import StudentDashboard from "@/pages/StudentDashboard";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -38,9 +39,11 @@ function Router() {
 
   return (
     <Switch>
-      {/* Public routes */}
+      {/* Public routes - accessible by everyone */}
       <Route path="/" component={Landing} />
       <Route path="/tests" component={PublicTestCatalog} />
+      <Route path="/take-test/demo" component={TakeTest} />
+      <Route path="/tests/:testId/purchase" component={PurchaseTest} />
       
       {!isAuthenticated ? (
         <>
@@ -90,13 +93,6 @@ function Router() {
             {() => (
               <RoleGuard allowedRoles={['admin']}>
                 <AdminDashboard />
-              </RoleGuard>
-            )}
-          </Route>
-          <Route path="/take-test/demo">
-            {() => (
-              <RoleGuard allowedRoles={['student']}>
-                <TakeTest />
               </RoleGuard>
             )}
           </Route>

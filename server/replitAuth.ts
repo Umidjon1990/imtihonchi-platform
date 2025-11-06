@@ -105,6 +105,16 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    // Store returnUrl from query parameter for post-login redirect
+    // Validate returnUrl to prevent open redirect attacks
+    if (req.query.returnUrl) {
+      const returnUrl = req.query.returnUrl as string;
+      // Only allow relative URLs starting with "/"
+      if (returnUrl.startsWith('/') && !returnUrl.startsWith('//')) {
+        (req.session as any).returnTo = returnUrl;
+      }
+    }
+    
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
