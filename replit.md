@@ -1,8 +1,16 @@
-# Imtihonchi - CEFR Og'zaki Baholash Platformasi
+# ArabicTest - Arab Tili Bilimini Baholash Platformasi
 
 ## Loyiha Haqida
 
-Imtihonchi - CEFR og'zaki baholash platformasi bo'lib, uchta asosiy rol (Admin, O'qituvchi, Talaba) bilan ishlaydi. Platforma o'qituvchilarga sozlanadigan timerlar va rasm yuklash imkoniyati bilan test yaratish, talabalarga testlarni sotib olish va audio yozuv bilan topshirish, va adminlarga butun tizimni boshqarish imkoniyatini beradi.
+ArabicTest - CEFR standartlariga asoslangan arab tili bilimini baholash platformasi. Platforma o'quvchilarga arab tilini to'rt asosiy ko'nikma (o'qish, tinglash, yozish, gapirish) bo'yicha sinash, o'qituvchilarga testlar yaratish va AI yordamida baholash, va adminlarga butun tizimni boshqarish imkoniyatini beradi.
+
+**Asosiy Xususiyatlar:**
+- 📖 **O'qish (Reading)** - Matnlarni tushunish va tahlil qilish
+- 🎧 **Tinglash (Listening)** - Audio materiallarni eshitib tushunish
+- ✍️ **Yozish (Writing)** - Yozma ishlar yaratish va grammatika
+- 🎤 **Gapirish (Speaking)** - Og'zaki nutq ko'nikmalari (audio yozuv)
+
+**Target Auditoriya:** Arab tilini o'rganuvchi o'quvchilar, tilni baholashni xohlaydigan shaxslar
 
 ## Texnologiyalar
 
