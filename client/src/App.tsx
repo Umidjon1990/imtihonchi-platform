@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { RoleGuard } from "@/components/RoleGuard";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
+import PhoneLogin from "@/pages/PhoneLogin";
 import StudentDashboard from "@/pages/StudentDashboard";
 import TeacherDashboard from "@/pages/TeacherDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
@@ -39,6 +40,7 @@ function Router() {
       {!isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
+          <Route path="/phone-login" component={PhoneLogin} />
           <Route path="/:rest*">
             {() => <Redirect to="/" />}
           </Route>

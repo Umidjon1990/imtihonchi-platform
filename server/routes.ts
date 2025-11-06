@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
+import { adminAuth } from "./firebaseAdmin";
 import passport from "passport";
 import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath, ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import multer from "multer";
@@ -96,6 +97,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.logout(() => {
       res.redirect('/');
     });
+  });
+
+  // Firebase Phone Auth endpoint
+  app.post('/api/auth/firebase', async (req: Request, res) => {
+    try {
+      const { idToken } = req.body;
+      
+      if (!idToken) {
+        return res.status(400).json({ message: "ID token kerak" });
+      }
+
+      // Verify Firebase ID token
+      const decodedToken = await adminAuth.verifyIdToken(idToken);
+      const phoneNumber = decodedToken.phone_number;
+      const uid = decodedToken.uid;
+
+      if (!phoneNumber) {
+        return res.status(400).json({ message: "Telefon raqam topilmadi" });
+      }
+
+      // Create or update user in database
+      await storage.upsertUser({
+        id: uid,
+        email: phoneNumber, // Use phone as email for now
+        firstName: phoneNumber.slice(0, 13), // Use phone as first name
+        lastName: "",
+        profileImageUrl: "",
+      });
+
+      // Create session
+      const user = {
+        id: uid,
+        phoneNumber: phoneNumber,
+      };
+
+      // Log the user in via Passport session
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Session yaratishda xatolik:", err);
+          return res.status(500).json({ message: "Session yaratishda xatolik" });
+        }
+        res.json({ success: true, user });
+      });
+    } catch (error: any) {
+      console.error("Firebase auth xatolik:", error);
+      res.status(401).json({ message: "Autentifikatsiya xatosi: " + error.message });
+    }
   });
 
   // Auth routes
