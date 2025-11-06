@@ -12,7 +12,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Plus, Save, Trash2, Upload, Clock } from "lucide-react";
+import { ArrowLeft, Plus, Save, Trash2, Upload, Clock, Mic, Square, Volume2, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import type { Test, TestSection, Question } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +87,9 @@ export default function EditTest() {
   const [deleteQuestionOpen, setDeleteQuestionOpen] = useState(false);
   const [deletingQuestionId, setDeletingQuestionId] = useState<string>("");
   const [selectedParentSection, setSelectedParentSection] = useState<string | null>(null);
+  const [recordingQuestionAudio, setRecordingQuestionAudio] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [uploadingQuestionAudio, setUploadingQuestionAudio] = useState(false);
   const [newSection, setNewSection] = useState({
     title: "",
     instructions: "",
@@ -107,6 +110,7 @@ export default function EditTest() {
     preparationTime: null as number | null,
     speakingTime: null as number | null,
     imageUrl: null as string | null,
+    questionAudioUrl: null as string | null,
     keyFactsPlus: null as string | null,
     keyFactsPlusLabel: null as string | null,
     keyFactsMinus: null as string | null,
@@ -180,6 +184,7 @@ export default function EditTest() {
         preparationTime: null,
         speakingTime: null,
         imageUrl: null,
+        questionAudioUrl: null,
         keyFactsPlus: null,
         keyFactsPlusLabel: null,
         keyFactsMinus: null,
@@ -236,6 +241,76 @@ export default function EditTest() {
       toast({ title: "Xatolik", description: error.message, variant: "destructive" });
     },
   });
+
+  const handleQuestionAudioUpload = async (file: File) => {
+    try {
+      setUploadingQuestionAudio(true);
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch("/api/upload-question-audio", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+
+      if (!response.ok) {
+        throw new Error("Audio yuklashda xatolik");
+      }
+
+      const data = await response.json();
+      setNewQuestion({ ...newQuestion, questionAudioUrl: data.url });
+      toast({ title: "Muvaffaqiyat", description: "Audio yuklandi" });
+    } catch (error: any) {
+      toast({ 
+        title: "Xatolik", 
+        description: error.message || "Audio yuklashda xatolik", 
+        variant: "destructive" 
+      });
+    } finally {
+      setUploadingQuestionAudio(false);
+    }
+  };
+
+  const startRecordingQuestionAudio = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const options = { mimeType: 'audio/webm' };
+      const recorder = new MediaRecorder(stream, options);
+      const chunks: BlobPart[] = [];
+
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        const file = new File([blob], `question-audio-${Date.now()}.webm`, { type: 'audio/webm' });
+        await handleQuestionAudioUpload(file);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecordingQuestionAudio(true);
+    } catch (error: any) {
+      toast({ 
+        title: "Xatolik", 
+        description: "Mikrofonni ishga tushirishda xatolik", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  const stopRecordingQuestionAudio = () => {
+    if (mediaRecorder && recordingQuestionAudio) {
+      mediaRecorder.stop();
+      setRecordingQuestionAudio(false);
+      setMediaRecorder(null);
+    }
+  };
 
   const handleImageUpload = async (file: File) => {
     try {
@@ -870,6 +945,81 @@ export default function EditTest() {
                     placeholder="Bo'limdan olish"
                   />
                 </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium">Savol audiosi (ixtiyoriy)</Label>
+              <p className="text-xs text-muted-foreground">
+                Audio tayyorgarlik boshlanishidan avval ijro etiladi
+              </p>
+              <div className="flex gap-2">
+                {!newQuestion.questionAudioUrl ? (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={recordingQuestionAudio ? stopRecordingQuestionAudio : startRecordingQuestionAudio}
+                      disabled={uploadingQuestionAudio}
+                      data-testid="button-record-question-audio"
+                    >
+                      {recordingQuestionAudio ? (
+                        <>
+                          <Square className="h-4 w-4 mr-2" />
+                          To'xtatish
+                        </>
+                      ) : (
+                        <>
+                          <Mic className="h-4 w-4 mr-2" />
+                          Yozish
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={uploadingQuestionAudio || recordingQuestionAudio}
+                      onClick={() => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'audio/*';
+                        input.onchange = (e) => {
+                          const file = (e.target as HTMLInputElement).files?.[0];
+                          if (file) handleQuestionAudioUpload(file);
+                        };
+                        input.click();
+                      }}
+                      data-testid="button-upload-question-audio"
+                    >
+                      {uploadingQuestionAudio ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Yuklanmoqda...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Yuklash
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <audio controls src={newQuestion.questionAudioUrl} className="flex-1" />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setNewQuestion({ ...newQuestion, questionAudioUrl: null })}
+                      data-testid="button-remove-question-audio"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
 
