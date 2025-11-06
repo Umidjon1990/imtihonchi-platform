@@ -8,8 +8,9 @@ export function setupGoogleAuth() {
       {
         clientID: process.env.GOOGLE_CLIENT_ID!,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        callbackURL: "/auth/google/callback",
+        callbackURL: process.env.GOOGLE_CALLBACK_URL || "/auth/google/callback",
         scope: ["profile", "email"],
+        proxy: true, // Trust proxy headers (for Replit)
       },
       async (accessToken, refreshToken, profile, done) => {
         try {

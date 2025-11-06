@@ -82,8 +82,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Google OAuth
   setupGoogleAuth();
 
-  // Google OAuth routes
-  app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+  // Google OAuth routes with dynamic callback URL
+  app.get('/auth/google', (req, res, next) => {
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const callbackURL = `${protocol}://${host}/auth/google/callback`;
+    
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      callbackURL: callbackURL, // Dynamic callback URL
+    })(req, res, next);
+  });
 
   app.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/' }),
