@@ -181,6 +181,8 @@ export default function TakeTest() {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null); // null until test starts
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testPhase, setTestPhase] = useState<'preparation' | 'speaking'>('preparation');
+  const [playingQuestionAudio, setPlayingQuestionAudio] = useState(false);
+  const questionAudioRef = useRef<HTMLAudioElement | null>(null);
   
   // Submission tracking
   const [submissionId, setSubmissionId] = useState<string | null>(null);
@@ -820,18 +822,67 @@ export default function TakeTest() {
     if (currentQuestion) {
       const prepTime = currentQuestion.preparationTime ?? currentQuestion.sectionPreparationTime;
       console.log(`🔄 [INIT] Question ${globalQuestionIndex + 1}/${flatQuestionList.length}, Section "${currentQuestion.sectionTitle}", Prep: ${prepTime}s`);
-      setTimeRemaining(prepTime);
-      setTestPhase('preparation');
-      autoProgressQueuedRef.current = false;
+      
+      // Check if question has audio - play it first before starting timer
+      if (currentQuestion.questionAudioUrl) {
+        console.log(`🔊 [AUDIO] Playing question audio: ${currentQuestion.questionAudioUrl}`);
+        setPlayingQuestionAudio(true);
+        
+        // Create and play audio
+        const audio = new Audio(currentQuestion.questionAudioUrl);
+        questionAudioRef.current = audio;
+        
+        audio.onended = () => {
+          console.log(`✅ [AUDIO] Question audio finished, starting preparation timer`);
+          setPlayingQuestionAudio(false);
+          setTimeRemaining(prepTime);
+          setTestPhase('preparation');
+          autoProgressQueuedRef.current = false;
+        };
+        
+        audio.onerror = (e) => {
+          console.error('❌ [AUDIO] Error playing question audio:', e);
+          setPlayingQuestionAudio(false);
+          // Start timer anyway if audio fails
+          setTimeRemaining(prepTime);
+          setTestPhase('preparation');
+          autoProgressQueuedRef.current = false;
+        };
+        
+        audio.play().catch(err => {
+          console.error('❌ [AUDIO] Failed to play audio:', err);
+          setPlayingQuestionAudio(false);
+          // Start timer anyway if audio fails
+          setTimeRemaining(prepTime);
+          setTestPhase('preparation');
+          autoProgressQueuedRef.current = false;
+        });
+      } else {
+        // No audio - start timer immediately
+        setTimeRemaining(prepTime);
+        setTestPhase('preparation');
+        autoProgressQueuedRef.current = false;
+      }
     } else {
       console.log(`⚠️ [INIT] Waiting for data... question: ${!!currentQuestion}`);
     }
+    
+    // Cleanup function to stop audio if component unmounts or question changes
+    return () => {
+      if (questionAudioRef.current) {
+        questionAudioRef.current.pause();
+        questionAudioRef.current = null;
+      }
+    };
   }, [micTestCompleted, globalQuestionIndex, currentQuestion, flatQuestionList.length]);
 
   // Timer countdown - run ONLY after mic test  
   useEffect(() => {
     // Absolutely block all timer activity before mic test completes
     if (!micTestCompleted) return;
+    
+    // Don't countdown if playing question audio
+    if (playingQuestionAudio) return;
     
     // Don't countdown if timer not initialized yet
     if (timeRemaining === null) return;
@@ -1325,9 +1376,15 @@ export default function TakeTest() {
                 {/* Timer */}
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-3 mb-2">
-                    <Badge variant={testPhase === 'preparation' ? 'secondary' : 'default'} className="text-base px-4 py-2">
-                      {testPhase === 'preparation' ? '📖 Tayyorgarlik' : '🎤 Gapirish'}
-                    </Badge>
+                    {playingQuestionAudio ? (
+                      <Badge variant="outline" className="text-base px-4 py-2 border-primary">
+                        🔊 Savol audiosi ijro bo'lmoqda...
+                      </Badge>
+                    ) : (
+                      <Badge variant={testPhase === 'preparation' ? 'secondary' : 'default'} className="text-base px-4 py-2">
+                        {testPhase === 'preparation' ? '📖 Tayyorgarlik' : '🎤 Gapirish'}
+                      </Badge>
+                    )}
                   </div>
                   
                   <div className="relative">
