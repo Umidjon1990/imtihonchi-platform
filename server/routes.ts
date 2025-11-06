@@ -637,6 +637,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Upload question audio (for teachers creating questions)
+  app.post("/api/upload-question-audio", isAuthenticated, uploadAudio.single("file"), async (req: Request, res) => {
+    try {
+      const user = await storage.getUser(getUserId(req));
+      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat o'qituvchilar savol audiosi yuklashi mumkin" });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({ message: "Fayl tanlanmagan" });
+      }
+      
+      // Upload to Object Storage
+      const filename = `question-audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
+      const filePath = getFilePath('question-audio', filename);
+      await uploadToObjectStorage(filePath, req.file.buffer, req.file.mimetype || 'audio/webm');
+      
+      const url = `/api/question-audio/${filename}`;
+      res.json({ url });
+    } catch (error: any) {
+      console.error("Error uploading question audio:", error);
+      res.status(500).json({ message: error.message || "Savol audiosini yuklashda xatolik" });
+    }
+  });
+
+  // Get question audio (public - for students taking tests)
+  app.get("/api/question-audio/:filename", async (req: Request, res) => {
+    try {
+      const basename = path.basename(req.params.filename);
+      const filePath = getFilePath('question-audio', basename);
+      
+      // Get URL from Object Storage
+      const signedUrl = await getObjectStorageUrl(filePath);
+      
+      if (!signedUrl) {
+        return res.status(404).json({ message: "Audio topilmadi" });
+      }
+      
+      // Redirect to the signed URL
+      res.redirect(signedUrl);
+    } catch (error) {
+      console.error("Error getting question audio:", error);
+      res.status(500).json({ message: "Audiodni olishda xatolik" });
+    }
+  });
+
   app.post("/api/upload-audio", isAuthenticated, uploadAudio.single("file"), async (req: Request, res) => {
     try {
       if (!req.file) {

@@ -75,6 +75,7 @@ export const questions = pgTable("questions", {
   questionNumber: integer("question_number").notNull(),
   questionText: text("question_text").notNull(),
   imageUrl: text("image_url"),
+  questionAudioUrl: text("question_audio_url"), // Savol audiosi (o'qituvchi yozadi/yuklaydi)
   preparationTime: integer("preparation_time"), // override section timer if set
   speakingTime: integer("speaking_time"), // override section timer if set
   keyFactsPlus: text("key_facts_plus"), // Plus tomonlari (Bo'lim 3 uchun)
