@@ -82,7 +82,7 @@ export default function Login() {
     // Get current URL for return redirect
     const currentUrl = window.location.href;
     const returnUrl = encodeURIComponent(currentUrl);
-    window.location.href = `/auth/login?returnUrl=${returnUrl}`;
+    window.location.href = `/api/login?returnUrl=${returnUrl}`;
   };
 
   return (
