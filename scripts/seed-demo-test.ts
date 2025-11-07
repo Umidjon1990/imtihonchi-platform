@@ -16,8 +16,13 @@ async function seedDemoTest() {
     let categoryId: string;
     
     if (categories.length === 0) {
-      console.log('❌ Kategoriya topilmadi! Avval kategoriya yarating.');
-      process.exit(1);
+      console.log('⚠️  Kategoriya topilmadi. Yangi kategoriya yaratilmoqda...');
+      const [newCategory] = await db.insert(testCategories).values({
+        name: 'CEFR OG\'ZAKI QISM',
+        description: 'Arab tilida og\'zaki nutq ko\'nikmasini baholash',
+      }).returning();
+      categoryId = newCategory.id;
+      console.log(`✅ Kategoriya yaratildi: ${newCategory.name}`);
     } else {
       categoryId = categories[0].id;
       console.log(`✅ Kategoriya topildi: ${categories[0].name}`);
