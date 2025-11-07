@@ -2,10 +2,9 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-// import { setupGoogleAuth } from "./googleAuth"; // Disabled - using Firebase phone auth only
+import { setupPassport } from "./passport";
 import { adminAuth } from "./firebaseAdmin";
 import { getUserId } from "./authHelpers";
-// import passport from "passport"; // Disabled - using Firebase phone auth only
 import bcrypt from "bcrypt";
 import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath, ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import multer from "multer";
@@ -78,11 +77,11 @@ const uploadSectionImage = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup Passport serialization (required for all auth methods)
+  setupPassport();
+  
   // Setup Replit Auth
   await setupAuth(app);
-
-  // Google OAuth temporarily disabled - only using Firebase phone auth
-  // setupGoogleAuth();
 
   // Google OAuth routes temporarily disabled
   // app.get('/auth/google', (req, res, next) => {

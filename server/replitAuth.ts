@@ -74,9 +74,12 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
+    const claims = tokens.claims();
+    const user: any = {
+      id: claims.sub, // Required for Passport session serialization
+    };
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
+    await upsertUser(claims);
     verified(null, user);
   };
 
@@ -101,8 +104,8 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  // Note: serializeUser and deserializeUser are configured in googleAuth.ts
-  // to work with all authentication methods (Replit, Google, Email/Password)
+  // Note: serializeUser and deserializeUser are configured in passport.ts
+  // to work with all authentication methods (Replit, Firebase, Email/Password)
 
   app.get("/api/login", (req, res, next) => {
     // Store returnUrl from query parameter for post-login redirect
