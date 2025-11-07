@@ -32,6 +32,8 @@ export const users = pgTable("users", {
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default('student'), // admin, teacher, student
+  sessionVersion: integer("session_version").notNull().default(0), // Incremented on role change to invalidate all sessions
+  roleChangedAt: timestamp("role_changed_at"), // Last time role was changed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
