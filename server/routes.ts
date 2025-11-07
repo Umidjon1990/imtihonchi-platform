@@ -306,15 +306,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updatedUser = await storage.updateUserRole(req.params.id, role);
       
+      if (!updatedUser) {
+        return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+      }
+      
       // IMPORTANT: Invalidate all sessions for this user
       // This forces them to re-login and get the new role
       try {
+        // 1. Delete PostgreSQL sessions (for Replit Auth users)
         const searchPattern = `%"id":"${req.params.id}"%`;
-        await pool.query(
+        const deleteResult = await pool.query(
           'DELETE FROM sessions WHERE sess::text LIKE $1',
           [searchPattern]
         );
-        console.log(`Invalidated sessions for user ${req.params.id} after role change to ${role}`);
+        console.log(`Deleted ${deleteResult.rowCount || 0} session(s) for user ${req.params.id} after role change to ${role}`);
+        
+        // 2. Revoke Firebase refresh tokens (for Firebase Auth users)
+        // This invalidates all Firebase ID tokens issued before this point
+        try {
+          await adminAuth.revokeRefreshTokens(req.params.id);
+          console.log(`Revoked Firebase refresh tokens for user ${req.params.id}`);
+        } catch (firebaseError: any) {
+          // Firebase may fail if user doesn't exist in Firebase Auth
+          // This is fine - user might be Replit Auth only
+          if (firebaseError?.code !== 'auth/user-not-found') {
+            console.error("Error revoking Firebase tokens:", firebaseError);
+          }
+        }
+        
+        console.log(`Successfully invalidated all sessions for user ${req.params.id} (sessionVersion=${updatedUser.sessionVersion})`);
       } catch (sessionError) {
         console.error("Error invalidating user sessions:", sessionError);
         // Don't fail the request if session invalidation fails

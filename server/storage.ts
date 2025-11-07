@@ -138,9 +138,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateUserRole(id: string, role: string): Promise<User | undefined> {
+    // First get current sessionVersion
+    const currentUser = await this.getUser(id);
+    if (!currentUser) return undefined;
+    
     const [updated] = await db
       .update(users)
-      .set({ role })
+      .set({ 
+        role,
+        sessionVersion: (currentUser.sessionVersion ?? 0) + 1, // Increment version to invalidate all sessions
+        roleChangedAt: new Date(),
+        updatedAt: new Date(),
+      })
       .where(eq(users.id, id))
       .returning();
     return updated;
