@@ -23,6 +23,11 @@ export default function PublicTestCatalog() {
     enabled: isAuthenticated,
   });
 
+  // Debug: API javobini console'da ko'ramiz
+  console.log('PublicTestCatalog - tests:', tests);
+  console.log('PublicTestCatalog - isLoading:', isLoading);
+  console.log('PublicTestCatalog - tests?.length:', tests?.length);
+
   const handleDemoTest = () => {
     setLocation(`/take-test/demo`);
   };
