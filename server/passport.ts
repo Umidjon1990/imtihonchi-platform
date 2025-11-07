@@ -32,20 +32,17 @@ export function setupPassport() {
         return done(null, false); // This will trigger 401 and force re-login
       }
       
-      // Merge fresh DB data with existing session tokens
-      // This ensures role changes are reflected immediately
-      const updatedUser = {
-        ...sessionUser, // Keep Replit Auth tokens (access_token, refresh_token, expires_at, claims)
-        id: dbUser.id,
-        email: dbUser.email,
-        firstName: dbUser.firstName,
-        lastName: dbUser.lastName,
-        role: dbUser.role, // IMPORTANT: Always use fresh role from database
-        sessionVersion: dbUser.sessionVersion, // Keep version in sync
-        profileImageUrl: dbUser.profileImageUrl,
-      };
+      // CRITICAL: Mutate sessionUser in place to preserve token refresh updates
+      // Creating a new object would lose refreshed access_token/refresh_token
+      sessionUser.id = dbUser.id;
+      sessionUser.email = dbUser.email;
+      sessionUser.firstName = dbUser.firstName;
+      sessionUser.lastName = dbUser.lastName;
+      sessionUser.role = dbUser.role; // IMPORTANT: Always use fresh role from database
+      sessionUser.sessionVersion = dbUser.sessionVersion; // Keep version in sync
+      sessionUser.profileImageUrl = dbUser.profileImageUrl;
       
-      done(null, updatedUser);
+      done(null, sessionUser);
     } catch (error) {
       console.error("Error deserializing user:", error);
       done(error, null);
