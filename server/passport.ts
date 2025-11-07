@@ -10,10 +10,10 @@ export function setupPassport() {
   });
 
   // User'ni session'dan deserialize qilish
-  // IMPORTANT: We return the full session user object which includes Replit Auth tokens
+  // IMPORTANT: We merge fresh DB data (including role) with session tokens
   passport.deserializeUser(async (sessionUser: any, done) => {
     try {
-      // Verify user still exists in database (handles deleted users)
+      // Get fresh user data from database
       const dbUser = await storage.getUser(sessionUser.id);
       
       if (!dbUser) {
@@ -21,8 +21,19 @@ export function setupPassport() {
         return done(null, false);
       }
       
-      // Return the full session user with tokens intact
-      done(null, sessionUser);
+      // Merge fresh DB data with existing session tokens
+      // This ensures role changes are reflected immediately
+      const updatedUser = {
+        ...sessionUser, // Keep Replit Auth tokens (access_token, refresh_token, expires_at, claims)
+        id: dbUser.id,
+        email: dbUser.email,
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        role: dbUser.role, // IMPORTANT: Always use fresh role from database
+        profileImageUrl: dbUser.profileImageUrl,
+      };
+      
+      done(null, updatedUser);
     } catch (error) {
       console.error("Error deserializing user:", error);
       done(error, null);
