@@ -191,8 +191,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         role: 'student', // Default role for new registrations
       });
 
-      // Create session
-      req.login({ id: newUser.id }, (err) => {
+      // Create session with full user object
+      req.login(newUser, (err) => {
         if (err) {
           console.error("Session yaratishda xatolik:", err);
           return res.status(500).json({ message: "Session yaratishda xatolik" });
@@ -232,8 +232,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(401).json({ message: "Email yoki parol noto'g'ri" });
       }
 
-      // Create session
-      req.login({ id: user.id }, (err) => {
+      // Create session with full user object
+      req.login(user, (err) => {
         if (err) {
           console.error("Session yaratishda xatolik:", err);
           return res.status(500).json({ message: "Session yaratishda xatolik" });

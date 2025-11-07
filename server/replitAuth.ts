@@ -34,7 +34,7 @@ export function getSession() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === 'production', // Only secure in production
       maxAge: sessionTtl,
     },
   });
@@ -101,8 +101,8 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+  // Note: serializeUser and deserializeUser are configured in googleAuth.ts
+  // to work with all authentication methods (Replit, Google, Email/Password)
 
   app.get("/api/login", (req, res, next) => {
     // Store returnUrl from query parameter for post-login redirect
