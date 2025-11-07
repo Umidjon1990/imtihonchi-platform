@@ -138,10 +138,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         profileImageUrl: "",
       });
 
-      // Create session
+      // Fetch full user data including sessionVersion
+      const dbUser = await storage.getUser(uid);
+      if (!dbUser) {
+        return res.status(500).json({ message: "Foydalanuvchi yaratishda xatolik" });
+      }
+
+      // Create session with full user data including sessionVersion
       const user = {
-        id: uid,
+        id: dbUser.id,
+        email: dbUser.email,
         phoneNumber: phoneNumber,
+        role: dbUser.role,
+        sessionVersion: dbUser.sessionVersion ?? 0, // IMPORTANT: Include version for session invalidation
+        firstName: dbUser.firstName,
+        lastName: dbUser.lastName,
+        profileImageUrl: dbUser.profileImageUrl,
       };
 
       // Log the user in via Passport session

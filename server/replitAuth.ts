@@ -97,6 +97,7 @@ export async function setupAuth(app: Express) {
       firstName: dbUser.firstName,
       lastName: dbUser.lastName,
       role: dbUser.role, // Important: Include role for authorization
+      sessionVersion: dbUser.sessionVersion ?? 0, // Important: Include for session invalidation
       profileImageUrl: dbUser.profileImageUrl,
     };
     
