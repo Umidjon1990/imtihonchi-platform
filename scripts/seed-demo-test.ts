@@ -28,26 +28,25 @@ async function seedDemoTest() {
       console.log(`✅ Kategoriya topildi: ${categories[0].name}`);
     }
 
-    // 2. Demo test mavjudligini tekshiramiz
+    // 2. Eski demo testlarni o'chiramiz (agar mavjud bo'lsa)
     const existingDemoTests = await db
       .select()
       .from(tests)
       .where(eq(tests.isDemo, true));
 
     if (existingDemoTests.length > 0) {
-      console.log('✅ Demo test allaqachon mavjud!');
-      console.log(`   ID: ${existingDemoTests[0].id}`);
-      console.log(`   Published: ${existingDemoTests[0].isPublished}`);
-      
-      // Agar published bo'lmasa, uni published qilamiz
-      if (!existingDemoTests[0].isPublished) {
-        await db
-          .update(tests)
-          .set({ isPublished: true })
-          .where(eq(tests.id, existingDemoTests[0].id));
-        console.log('✅ Demo test published qilindi!');
+      console.log('⚠️  Eski demo test topildi. O\'chirilmoqda...');
+      for (const oldTest of existingDemoTests) {
+        // Avval test bilan bog'liq savol va section'larni o'chiramiz
+        const sections = await db.select().from(testSections).where(eq(testSections.testId, oldTest.id));
+        for (const section of sections) {
+          await db.delete(questions).where(eq(questions.sectionId, section.id));
+        }
+        await db.delete(testSections).where(eq(testSections.testId, oldTest.id));
+        // Testni o'chiramiz
+        await db.delete(tests).where(eq(tests.id, oldTest.id));
+        console.log(`✅ Eski demo test o'chirildi (ID: ${oldTest.id})`);
       }
-      return;
     }
 
     // 3. Demo test yaratamiz
