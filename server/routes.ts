@@ -6,6 +6,7 @@ import { setupPassport } from "./passport";
 import { adminAuth } from "./firebaseAdmin";
 import { getUserId } from "./authHelpers";
 import bcrypt from "bcrypt";
+import { pool } from "./db";
 import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath, ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import multer from "multer";
 import path from "path";
@@ -304,6 +305,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const updatedUser = await storage.updateUserRole(req.params.id, role);
+      
+      // IMPORTANT: Invalidate all sessions for this user
+      // This forces them to re-login and get the new role
+      try {
+        const searchPattern = `%"id":"${req.params.id}"%`;
+        await pool.query(
+          'DELETE FROM sessions WHERE sess::text LIKE $1',
+          [searchPattern]
+        );
+        console.log(`Invalidated sessions for user ${req.params.id} after role change to ${role}`);
+      } catch (sessionError) {
+        console.error("Error invalidating user sessions:", sessionError);
+        // Don't fail the request if session invalidation fails
+      }
+      
       res.json(updatedUser);
     } catch (error) {
       console.error("Error updating user role:", error);
