@@ -2,10 +2,10 @@ import type { Express, Request } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupGoogleAuth } from "./googleAuth";
+// import { setupGoogleAuth } from "./googleAuth"; // Disabled - using Firebase phone auth only
 import { adminAuth } from "./firebaseAdmin";
 import { getUserId } from "./authHelpers";
-import passport from "passport";
+// import passport from "passport"; // Disabled - using Firebase phone auth only
 import bcrypt from "bcrypt";
 import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath, ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import multer from "multer";
@@ -81,28 +81,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth
   await setupAuth(app);
 
-  // Setup Google OAuth
-  setupGoogleAuth();
+  // Google OAuth temporarily disabled - only using Firebase phone auth
+  // setupGoogleAuth();
 
-  // Google OAuth routes with dynamic callback URL
-  app.get('/auth/google', (req, res, next) => {
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const callbackURL = `${protocol}://${host}/auth/google/callback`;
-    
-    passport.authenticate('google', {
-      scope: ['profile', 'email'],
-      callbackURL: callbackURL,
-    } as any)(req, res, next);
-  });
+  // Google OAuth routes temporarily disabled
+  // app.get('/auth/google', (req, res, next) => {
+  //   const protocol = req.protocol;
+  //   const host = req.get('host');
+  //   const callbackURL = `${protocol}://${host}/auth/google/callback`;
+  //   
+  //   passport.authenticate('google', {
+  //     scope: ['profile', 'email'],
+  //     callbackURL: callbackURL,
+  //   } as any)(req, res, next);
+  // });
 
-  app.get('/auth/google/callback',
-    passport.authenticate('google', { failureRedirect: '/' }),
-    (req, res) => {
-      // Successful authentication, redirect to dashboard
-      res.redirect('/');
-    }
-  );
+  // app.get('/auth/google/callback',
+  //   passport.authenticate('google', { failureRedirect: '/' }),
+  //   (req, res) => {
+  //     // Successful authentication, redirect to dashboard
+  //     res.redirect('/');
+  //   }
+  // );
 
   // Google logout route
   app.get('/auth/google/logout', (req, res) => {
