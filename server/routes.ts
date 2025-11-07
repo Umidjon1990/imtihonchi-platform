@@ -272,6 +272,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // User management routes (admin only)
   app.get('/api/users', isAuthenticated, async (req: Request, res) => {
     try {
+      const userId = (req.user as any)?.id || getUserId(req);
+      const currentUser = await storage.getUser(userId);
+      
+      // Admin-only access
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat admin foydalanuvchilarga ruxsat berilgan" });
+      }
+      
       const users = await storage.getAllUsers();
       res.json(users);
     } catch (error) {
@@ -282,6 +290,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.patch('/api/users/:id/role', isAuthenticated, async (req: Request, res) => {
     try {
+      const userId = (req.user as any)?.id || getUserId(req);
+      const currentUser = await storage.getUser(userId);
+      
+      // Admin-only access
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat admin foydalanuvchilarga ruxsat berilgan" });
+      }
+      
       const { role } = req.body;
       if (!['admin', 'teacher', 'student'].includes(role)) {
         return res.status(400).json({ message: "Noto'g'ri rol" });
