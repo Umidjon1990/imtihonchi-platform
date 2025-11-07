@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { RoleGuard } from "@/components/RoleGuard";
 import NotFound from "@/pages/not-found";
 import Landing from "@/pages/Landing";
+import Login from "@/pages/Login";
 import PhoneLogin from "@/pages/PhoneLogin";
 import PublicTestCatalog from "@/pages/PublicTestCatalog";
 import PurchaseTest from "@/pages/PurchaseTest";
@@ -46,10 +47,11 @@ function Router() {
       <Route path="/take-test/demo" component={TakeTest} />
       <Route path="/demo-result" component={DemoResult} />
       <Route path="/tests/:testId/purchase" component={PurchaseTest} />
+      <Route path="/login" component={Login} />
+      <Route path="/phone-login" component={PhoneLogin} />
       
       {!isAuthenticated ? (
         <>
-          <Route path="/phone-login" component={PhoneLogin} />
           <Route path="/:rest*">
             {() => <Redirect to="/" />}
           </Route>
