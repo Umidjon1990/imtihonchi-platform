@@ -11,6 +11,7 @@ export function setupPassport() {
 
   // User'ni session'dan deserialize qilish
   // IMPORTANT: We merge fresh DB data (including role) with session tokens
+  // CRITICAL: We check sessionVersion to invalidate sessions when role changes
   passport.deserializeUser(async (sessionUser: any, done) => {
     try {
       // Get fresh user data from database
@@ -19,6 +20,16 @@ export function setupPassport() {
       if (!dbUser) {
         console.warn(`User not found during deserialization: ${sessionUser.id}`);
         return done(null, false);
+      }
+      
+      // Check if session is stale (sessionVersion mismatch)
+      // This happens when admin changes user's role
+      const sessionVersion = sessionUser.sessionVersion ?? 0;
+      const dbVersion = dbUser.sessionVersion ?? 0;
+      
+      if (sessionVersion !== dbVersion) {
+        console.log(`Session version mismatch for user ${sessionUser.id}: session=${sessionVersion}, db=${dbVersion}. Invalidating session.`);
+        return done(null, false); // This will trigger 401 and force re-login
       }
       
       // Merge fresh DB data with existing session tokens
@@ -30,6 +41,7 @@ export function setupPassport() {
         firstName: dbUser.firstName,
         lastName: dbUser.lastName,
         role: dbUser.role, // IMPORTANT: Always use fresh role from database
+        sessionVersion: dbUser.sessionVersion, // Keep version in sync
         profileImageUrl: dbUser.profileImageUrl,
       };
       
