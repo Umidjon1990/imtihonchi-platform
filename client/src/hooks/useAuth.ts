@@ -6,10 +6,10 @@ export function useAuth() {
   const { data: user, isLoading, isError } = useQuery<User>({
     queryKey: ["/api/auth/user"],
     retry: false,
-    refetchOnWindowFocus: false,
-    refetchOnMount: false,
+    refetchOnWindowFocus: true, // Refetch when window regains focus
+    refetchOnMount: true, // Always refetch on component mount
     refetchOnReconnect: false,
-    staleTime: Infinity,
+    staleTime: 0, // Always consider data stale, refetch when needed
   });
 
   return {
