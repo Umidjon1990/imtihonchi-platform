@@ -12,8 +12,8 @@ export default function Landing() {
     queryKey: ["/api/settings"],
   });
 
-  const handleReplitLogin = () => {
-    window.location.href = '/api/login';
+  const handleLogin = () => {
+    window.location.href = '/login';
   };
 
   const handlePhoneLogin = () => {
@@ -35,8 +35,8 @@ export default function Landing() {
           {!isAuthenticated ? (
             <div className="flex items-center gap-2">
               <Button 
-                onClick={handleReplitLogin}
-                data-testid="button-replit-login"
+                onClick={handleLogin}
+                data-testid="button-login"
                 disabled={isLoading}
               >
                 Kirish
@@ -86,7 +86,7 @@ export default function Landing() {
                     size="lg" 
                     variant="outline"
                     className="text-lg px-8"
-                    onClick={handleReplitLogin}
+                    onClick={handleLogin}
                     data-testid="button-get-started"
                     disabled={isLoading}
                   >

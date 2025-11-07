@@ -30,7 +30,7 @@ export default function PublicTestCatalog() {
   const handlePurchaseTest = (testId: string) => {
     if (!isAuthenticated) {
       const returnUrl = encodeURIComponent(`/tests/${testId}/purchase`);
-      window.location.href = `/api/login?returnUrl=${returnUrl}`;
+      window.location.href = `/login?returnUrl=${returnUrl}`;
       return;
     }
     setLocation(`/tests/${testId}/purchase`);
@@ -71,7 +71,7 @@ export default function PublicTestCatalog() {
           </div>
           {!isAuthenticated ? (
             <Button
-              onClick={() => window.location.href = '/api/login'}
+              onClick={() => window.location.href = '/login'}
               data-testid="button-login"
             >
               Kirish

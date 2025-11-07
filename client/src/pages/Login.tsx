@@ -13,6 +13,10 @@ export default function Login() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<"email" | "replit">("email");
   
+  // Get returnUrl from query params
+  const urlParams = new URLSearchParams(window.location.search);
+  const returnUrl = urlParams.get('returnUrl') || '/';
+  
   // Email/Password state
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
@@ -65,8 +69,8 @@ export default function Login() {
         description: isRegister ? "Ro'yxatdan o'tdingiz" : "Tizimga kirdingiz",
       });
 
-      // Redirect based on user role
-      window.location.href = '/';
+      // Redirect to returnUrl or home
+      window.location.href = returnUrl;
     } catch (error: any) {
       toast({
         title: "Xato",
@@ -79,10 +83,9 @@ export default function Login() {
   };
 
   const handleReplitAuth = () => {
-    // Get current URL for return redirect
-    const currentUrl = window.location.href;
-    const returnUrl = encodeURIComponent(currentUrl);
-    window.location.href = `/api/login?returnUrl=${returnUrl}`;
+    // Pass returnUrl to Replit auth
+    const encodedReturnUrl = encodeURIComponent(returnUrl);
+    window.location.href = `/api/login?returnUrl=${encodedReturnUrl}`;
   };
 
   return (
