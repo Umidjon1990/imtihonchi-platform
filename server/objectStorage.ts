@@ -287,7 +287,7 @@ export function generateFilename(originalName: string, prefix = ''): string {
   return `${prefix}${timestamp}-${random}.${extension}`;
 }
 
-export function getFilePath(type: 'audio' | 'receipt' | 'certificate' | 'image', filename: string): string {
+export function getFilePath(type: 'audio' | 'receipt' | 'certificate' | 'image' | 'question-audio', filename: string): string {
   const privateDir = process.env.PRIVATE_OBJECT_DIR || '.private';
   
   const paths = {
@@ -295,6 +295,7 @@ export function getFilePath(type: 'audio' | 'receipt' | 'certificate' | 'image',
     receipt: `${privateDir}/receipts`,
     certificate: `${privateDir}/certificates`,
     image: 'public/images',
+    'question-audio': `${privateDir}/question-audio`,
   };
 
   return `${paths[type]}/${filename}`;

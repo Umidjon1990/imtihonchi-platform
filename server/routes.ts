@@ -6,6 +6,7 @@ import { setupGoogleAuth } from "./googleAuth";
 import { adminAuth } from "./firebaseAdmin";
 import { getUserId } from "./authHelpers";
 import passport from "passport";
+import bcrypt from "bcrypt";
 import { uploadToObjectStorage, getObjectStorageUrl, downloadFromObjectStorage, generateFilename, getFilePath, ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import multer from "multer";
 import path from "path";
@@ -155,6 +156,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Firebase auth xatolik:", error);
       res.status(401).json({ message: "Autentifikatsiya xatosi: " + error.message });
     }
+  });
+
+  // Email/Password Registration
+  app.post('/api/register', async (req: Request, res) => {
+    try {
+      const { email, password, firstName, lastName } = req.body;
+
+      // Validation
+      if (!email || !password || !firstName || !lastName) {
+        return res.status(400).json({ message: "Barcha maydonlar to'ldirilishi shart" });
+      }
+
+      if (password.length < 6) {
+        return res.status(400).json({ message: "Parol kamida 6 belgidan iborat bo'lishi kerak" });
+      }
+
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(email);
+      if (existingUser) {
+        return res.status(400).json({ message: "Bu email allaqachon ro'yxatdan o'tgan" });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Create user
+      const newUser = await storage.upsertUser({
+        email,
+        passwordHash,
+        firstName,
+        lastName,
+        profileImageUrl: "",
+        role: 'student', // Default role for new registrations
+      });
+
+      // Create session
+      req.login({ id: newUser.id }, (err) => {
+        if (err) {
+          console.error("Session yaratishda xatolik:", err);
+          return res.status(500).json({ message: "Session yaratishda xatolik" });
+        }
+        res.json({ success: true, user: newUser });
+      });
+    } catch (error: any) {
+      console.error("Registration xatolik:", error);
+      res.status(500).json({ message: "Ro'yxatdan o'tishda xatolik: " + error.message });
+    }
+  });
+
+  // Email/Password Login
+  app.post('/api/login', async (req: Request, res) => {
+    try {
+      const { email, password } = req.body;
+
+      // Validation
+      if (!email || !password) {
+        return res.status(400).json({ message: "Email va parol kiritilishi shart" });
+      }
+
+      // Find user by email
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Email yoki parol noto'g'ri" });
+      }
+
+      // Check if user has password (not a Replit Auth user)
+      if (!user.passwordHash) {
+        return res.status(401).json({ message: "Bu akkaunt Replit orqali yaratilgan. Replit bilan kiring." });
+      }
+
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Email yoki parol noto'g'ri" });
+      }
+
+      // Create session
+      req.login({ id: user.id }, (err) => {
+        if (err) {
+          console.error("Session yaratishda xatolik:", err);
+          return res.status(500).json({ message: "Session yaratishda xatolik" });
+        }
+        res.json({ success: true, user });
+      });
+    } catch (error: any) {
+      console.error("Login xatolik:", error);
+      res.status(500).json({ message: "Kirishda xatolik: " + error.message });
+    }
+  });
+
+  // Logout endpoint
+  app.post('/api/logout', (req: Request, res) => {
+    req.logout((err) => {
+      if (err) {
+        console.error("Logout xatolik:", err);
+        return res.status(500).json({ message: "Chiqishda xatolik" });
+      }
+      res.json({ success: true });
+    });
   });
 
   // Auth routes
