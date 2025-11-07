@@ -42,7 +42,6 @@ function Router() {
   return (
     <Switch>
       {/* Public routes - accessible by everyone */}
-      <Route path="/" component={Landing} />
       <Route path="/tests" component={PublicTestCatalog} />
       <Route path="/take-test/demo" component={TakeTest} />
       <Route path="/demo-result" component={DemoResult} />
@@ -52,6 +51,7 @@ function Router() {
       
       {!isAuthenticated ? (
         <>
+          <Route path="/" component={Landing} />
           <Route path="/:rest*">
             {() => <Redirect to="/" />}
           </Route>
