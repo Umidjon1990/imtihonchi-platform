@@ -259,16 +259,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: Request, res) => {
     try {
-      // Support both Google OAuth and Replit Auth
+      // Support both Replit Auth and Firebase Auth
       const userId = (req.user as any)?.id || getUserId(req);
       const user = await storage.getUser(userId);
-      
-      // Debug logging
-      console.log("=== /api/auth/user DEBUG ===");
-      console.log("Session user (req.user):", JSON.stringify(req.user, null, 2));
-      console.log("Database user:", JSON.stringify(user, null, 2));
-      console.log("===========================");
-      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
