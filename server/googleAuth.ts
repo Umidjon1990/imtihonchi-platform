@@ -57,9 +57,18 @@ export function setupGoogleAuth() {
   passport.deserializeUser(async (id: string, done) => {
     try {
       const user = await storage.getUser(id);
+      
+      // Agar user topilmasa (o'chirilgan yoki mavjud emas), session'ni bekor qilish
+      if (!user) {
+        console.warn(`User not found during deserialization: ${id}`);
+        return done(null, false);
+      }
+      
       done(null, user);
     } catch (error) {
-      done(error, null);
+      console.error('Error deserializing user:', error);
+      // Session ma'lumoti buzilgan bo'lsa, error o'rniga false qaytarish
+      done(null, false);
     }
   });
 }
