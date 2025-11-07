@@ -63,8 +63,11 @@ async function seedDemoTest() {
     const [section] = await db.insert(testSections).values({
       testId: demoTest.id,
       title: 'Og\'zaki Nutq',
-      description: 'Arab tilida gaplashing',
-      order: 1,
+      instructions: 'Arab tilida gaplashing',
+      sectionNumber: 1,
+      preparationTime: 30,
+      speakingTime: 60,
+      parentSectionId: null,
     }).returning();
 
     console.log(`✅ Bo'lim yaratildi! ID: ${section.id}`);
@@ -73,23 +76,17 @@ async function seedDemoTest() {
     const demoQuestions = [
       {
         sectionId: section.id,
-        questionText: 'نفسك عن تحدث',
-        questionTextTranslation: 'O\'zingiz haqingizda gapiring',
-        questionType: 'speaking' as const,
-        order: 1,
+        questionNumber: 1,
+        questionText: 'نفسك عن تحدث (O\'zingiz haqingizda gapiring)',
         preparationTime: 30,
         speakingTime: 60,
-        audioUrl: null,
       },
       {
         sectionId: section.id,
-        questionText: 'المفضلة؟ هوايتك ما',
-        questionTextTranslation: 'Sevimli mashg\'ulotingiz nima?',
-        questionType: 'speaking' as const,
-        order: 2,
+        questionNumber: 2,
+        questionText: 'المفضلة؟ هوايتك ما (Sevimli mashg\'ulotingiz nima?)',
         preparationTime: 30,
         speakingTime: 60,
-        audioUrl: null,
       },
     ];
 
