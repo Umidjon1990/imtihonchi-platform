@@ -75,11 +75,32 @@ export async function setupAuth(app: Express) {
     verified: passport.AuthenticateCallback
   ) => {
     const claims = tokens.claims();
-    const user: any = {
-      id: claims.sub, // Required for Passport session serialization
-    };
-    updateUserSession(user, tokens);
+    
+    if (!claims?.sub) {
+      return verified(new Error("Invalid token claims"), false);
+    }
+    
+    // Upsert user in database first
     await upsertUser(claims);
+    
+    // Get full user data from database (including role)
+    const dbUser = await storage.getUser(claims.sub);
+    
+    if (!dbUser) {
+      return verified(new Error("Failed to create user"), false);
+    }
+    
+    // Create session user with database data + Replit tokens
+    const user: any = {
+      id: dbUser.id,
+      email: dbUser.email,
+      firstName: dbUser.firstName,
+      lastName: dbUser.lastName,
+      role: dbUser.role, // Important: Include role for authorization
+      profileImageUrl: dbUser.profileImageUrl,
+    };
+    
+    updateUserSession(user, tokens);
     verified(null, user);
   };
 
