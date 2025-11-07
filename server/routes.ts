@@ -92,8 +92,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     
     passport.authenticate('google', {
       scope: ['profile', 'email'],
-      callbackURL: callbackURL, // Dynamic callback URL
-    })(req, res, next);
+      callbackURL: callbackURL,
+    } as any)(req, res, next);
   });
 
   app.get('/auth/google/callback',
