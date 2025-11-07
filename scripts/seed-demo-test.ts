@@ -52,8 +52,8 @@ async function seedDemoTest() {
 
     // 3. Demo test yaratamiz
     const [demoTest] = await db.insert(tests).values({
-      title: 'DEMO - Og\'zaki Arab Tili Testi',
-      description: 'Bu bepul demo test orqali platformamizni sinab ko\'ring. Natijalar bazaga saqlanmaydi.',
+      title: 'TEST 1',
+      description: 'Bepul demo test - Arab tili og\'zaki nutq ko\'nikmasini baholash',
       categoryId: categoryId,
       teacherId: 'system', // System user
       price: 0,
@@ -68,7 +68,7 @@ async function seedDemoTest() {
     const [section] = await db.insert(testSections).values({
       testId: demoTest.id,
       title: 'Og\'zaki Nutq',
-      instructions: 'Arab tilida gaplashing',
+      instructions: 'Arab tilida javob bering. Har bir savol uchun tayyorgarlik va javob berish vaqti beriladi.',
       sectionNumber: 1,
       preparationTime: 30,
       speakingTime: 60,
@@ -77,7 +77,7 @@ async function seedDemoTest() {
 
     console.log(`✅ Bo'lim yaratildi! ID: ${section.id}`);
 
-    // 5. Savollar yaratamiz
+    // 5. Savollar yaratamiz (8 ta)
     const demoQuestions = [
       {
         sectionId: section.id,
@@ -90,6 +90,48 @@ async function seedDemoTest() {
         sectionId: section.id,
         questionNumber: 2,
         questionText: 'المفضلة؟ هوايتك ما (Sevimli mashg\'ulotingiz nima?)',
+        preparationTime: 30,
+        speakingTime: 60,
+      },
+      {
+        sectionId: section.id,
+        questionNumber: 3,
+        questionText: 'تعيش؟ أين (Qayerda yashaysiz?)',
+        preparationTime: 30,
+        speakingTime: 60,
+      },
+      {
+        sectionId: section.id,
+        questionNumber: 4,
+        questionText: 'تدرس؟ أو تعمل ماذا (Nima ish qilasiz yoki o\'qiysiz?)',
+        preparationTime: 30,
+        speakingTime: 60,
+      },
+      {
+        sectionId: section.id,
+        questionNumber: 5,
+        questionText: 'الحرة؟ أوقاتك في تفعل ماذا (Bo\'sh vaqtingizda nima qilasiz?)',
+        preparationTime: 30,
+        speakingTime: 60,
+      },
+      {
+        sectionId: section.id,
+        questionNumber: 6,
+        questionText: 'المفضل؟ طعامك ما (Sevimli taomingiz nima?)',
+        preparationTime: 30,
+        speakingTime: 60,
+      },
+      {
+        sectionId: section.id,
+        questionNumber: 7,
+        questionText: 'عائلتك؟ عن أخبرنا (Oilangiz haqida gapiring)',
+        preparationTime: 30,
+        speakingTime: 60,
+      },
+      {
+        sectionId: section.id,
+        questionNumber: 8,
+        questionText: 'المستقبلية؟ أحلامك ما (Kelajakdagi orzularingiz nima?)',
         preparationTime: 30,
         speakingTime: 60,
       },
