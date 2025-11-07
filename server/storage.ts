@@ -52,6 +52,7 @@ export interface IStorage {
   
   // Test operations
   getTests(categoryId?: string, teacherId?: string): Promise<Test[]>;
+  getPublishedTests(): Promise<Test[]>;
   getTestById(id: string): Promise<Test | undefined>;
   getDemoTestsByMainTestId(mainTestId: string): Promise<Test[]>;
   createTest(test: InsertTest): Promise<Test>;
@@ -191,6 +192,14 @@ export class DatabaseStorage implements IStorage {
     }
     
     return await db.select().from(tests).orderBy(desc(tests.createdAt));
+  }
+
+  async getPublishedTests(): Promise<Test[]> {
+    return await db
+      .select()
+      .from(tests)
+      .where(eq(tests.isPublished, true))
+      .orderBy(desc(tests.createdAt));
   }
 
   async getTestById(id: string): Promise<Test | undefined> {

@@ -426,11 +426,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/tests", async (req, res) => {
     try {
-      const { categoryId, teacherId } = req.query;
-      const tests = await storage.getTests(
-        categoryId as string | undefined,
-        teacherId as string | undefined
-      );
+      const user = req.user as any;
+      const isAdmin = user?.role === 'admin';
+      const isTeacher = user?.role === 'teacher';
+      
+      // Admin va teacher barcha testlarni ko'radi
+      if (isAdmin || isTeacher) {
+        const { categoryId, teacherId } = req.query;
+        const tests = await storage.getTests(
+          categoryId as string | undefined,
+          teacherId as string | undefined
+        );
+        return res.json(tests);
+      }
+      
+      // Student va guest faqat published testlarni ko'radi
+      const tests = await storage.getPublishedTests();
       res.json(tests);
     } catch (error) {
       console.error("Error fetching tests:", error);
