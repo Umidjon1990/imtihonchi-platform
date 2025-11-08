@@ -39,7 +39,8 @@ export function setupPassport() {
       sessionUser.firstName = dbUser.firstName;
       sessionUser.lastName = dbUser.lastName;
       sessionUser.role = dbUser.role; // IMPORTANT: Always use fresh role from database
-      sessionUser.sessionVersion = dbUser.sessionVersion; // Keep version in sync
+      // DO NOT update sessionVersion - we need to detect version mismatches!
+      // sessionUser.sessionVersion stays at login value for comparison
       sessionUser.profileImageUrl = dbUser.profileImageUrl;
       
       done(null, sessionUser);
