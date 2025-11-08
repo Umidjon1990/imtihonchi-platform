@@ -17,7 +17,7 @@ export default function Login() {
   const urlParams = new URLSearchParams(window.location.search);
   const returnUrl = urlParams.get('returnUrl') || '/';
   
-  // Email/Password state
+  // Shared state for both tabs
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");

@@ -11,6 +11,9 @@ import multer from "multer";
 import path from "path";
 import { generateCertificate } from "./utils/certificate";
 import { transcribeAudio, evaluateSpeaking } from "./utils/openai";
+import session from "express-session";
+import connectPgSimple from "connect-pg-simple";
+import passport from "passport";
 import { 
   insertTestCategorySchema,
   insertTestSchema,
@@ -77,8 +80,28 @@ const uploadSectionImage = multer({
 });
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Passport serialization (required for all auth methods)
+  // Setup session middleware
+  const PgSession = connectPgSimple(session);
+  app.use(
+    session({
+      store: new PgSession({
+        pool,
+        tableName: 'sessions',
+      }),
+      secret: process.env.SESSION_SECRET || 'fallback-secret-change-in-production',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      },
+    })
+  );
+
+  // Setup Passport serialization and middleware
   setupPassport();
+  app.use(passport.initialize());
+  app.use(passport.session());
 
   // Google OAuth routes temporarily disabled
   // app.get('/auth/google', (req, res, next) => {
