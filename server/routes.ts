@@ -961,6 +961,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/purchases/all", isAuthenticated, async (req: Request, res) => {
+    try {
+      const user = await storage.getUser(getUserId(req));
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Ruxsat berilmagan" });
+      }
+
+      const purchases = await storage.getAllPurchases();
+      res.json(purchases);
+    } catch (error) {
+      console.error("Error fetching all purchases:", error);
+      res.status(500).json({ message: "Xaridlarni olishda xatolik" });
+    }
+  });
+
   app.get("/api/purchases/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const purchase = await storage.getPurchaseById(req.params.id);

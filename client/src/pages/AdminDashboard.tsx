@@ -68,6 +68,7 @@ export default function AdminDashboard() {
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
+  const [userFilter, setUserFilter] = useState<"all" | "pending" | "approved">("all");
 
   // Test creation state
   const [createTestDialogOpen, setCreateTestDialogOpen] = useState(false);
@@ -106,6 +107,11 @@ export default function AdminDashboard() {
 
   const { data: pendingPurchases = [] } = useQuery<any[]>({
     queryKey: ["/api/purchases/pending"],
+    enabled: !!user?.id,
+  });
+
+  const { data: allPurchases = [], isLoading: purchasesLoading } = useQuery<any[]>({
+    queryKey: ["/api/purchases/all"],
     enabled: !!user?.id,
   });
 
@@ -221,6 +227,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       toast({ title: "Muvaffaqiyat", description: "Xarid tasdiqlandi" });
       queryClient.invalidateQueries({ queryKey: ["/api/purchases/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases/all"] });
     },
     onError: (error: any) => {
       toast({ title: "Xatolik", description: error.message, variant: "destructive" });
@@ -234,6 +241,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       toast({ title: "Muvaffaqiyat", description: "Xarid rad etildi" });
       queryClient.invalidateQueries({ queryKey: ["/api/purchases/pending"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases/all"] });
     },
     onError: (error: any) => {
       toast({ title: "Xatolik", description: error.message, variant: "destructive" });
@@ -690,17 +698,85 @@ export default function AdminDashboard() {
           <TabsContent value="users" className="space-y-6">
             <h2 className="text-2xl font-bold">Foydalanuvchilar Boshqaruvi</h2>
             
-            {allUsers.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center text-muted-foreground">
-                  Foydalanuvchilar yo'q
-                </CardContent>
-              </Card>
+            {purchasesLoading ? (
+              <div className="text-center py-12">Yuklanmoqda...</div>
             ) : (
-              <Card>
-                <CardContent className="pt-6">
-                  <div className="space-y-4">
-                    {allUsers.map((userItem: any) => (
+              <>
+                {(() => {
+                  const getUserLatestPurchaseStatus = (userId: string) => {
+                    const userPurchases = allPurchases.filter((p: any) => p.studentId === userId);
+                    if (userPurchases.length === 0) return null;
+                    const latest = userPurchases.sort((a: any, b: any) => 
+                      new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()
+                    )[0];
+                    return latest.status;
+                  };
+
+                  const usersWithPendingPayments = allUsers.filter(
+                    (u: any) => getUserLatestPurchaseStatus(u.id) === 'pending'
+                  );
+                  const usersWithApprovedPayments = allUsers.filter(
+                    (u: any) => getUserLatestPurchaseStatus(u.id) === 'approved'
+                  );
+
+                  return (
+                    <div className="flex gap-2 mb-4">
+                      <Button
+                        variant={userFilter === "all" ? "default" : "outline"}
+                        onClick={() => setUserFilter("all")}
+                        data-testid="button-filter-all"
+                      >
+                        Barchasi ({allUsers.length})
+                      </Button>
+                      <Button
+                        variant={userFilter === "pending" ? "default" : "outline"}
+                        onClick={() => setUserFilter("pending")}
+                        data-testid="button-filter-pending"
+                      >
+                        To'lov kutilayotganlar ({usersWithPendingPayments.length})
+                      </Button>
+                      <Button
+                        variant={userFilter === "approved" ? "default" : "outline"}
+                        onClick={() => setUserFilter("approved")}
+                        data-testid="button-filter-approved"
+                      >
+                        To'lov qilganlar ({usersWithApprovedPayments.length})
+                      </Button>
+                    </div>
+                  );
+                })()}
+                
+                {(() => {
+                  const getUserLatestPurchaseStatus = (userId: string) => {
+                    const userPurchases = allPurchases.filter((p: any) => p.studentId === userId);
+                    if (userPurchases.length === 0) return null;
+                    const latest = userPurchases.sort((a: any, b: any) => 
+                      new Date(b.purchasedAt).getTime() - new Date(a.purchasedAt).getTime()
+                    )[0];
+                    return latest.status;
+                  };
+
+                  let filteredUsers = allUsers;
+                  
+                  if (userFilter === "pending") {
+                    filteredUsers = allUsers.filter((u: any) => getUserLatestPurchaseStatus(u.id) === 'pending');
+                  } else if (userFilter === "approved") {
+                    filteredUsers = allUsers.filter((u: any) => getUserLatestPurchaseStatus(u.id) === 'approved');
+                  }
+              
+              return filteredUsers.length === 0 ? (
+                <Card>
+                  <CardContent className="pt-6 text-center text-muted-foreground">
+                    {userFilter === "all" ? "Foydalanuvchilar yo'q" : 
+                     userFilter === "pending" ? "To'lov kutilayotgan foydalanuvchilar yo'q" :
+                     "To'lov qilgan foydalanuvchilar yo'q"}
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="pt-6">
+                    <div className="space-y-4">
+                      {filteredUsers.map((userItem: any) => (
                       <div
                         key={userItem.id}
                         className="flex items-center justify-between p-4 border rounded-lg"
@@ -731,6 +807,9 @@ export default function AdminDashboard() {
                   </div>
                 </CardContent>
               </Card>
+              );
+            })()}
+              </>
             )}
           </TabsContent>
 
