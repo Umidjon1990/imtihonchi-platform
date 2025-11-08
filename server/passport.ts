@@ -1,16 +1,14 @@
 import passport from "passport";
 import { storage } from "./storage";
+import type { RequestHandler } from "express";
 
 export function setupPassport() {
   // User'ni session'ga serialize qilish
-  // IMPORTANT: We serialize the entire user object (not just ID) to preserve
-  // Replit Auth tokens (access_token, refresh_token, expires_at) required by isAuthenticated
   passport.serializeUser((user: any, done) => {
     done(null, user);
   });
 
   // User'ni session'dan deserialize qilish
-  // IMPORTANT: We merge fresh DB data (including role) with session tokens
   // CRITICAL: We check sessionVersion to invalidate sessions when role changes
   passport.deserializeUser(async (sessionUser: any, done) => {
     try {
@@ -32,15 +30,13 @@ export function setupPassport() {
         return done(null, false); // This will trigger 401 and force re-login
       }
       
-      // CRITICAL: Mutate sessionUser in place to preserve token refresh updates
-      // Creating a new object would lose refreshed access_token/refresh_token
+      // Update session user with fresh database data
       sessionUser.id = dbUser.id;
       sessionUser.email = dbUser.email;
+      sessionUser.phoneNumber = dbUser.phoneNumber;
       sessionUser.firstName = dbUser.firstName;
       sessionUser.lastName = dbUser.lastName;
       sessionUser.role = dbUser.role; // IMPORTANT: Always use fresh role from database
-      // DO NOT update sessionVersion - we need to detect version mismatches!
-      // sessionUser.sessionVersion stays at login value for comparison
       sessionUser.profileImageUrl = dbUser.profileImageUrl;
       
       done(null, sessionUser);
@@ -50,3 +46,11 @@ export function setupPassport() {
     }
   });
 }
+
+// Simple authentication middleware - no token refresh needed
+export const isAuthenticated: RequestHandler = (req, res, next) => {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  return res.status(401).json({ message: "Unauthorized" });
+};

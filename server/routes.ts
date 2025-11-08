@@ -1,8 +1,7 @@
-import type { Express, Request } from "express";
+import type { Express, Request, RequestHandler } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupPassport } from "./passport";
+import { setupPassport, isAuthenticated } from "./passport";
 import { adminAuth } from "./firebaseAdmin";
 import { getUserId } from "./authHelpers";
 import bcrypt from "bcrypt";
@@ -80,9 +79,6 @@ const uploadSectionImage = multer({
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Passport serialization (required for all auth methods)
   setupPassport();
-  
-  // Setup Replit Auth
-  await setupAuth(app);
 
   // Google OAuth routes temporarily disabled
   // app.get('/auth/google', (req, res, next) => {
