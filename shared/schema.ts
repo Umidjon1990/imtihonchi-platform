@@ -23,15 +23,16 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (Replit Auth + Email/Password compatible)
+// User storage table (Email/Password + Phone/Password compatible)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
-  passwordHash: varchar("password_hash"), // For email/password auth (null for Replit Auth users)
+  phoneNumber: varchar("phone_number").unique(), // Phone number for phone/password auth
+  passwordHash: varchar("password_hash"), // For email/password or phone/password auth
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  role: text("role").notNull().default('student'), // admin, teacher, student
+  role: text("role").notNull().default('student'), // admin, student
   sessionVersion: integer("session_version").notNull().default(0), // Incremented on role change to invalidate all sessions
   roleChangedAt: timestamp("role_changed_at"), // Last time role was changed
   createdAt: timestamp("created_at").defaultNow().notNull(),
