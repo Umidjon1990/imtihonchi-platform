@@ -10,10 +10,11 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Users, FolderOpen, TrendingUp, Plus, Pencil, Trash2, LogOut, ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import { FileText, Users, FolderOpen, TrendingUp, Plus, Pencil, Trash2, LogOut, ArrowLeft, Settings as SettingsIcon, Edit, Eye, CheckCircle, XCircle, Receipt } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Category {
   id: string;
@@ -68,6 +69,16 @@ export default function AdminDashboard() {
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
   const [categoryName, setCategoryName] = useState("");
   const [categoryDescription, setCategoryDescription] = useState("");
+
+  // Test creation state
+  const [createTestDialogOpen, setCreateTestDialogOpen] = useState(false);
+  const [newTest, setNewTest] = useState({
+    categoryId: "",
+    title: "",
+    description: "",
+    price: 0,
+    language: "ar" as "ar" | "en",
+  });
 
   // Settings state
   const [contactEmail, setContactEmail] = useState("");
@@ -204,8 +215,64 @@ export default function AdminDashboard() {
     },
   });
 
+  const approvePurchaseMutation = useMutation({
+    mutationFn: async (purchaseId: string) => {
+      await apiRequest("PATCH", `/api/purchases/${purchaseId}/approve`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Xarid tasdiqlandi" });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases/pending"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const rejectPurchaseMutation = useMutation({
+    mutationFn: async (purchaseId: string) => {
+      await apiRequest("PATCH", `/api/purchases/${purchaseId}/reject`, {});
+    },
+    onSuccess: () => {
+      toast({ title: "Muvaffaqiyat", description: "Xarid rad etildi" });
+      queryClient.invalidateQueries({ queryKey: ["/api/purchases/pending"] });
+    },
+    onError: (error: any) => {
+      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
+    },
+  });
+
   const handleLogout = () => {
     window.location.href = "/api/logout";
+  };
+
+  const handleCreateTest = async () => {
+    if (!newTest.categoryId || !newTest.title || !newTest.price) {
+      toast({
+        title: "Xatolik",
+        description: "Barcha maydonlarni to'ldiring",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await apiRequest("POST", "/api/tests", newTest);
+
+      toast({
+        title: "Muvaffaqiyat",
+        description: "Test muvaffaqiyatli yaratildi",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["/api/tests"] });
+      setCreateTestDialogOpen(false);
+      setNewTest({ categoryId: "", title: "", description: "", price: 0, language: "ar" });
+    } catch (error: any) {
+      toast({
+        title: "Xatolik",
+        description: error.message || "Test yaratishda xatolik",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleEditClick = (category: Category) => {
@@ -249,8 +316,11 @@ export default function AdminDashboard() {
 
       <main className="container mx-auto px-4 py-8 max-w-7xl">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" data-testid="tab-overview">Umumiy Ma'lumot</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-7">
+            <TabsTrigger value="overview" data-testid="tab-overview">Umumiy</TabsTrigger>
+            <TabsTrigger value="tests" data-testid="tab-tests">Testlar</TabsTrigger>
+            <TabsTrigger value="submissions" data-testid="tab-submissions">Topshiriqlar ({allSubmissions.length})</TabsTrigger>
+            <TabsTrigger value="pending" data-testid="tab-pending">Pending ({pendingPurchases.length})</TabsTrigger>
             <TabsTrigger value="categories" data-testid="tab-categories">Kategoriyalar</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Foydalanuvchilar</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Sozlamalar</TabsTrigger>
@@ -305,6 +375,252 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="tests" className="space-y-6">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className="text-2xl font-bold">Testlar</h2>
+              <Button 
+                onClick={() => setCreateTestDialogOpen(true)}
+                data-testid="button-create-test"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Yangi test
+              </Button>
+            </div>
+
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <FileText className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Jami testlar</p>
+                      <p className="text-2xl font-bold">{allTests.length}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Eye className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Nashr qilingan</p>
+                      <p className="text-2xl font-bold">{allTests.filter((t: any) => t.isPublished).length}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Edit className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Qoralama</p>
+                      <p className="text-2xl font-bold">{allTests.filter((t: any) => !t.isPublished).length}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+              </Card>
+            </div>
+
+            {allTests.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                  <p className="mb-4">Sizda hali testlar yo'q</p>
+                  <Button onClick={() => setCreateTestDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Birinchi testni yaratish
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {allTests.map((test: any) => (
+                  <Card key={test.id} data-testid={`card-test-${test.id}`}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <CardTitle>{test.title}</CardTitle>
+                          <CardDescription className="mt-2">
+                            {test.description || "Tavsif yo'q"}
+                          </CardDescription>
+                        </div>
+                        <Badge variant={test.isPublished ? "default" : "secondary"}>
+                          {test.isPublished ? "Nashr qilingan" : "Qoralama"}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center gap-6 text-sm text-muted-foreground">
+                        <div>
+                          <span className="text-2xl font-bold text-primary">
+                            {test.price.toLocaleString()}
+                          </span>
+                          <span className="ml-1">so'm</span>
+                        </div>
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex gap-2">
+                      <Link href={`/teacher/test/${test.id}`}>
+                        <Button variant="default" data-testid={`button-edit-${test.id}`}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Tahrirlash
+                        </Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="submissions" className="space-y-6">
+            <h2 className="text-2xl font-bold mb-6">Topshiriqlar</h2>
+            
+            {allSubmissions.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                  Hozircha topshiriqlar yo'q
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {allSubmissions.map((submission: any) => (
+                  <Card key={submission.id} data-testid={`card-submission-${submission.id}`}>
+                    <CardHeader>
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <CardTitle>{submission.testTitle}</CardTitle>
+                          <CardDescription className="mt-2">
+                            Talaba: {submission.studentName} {submission.studentLastName}
+                          </CardDescription>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Topshirilgan: {new Date(submission.submittedAt).toLocaleDateString('uz-UZ', {
+                              year: 'numeric',
+                              month: 'long',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </p>
+                        </div>
+                        <Badge variant={submission.status === 'graded' ? 'default' : 'secondary'}>
+                          {submission.status === 'graded' ? 'Baholangan' : 'Baholanmagan'}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardFooter>
+                      <Link href={`/teacher/review/${submission.id}`}>
+                        <Button data-testid={`button-review-${submission.id}`}>
+                          <Eye className="h-4 w-4 mr-2" />
+                          {submission.status === 'graded' ? 'Natijani ko\'rish' : 'Baholash'}
+                        </Button>
+                      </Link>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="pending" className="space-y-6">
+            <h2 className="text-2xl font-bold mb-6">Pending Xaridlar</h2>
+            
+            {pendingPurchases.length === 0 ? (
+              <Card>
+                <CardContent className="pt-6 text-center text-muted-foreground">
+                  Pending cheklar yo'q
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-4">
+                {pendingPurchases.map((purchase: any) => {
+                  const test = allTests.find((t: any) => t.id === purchase.testId);
+                  
+                  if (!test) return null;
+                  
+                  return (
+                    <Card key={purchase.id} data-testid={`card-pending-${purchase.id}`}>
+                      <CardHeader>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1">
+                            <CardTitle>{test.title}</CardTitle>
+                            <CardDescription className="mt-2">
+                              So'rov yuborilgan: {new Date(purchase.purchasedAt).toLocaleDateString('uz-UZ', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </CardDescription>
+                            <div className="mt-2 text-sm">
+                              <span className="text-muted-foreground">Narx: </span>
+                              <span className="font-semibold text-primary">
+                                {test.price.toLocaleString()} so'm
+                              </span>
+                            </div>
+                          </div>
+                          <Badge variant="secondary">Kutilmoqda</Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        {purchase.receiptUrl && (
+                          <div className="space-y-2">
+                            <p className="text-sm font-medium">To'lov cheki:</p>
+                            <a 
+                              href={purchase.receiptUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <div className="border rounded-lg p-4 hover-elevate active-elevate-2 cursor-pointer flex items-center gap-3">
+                                <Receipt className="h-8 w-8 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm font-medium">Chekni ko'rish</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    Chekni yangi oynada ochish uchun bosing
+                                  </p>
+                                </div>
+                              </div>
+                            </a>
+                          </div>
+                        )}
+                      </CardContent>
+                      <CardFooter className="flex gap-2">
+                        <Button
+                          onClick={() => approvePurchaseMutation.mutate(purchase.id)}
+                          disabled={approvePurchaseMutation.isPending || rejectPurchaseMutation.isPending}
+                          data-testid={`button-approve-${purchase.id}`}
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Tasdiqlash
+                        </Button>
+                        <Button
+                          variant="destructive"
+                          onClick={() => rejectPurchaseMutation.mutate(purchase.id)}
+                          disabled={approvePurchaseMutation.isPending || rejectPurchaseMutation.isPending}
+                          data-testid={`button-reject-${purchase.id}`}
+                        >
+                          <XCircle className="h-4 w-4 mr-2" />
+                          Rad etish
+                        </Button>
+                      </CardFooter>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="categories" className="space-y-6">
@@ -650,6 +966,78 @@ export default function AdminDashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Create Test Dialog */}
+      <Dialog open={createTestDialogOpen} onOpenChange={setCreateTestDialogOpen}>
+        <DialogContent data-testid="dialog-create-test">
+          <DialogHeader>
+            <DialogTitle>Yangi test yaratish</DialogTitle>
+            <DialogDescription>
+              Testning asosiy ma'lumotlarini kiriting. Keyinchalik bo'limlar va savollar qo'shishingiz mumkin.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="category">Kategoriya</Label>
+              <Select 
+                value={newTest.categoryId} 
+                onValueChange={(value) => setNewTest({ ...newTest, categoryId: value })}
+              >
+                <SelectTrigger id="category" data-testid="select-category">
+                  <SelectValue placeholder="Kategoriyani tanlang" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="title">Sarlavha</Label>
+              <Input
+                id="title"
+                data-testid="input-title"
+                value={newTest.title}
+                onChange={(e) => setNewTest({ ...newTest, title: e.target.value })}
+                placeholder="CEFR Og'zaki Test - A2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="description">Tavsif</Label>
+              <Textarea
+                id="description"
+                data-testid="input-description"
+                value={newTest.description}
+                onChange={(e) => setNewTest({ ...newTest, description: e.target.value })}
+                placeholder="Boshlang'ich darajadagi arab tili og'zaki imtihoni"
+                rows={3}
+              />
+            </div>
+            <div>
+              <Label htmlFor="price">Narx (so'm)</Label>
+              <Input
+                id="price"
+                type="number"
+                data-testid="input-price"
+                value={newTest.price || ""}
+                onChange={(e) => setNewTest({ ...newTest, price: parseInt(e.target.value) || 0 })}
+                placeholder="50000"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCreateTestDialogOpen(false)}>
+              Bekor qilish
+            </Button>
+            <Button onClick={handleCreateTest} data-testid="button-submit-test">
+              Yaratish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
