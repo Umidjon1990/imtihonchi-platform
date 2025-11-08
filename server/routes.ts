@@ -365,7 +365,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       const currentUser = await storage.getUser(userId);
       // Only teachers and admins can view other users
-      if (currentUser?.role !== 'teacher' && currentUser?.role !== 'admin') {
+      if (currentUser?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -528,8 +528,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tests", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Faqat o'qituvchilar test yarata oladi" });
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat adminlar test yarata oladi" });
       }
 
       const data = insertTestSchema.parse({
@@ -600,7 +600,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/sections", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -632,7 +632,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/sections/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -648,7 +648,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload-section-image", isAuthenticated, uploadSectionImage.single("file"), async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -701,7 +701,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/questions", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -717,7 +717,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/questions/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -732,7 +732,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/questions/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -747,7 +747,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete("/api/sections/:id", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -793,7 +793,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/receipts/:filename", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin' && user?.role !== 'student') {
+      if (user?.role !== 'admin' && user?.role !== 'student') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -815,8 +815,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload-question-audio", isAuthenticated, uploadAudio.single("file"), async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Faqat o'qituvchilar savol audiosi yuklashi mumkin" });
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat adminlar savol audiosi yuklashi mumkin" });
       }
 
       if (!req.file) {
@@ -914,7 +914,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/purchases/pending", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -935,7 +935,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const user = await storage.getUser(getUserId(req));
       
-      if (purchase.studentId !== getUserId(req) && user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (purchase.studentId !== getUserId(req) && user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -949,7 +949,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/purchases/:id/approve", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -991,7 +991,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/purchases/:id/reject", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -1015,17 +1015,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/submissions/teacher", isAuthenticated, async (req: Request, res) => {
+  app.get("/api/submissions/admin", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
       const submissions = await storage.getSubmissionsByTeacher(user.id);
       res.json(submissions);
     } catch (error) {
-      console.error("Error fetching teacher submissions:", error);
+      console.error("Error fetching admin submissions:", error);
       res.status(500).json({ message: "Topshiriqlarni olishda xatolik" });
     }
   });
@@ -1064,7 +1064,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/submissions/test/:testId", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
+      if (user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -1161,7 +1161,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Allow access for student who owns it, or teacher/admin
       if (submission.studentId !== getUserId(req) && 
-          user?.role !== 'teacher' && user?.role !== 'admin') {
+          user?.role !== 'admin') {
         return res.status(403).json({ message: "Ruxsat berilmagan" });
       }
 
@@ -1177,8 +1177,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/results", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Faqat o'qituvchilar natija berishi mumkin" });
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat adminlar natija berishi mumkin" });
       }
 
       const data = insertResultSchema.parse({
@@ -1314,8 +1314,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/submissions/:id/transcribe", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Faqat o'qituvchilar transkripsiya qila oladi" });
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat adminlar transkripsiya qila oladi" });
       }
 
       const submission = await storage.getSubmissionById(req.params.id);
@@ -1377,8 +1377,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/submissions/:id/ai-evaluate", isAuthenticated, async (req: Request, res) => {
     try {
       const user = await storage.getUser(getUserId(req));
-      if (user?.role !== 'teacher' && user?.role !== 'admin') {
-        return res.status(403).json({ message: "Faqat o'qituvchilar baholashi mumkin" });
+      if (user?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat adminlar baholashi mumkin" });
       }
 
       const submission = await storage.getSubmissionById(req.params.id);

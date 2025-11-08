@@ -179,9 +179,9 @@ export default function ReviewSubmission() {
         title: "Muvaffaqiyat!",
         description: "Natija saqlandi",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/submissions/teacher"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/submissions/admin"] });
       queryClient.invalidateQueries({ queryKey: ["/api/results", submissionId] });
-      navigate("/teacher");
+      navigate("/admin");
     },
     onError: (error: any) => {
       toast({

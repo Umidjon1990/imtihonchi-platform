@@ -53,7 +53,6 @@ function UserRoleSelect({ userId, currentRole }: { userId: string; currentRole: 
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="student">Talaba</SelectItem>
-        <SelectItem value="teacher">O'qituvchi</SelectItem>
         <SelectItem value="admin">Admin</SelectItem>
       </SelectContent>
     </Select>
@@ -111,7 +110,7 @@ export default function AdminDashboard() {
   });
 
   const { data: allSubmissions = [] } = useQuery<any[]>({
-    queryKey: ["/api/submissions/teacher"],
+    queryKey: ["/api/submissions/admin"],
     enabled: !!user?.id,
   });
 
@@ -471,7 +470,7 @@ export default function AdminDashboard() {
                       </div>
                     </CardContent>
                     <CardFooter className="flex gap-2">
-                      <Link href={`/teacher/test/${test.id}`}>
+                      <Link href={`/admin/test/${test.id}`}>
                         <Button variant="default" data-testid={`button-edit-${test.id}`}>
                           <Edit className="h-4 w-4 mr-2" />
                           Tahrirlash
@@ -520,7 +519,7 @@ export default function AdminDashboard() {
                       </div>
                     </CardHeader>
                     <CardFooter>
-                      <Link href={`/teacher/review/${submission.id}`}>
+                      <Link href={`/admin/review/${submission.id}`}>
                         <Button data-testid={`button-review-${submission.id}`}>
                           <Eye className="h-4 w-4 mr-2" />
                           {submission.status === 'graded' ? 'Natijani ko\'rish' : 'Baholash'}
@@ -718,15 +717,11 @@ export default function AdminDashboard() {
                             variant={
                               userItem.role === 'admin'
                                 ? 'default'
-                                : userItem.role === 'teacher'
-                                ? 'secondary'
                                 : 'outline'
                             }
                           >
                             {userItem.role === 'admin'
                               ? 'Admin'
-                              : userItem.role === 'teacher'
-                              ? "O'qituvchi"
                               : 'Talaba'}
                           </Badge>
                           {userItem.id !== user?.id && <UserRoleSelect userId={userItem.id} currentRole={userItem.role} />}

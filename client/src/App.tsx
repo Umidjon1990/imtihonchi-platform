@@ -13,7 +13,6 @@ import PublicTestCatalog from "@/pages/PublicTestCatalog";
 import PurchaseTest from "@/pages/PurchaseTest";
 import DemoResult from "@/pages/DemoResult";
 import StudentDashboard from "@/pages/StudentDashboard";
-import TeacherDashboard from "@/pages/TeacherDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
 import TakeTest from "@/pages/TakeTest";
 import EditTest from "@/pages/EditTest";
@@ -61,7 +60,6 @@ function Router() {
           <Route path="/">
             {() => {
               if (user?.role === 'admin') return <Redirect to="/admin" />;
-              if (user?.role === 'teacher') return <Redirect to="/teacher" />;
               return <Redirect to="/student" />;
             }}
           </Route>
@@ -72,23 +70,16 @@ function Router() {
               </RoleGuard>
             )}
           </Route>
-          <Route path="/teacher">
+          <Route path="/admin/test/:id">
             {() => (
-              <RoleGuard allowedRoles={['teacher', 'admin']}>
-                <TeacherDashboard />
-              </RoleGuard>
-            )}
-          </Route>
-          <Route path="/teacher/test/:id">
-            {() => (
-              <RoleGuard allowedRoles={['teacher', 'admin']}>
+              <RoleGuard allowedRoles={['admin']}>
                 <EditTest />
               </RoleGuard>
             )}
           </Route>
-          <Route path="/teacher/review/:submissionId">
+          <Route path="/admin/review/:submissionId">
             {() => (
-              <RoleGuard allowedRoles={['teacher', 'admin']}>
+              <RoleGuard allowedRoles={['admin']}>
                 <ReviewSubmission />
               </RoleGuard>
             )}
