@@ -173,10 +173,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Email/Password Registration
   app.post('/api/register', async (req: Request, res) => {
     try {
-      const { email, password, firstName, lastName } = req.body;
+      const { email, phoneNumber, password, firstName, lastName } = req.body;
 
-      // Validation
-      if (!email || !password || !firstName || !lastName) {
+      // Validation - at least one identifier required
+      if ((!email && !phoneNumber) || !password || !firstName || !lastName) {
         return res.status(400).json({ message: "Barcha maydonlar to'ldirilishi shart" });
       }
 
@@ -184,10 +184,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Parol kamida 6 belgidan iborat bo'lishi kerak" });
       }
 
-      // Check if email already exists
-      const existingUser = await storage.getUserByEmail(email);
-      if (existingUser) {
-        return res.status(400).json({ message: "Bu email allaqachon ro'yxatdan o'tgan" });
+      // Check if email or phone already exists
+      if (email) {
+        const existingUser = await storage.getUserByEmail(email);
+        if (existingUser) {
+          return res.status(400).json({ message: "Bu email allaqachon ro'yxatdan o'tgan" });
+        }
+      }
+
+      if (phoneNumber) {
+        const existingUser = await storage.getUserByPhoneNumber(phoneNumber);
+        if (existingUser) {
+          return res.status(400).json({ message: "Bu telefon raqam allaqachon ro'yxatdan o'tgan" });
+        }
       }
 
       // Hash password
@@ -195,7 +204,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create user
       const newUser = await storage.upsertUser({
-        email,
+        email: email || undefined,
+        phoneNumber: phoneNumber || undefined,
         passwordHash,
         firstName,
         lastName,
@@ -217,31 +227,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Email/Password Login
+  // Email/Phone + Password Login
   app.post('/api/login', async (req: Request, res) => {
     try {
-      const { email, password } = req.body;
+      const { email, phoneNumber, password } = req.body;
 
-      // Validation
-      if (!email || !password) {
-        return res.status(400).json({ message: "Email va parol kiritilishi shart" });
+      // Validation - at least one identifier required
+      if ((!email && !phoneNumber) || !password) {
+        return res.status(400).json({ message: "Email/Telefon va parol kiritilishi shart" });
       }
 
-      // Find user by email
-      const user = await storage.getUserByEmail(email);
+      // Find user by email or phone
+      let user;
+      if (email) {
+        user = await storage.getUserByEmail(email);
+      } else if (phoneNumber) {
+        user = await storage.getUserByPhoneNumber(phoneNumber);
+      }
+
       if (!user) {
-        return res.status(401).json({ message: "Email yoki parol noto'g'ri" });
+        return res.status(401).json({ message: "Email/Telefon yoki parol noto'g'ri" });
       }
 
-      // Check if user has password (not a Replit Auth user)
+      // Check if user has password
       if (!user.passwordHash) {
-        return res.status(401).json({ message: "Bu akkaunt Replit orqali yaratilgan. Replit bilan kiring." });
+        return res.status(401).json({ message: "Parol topilmadi" });
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Email yoki parol noto'g'ri" });
+        return res.status(401).json({ message: "Email/Telefon yoki parol noto'g'ri" });
       }
 
       // Create session with full user object
