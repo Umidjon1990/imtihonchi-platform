@@ -5,13 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, GraduationCap, UserCog } from "lucide-react";
+import { Loader2, Mail, GraduationCap, Phone } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"email" | "replit">("email");
+  const [activeTab, setActiveTab] = useState<"email" | "phone">("email");
   
   // Get returnUrl from query params
   const urlParams = new URLSearchParams(window.location.search);
@@ -20,6 +20,7 @@ export default function Login() {
   // Email/Password state
   const [isRegister, setIsRegister] = useState(false);
   const [email, setEmail] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -82,10 +83,61 @@ export default function Login() {
     }
   };
 
-  const handleReplitAuth = () => {
-    // Pass returnUrl to Replit auth
-    const encodedReturnUrl = encodeURIComponent(returnUrl);
-    window.location.href = `/api/login?returnUrl=${encodedReturnUrl}`;
+  const handlePhoneAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (isRegister && (!firstName.trim() || !lastName.trim())) {
+      toast({
+        title: "Xato",
+        description: "Ism va familiyani kiriting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!phoneNumber.trim() || !password.trim()) {
+      toast({
+        title: "Xato",
+        description: "Telefon va parolni kiriting",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (password.length < 6) {
+      toast({
+        title: "Xato",
+        description: "Parol kamida 6 belgidan iborat bo'lishi kerak",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const endpoint = isRegister ? '/api/register' : '/api/login';
+      const body = isRegister 
+        ? { phoneNumber, password, firstName, lastName }
+        : { phoneNumber, password };
+
+      await apiRequest('POST', endpoint, body);
+
+      toast({
+        title: "Muvaffaqiyatli!",
+        description: isRegister ? "Ro'yxatdan o'tdingiz" : "Tizimga kirdingiz",
+      });
+
+      // Redirect to returnUrl or home
+      window.location.href = returnUrl;
+    } catch (error: any) {
+      toast({
+        title: "Xato",
+        description: error.message || (isRegister ? "Ro'yxatdan o'tishda xatolik" : "Kirishda xatolik"),
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -98,15 +150,15 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "email" | "replit")} className="w-full">
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "email" | "phone")} className="w-full">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="email" data-testid="tab-email-auth">
                 <Mail className="h-4 w-4 mr-2" />
                 Email
               </TabsTrigger>
-              <TabsTrigger value="replit" data-testid="tab-replit-auth">
-                <UserCog className="h-4 w-4 mr-2" />
-                Replit
+              <TabsTrigger value="phone" data-testid="tab-phone-auth">
+                <Phone className="h-4 w-4 mr-2" />
+                Telefon
               </TabsTrigger>
             </TabsList>
 
@@ -205,34 +257,99 @@ export default function Login() {
               </form>
             </TabsContent>
 
-            <TabsContent value="replit" className="space-y-4 mt-4">
+            <TabsContent value="phone" className="space-y-4 mt-4">
               <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                <UserCog className="h-5 w-5 text-primary" />
+                <GraduationCap className="h-5 w-5 text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  O'qituvchi va Admin uchun
+                  O'quvchilar uchun
                 </p>
               </div>
 
-              <div className="space-y-4">
-                <p className="text-sm text-muted-foreground text-center">
-                  O'qituvchi yoki Admin bo'lsangiz, Replit akkauntingiz orqali kiring
-                </p>
+              <form onSubmit={handlePhoneAuth} className="space-y-4">
+                {isRegister && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Ism</label>
+                      <Input
+                        type="text"
+                        placeholder="Ahmad"
+                        value={firstName}
+                        onChange={(e) => setFirstName(e.target.value)}
+                        disabled={loading}
+                        data-testid="input-first-name-phone"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Familiya</label>
+                      <Input
+                        type="text"
+                        placeholder="Ahmadov"
+                        value={lastName}
+                        onChange={(e) => setLastName(e.target.value)}
+                        disabled={loading}
+                        data-testid="input-last-name-phone"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Telefon raqam</label>
+                  <Input
+                    type="tel"
+                    placeholder="+998901234567"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value)}
+                    disabled={loading}
+                    data-testid="input-phone-number"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Parol</label>
+                  <Input
+                    type="password"
+                    placeholder="••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    data-testid="input-password-phone"
+                    minLength={6}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Kamida 6 belgidan iborat bo'lishi kerak
+                  </p>
+                </div>
 
                 <Button
-                  onClick={handleReplitAuth}
-                  variant="default"
+                  type="submit"
+                  disabled={loading}
                   className="w-full"
-                  data-testid="button-replit-login"
+                  data-testid="button-phone-submit"
                 >
-                  <UserCog className="mr-2 h-4 w-4" />
-                  Replit orqali kirish
+                  {loading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      {isRegister ? "Ro'yxatdan o'tilmoqda..." : "Kirilmoqda..."}
+                    </>
+                  ) : (
+                    isRegister ? "Ro'yxatdan o'tish" : "Kirish"
+                  )}
                 </Button>
 
-                <div className="text-xs text-muted-foreground text-center space-y-1">
-                  <p>• O'qituvchilar test yaratishi va baholashi mumkin</p>
-                  <p>• Adminlar tizimni boshqaradi</p>
+                <div className="text-center">
+                  <button
+                    type="button"
+                    onClick={() => setIsRegister(!isRegister)}
+                    className="text-sm text-primary hover:underline"
+                    data-testid="button-toggle-register-phone"
+                  >
+                    {isRegister 
+                      ? "Akkauntingiz bormi? Kirish" 
+                      : "Akkauntingiz yo'qmi? Ro'yxatdan o'tish"}
+                  </button>
                 </div>
-              </div>
+              </form>
             </TabsContent>
           </Tabs>
         </CardContent>
