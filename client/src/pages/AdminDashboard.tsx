@@ -94,6 +94,16 @@ export default function AdminDashboard() {
     refetchOnMount: true,
   });
 
+  const { data: pendingPurchases = [] } = useQuery<any[]>({
+    queryKey: ["/api/purchases/pending"],
+    enabled: !!user?.id,
+  });
+
+  const { data: allSubmissions = [] } = useQuery<any[]>({
+    queryKey: ["/api/submissions/teacher"],
+    enabled: !!user?.id,
+  });
+
   // Update settings state when data loads
   useEffect(() => {
     if (settings) {
