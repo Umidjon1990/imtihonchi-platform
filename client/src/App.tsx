@@ -40,10 +40,10 @@ function Router() {
 
   return (
     <Switch>
-      {/* Public routes - accessible by everyone */}
-      <Route path="/tests" component={PublicTestCatalog} />
+      {/* Public routes - accessible by everyone (MUST be before authenticated routes) */}
       <Route path="/take-test/demo" component={TakeTest} />
       <Route path="/demo-result" component={DemoResult} />
+      <Route path="/tests" component={PublicTestCatalog} />
       <Route path="/tests/:testId/purchase" component={PurchaseTest} />
       <Route path="/login" component={Login} />
       <Route path="/phone-login" component={PhoneLogin} />
