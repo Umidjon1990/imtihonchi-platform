@@ -725,6 +725,16 @@ export default function TakeTest() {
     });
   }, [isRecording]);
 
+  // Helper to clear auto-progression timer
+  const clearAutoProgress = useCallback(() => {
+    if (sectionTimerRef.current) {
+      clearTimeout(sectionTimerRef.current);
+      sectionTimerRef.current = null;
+      console.log('🛑 [TIMER] Auto-progress timer cleared');
+    }
+    autoProgressQueuedRef.current = false;
+  }, []);
+
   const handleNextQuestion = useCallback(async () => {
     try {
       console.log('🚀 [NEXT] handleNextQuestion called', {
@@ -733,6 +743,9 @@ export default function TakeTest() {
         currentQuestion: currentQuestion?.id,
         currentSection: currentSection?.title
       });
+      
+      // CRITICAL: Clear auto-progress timer first to prevent double-skip
+      clearAutoProgress();
       
       // Validation
       if (!flatQuestionList || flatQuestionList.length === 0) {
@@ -765,9 +778,12 @@ export default function TakeTest() {
         variant: "destructive",
       });
     }
-  }, [isRecording, stopRecording, globalQuestionIndex, flatQuestionList, currentQuestion, currentSection, toast]);
+  }, [isRecording, stopRecording, globalQuestionIndex, flatQuestionList, currentQuestion, currentSection, toast, clearAutoProgress]);
 
   const handlePrevQuestion = useCallback(async () => {
+    // Clear auto-progress timer to prevent race condition
+    clearAutoProgress();
+    
     if (isRecording) {
       await stopRecording();
     }
@@ -777,7 +793,7 @@ export default function TakeTest() {
     } else {
       console.log('⚠️ [PREV] Already at first question');
     }
-  }, [isRecording, stopRecording, globalQuestionIndex]);
+  }, [isRecording, stopRecording, globalQuestionIndex, clearAutoProgress]);
 
   const submitTest = async () => {
     if (completedQuestions < totalQuestions) {
@@ -1489,7 +1505,7 @@ export default function TakeTest() {
                   </div>
 
                   {currentRecording ? (
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
                         <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
@@ -1503,6 +1519,19 @@ export default function TakeTest() {
                         className="w-full h-8"
                         data-testid="audio-playback"
                       />
+                      
+                      {/* Next Question Button - Only show if not last question */}
+                      {globalQuestionIndex < flatQuestionList.length - 1 && (
+                        <Button
+                          onClick={handleNextQuestion}
+                          className="w-full"
+                          size="lg"
+                          data-testid="button-next-question"
+                        >
+                          <ChevronRight className="h-5 w-5 mr-2" />
+                          Keyingi savolga o'tish
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <Alert className="py-2">
