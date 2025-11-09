@@ -215,6 +215,9 @@ export default function TakeTest() {
     queryKey: ["/api/demo-test"],
     enabled: isDemo,
   });
+  
+  // 🔍 DEBUG: Log demo mode
+  console.log('🔍 [DEBUG] isDemo:', isDemo, 'demoTest:', demoTest, 'loading:', demoTestLoading);
 
   // Fetch regular test if not demo
   const { data: fetchedTest, isLoading: testLoading } = useQuery<Test>({
@@ -230,6 +233,9 @@ export default function TakeTest() {
     enabled: !!finalTest?.id,
   });
   const finalSections = fetchedSections;
+  
+  // 🔍 DEBUG: Log sections
+  console.log('🔍 [DEBUG] finalTest:', finalTest, 'sections:', finalSections, 'sectionsLoading:', sectionsLoading);
 
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -312,6 +318,9 @@ export default function TakeTest() {
     if (!currentQuestion) return null;
     return sections[currentQuestion.sectionIndex];
   }, [currentQuestion, sections]);
+  
+  // 🔍 DEBUG: Log current section and image
+  console.log('🔍 [DEBUG] currentSection:', currentSection, 'imageUrl:', currentSection?.imageUrl);
 
   // Calculate total progress
   const completedQuestions = Object.keys(recordings).length;
