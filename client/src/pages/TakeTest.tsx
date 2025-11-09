@@ -210,32 +210,25 @@ export default function TakeTest() {
     enabled: !isDemo && !!purchaseId, // Skip if demo
   });
 
-  // Fetch demo test if in demo mode
-  const { data: demoTest, isLoading: demoTestLoading } = useQuery<Test>({
-    queryKey: ["/api/demo-test"],
-    enabled: isDemo,
-  });
+  // ✅ FIX: Demo mode uses MOCK data, no API calls
+  const finalTest = isDemo ? DEMO_MOCK_DATA.test : undefined;
+  const finalSections = isDemo ? DEMO_MOCK_DATA.sections : [];
   
-  // 🔍 DEBUG: Log demo mode
-  console.log('🔍 [DEBUG] isDemo:', isDemo, 'demoTest:', demoTest, 'loading:', demoTestLoading);
-
-  // Fetch regular test if not demo
+  // Fetch regular test if not demo (only for authenticated users)
   const { data: fetchedTest, isLoading: testLoading } = useQuery<Test>({
     queryKey: ["/api/tests", purchase?.testId],
     enabled: !isDemo && !!purchase?.testId,
   });
   
-  const finalTest = isDemo ? demoTest : fetchedTest;
-
-  // Fetch sections for demo or regular test
-  const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
-    queryKey: [`/api/tests/${finalTest?.id}/sections`],
-    enabled: !!finalTest?.id,
+  // Fetch sections for regular test (only if not demo)
+  const { data: fetchedSectionsAPI = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
+    queryKey: [`/api/tests/${fetchedTest?.id}/sections`],
+    enabled: !isDemo && !!fetchedTest?.id,
   });
-  const finalSections = fetchedSections;
   
-  // 🔍 DEBUG: Log sections
-  console.log('🔍 [DEBUG] finalTest:', finalTest, 'sections:', finalSections, 'sectionsLoading:', sectionsLoading);
+  // Use demo data if demo, otherwise use API data
+  const actualTest = isDemo ? finalTest : fetchedTest;
+  const actualSections = isDemo ? finalSections : fetchedSectionsAPI;
 
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -244,30 +237,28 @@ export default function TakeTest() {
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   
   // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
-  const sectionTree = useMemo(() => buildSectionTree(finalSections), [finalSections]);
+  const sectionTree = useMemo(() => buildSectionTree(actualSections), [actualSections]);
   const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
 
   useEffect(() => {
     const fetchAllQuestions = async () => {
       if (sections.length === 0) return;
       
-      console.log('📥 [FETCH] Fetching questions for sections:', sections.map(s => ({ id: s.id, title: s.title, displayNumber: s.displayNumber })));
-      
       setQuestionsLoading(true);
       try {
+        // ✅ FIX: Demo mode uses MOCK questions
+        if (isDemo) {
+          setAllQuestions(DEMO_MOCK_DATA.questions);
+          setQuestionsLoading(false);
+          return;
+        }
+        
+        // Regular mode: fetch from API
         const questionsPromises = sections.map(section =>
           fetch(`/api/sections/${section.id}/questions`).then(res => res.json())
         );
         const questionsArrays = await Promise.all(questionsPromises);
-        
-        console.log('📦 [FETCH] Received questions per section:', questionsArrays.map((arr, i) => ({
-          section: sections[i].title,
-          count: arr.length,
-          questions: arr.map((q: any) => ({ number: q.questionNumber, text: q.questionText.substring(0, 30) }))
-        })));
-        
         const flatQuestions = questionsArrays.flat();
-        console.log('✅ [FETCH] Total questions:', flatQuestions.length);
         setAllQuestions(flatQuestions);
       } catch (error) {
         console.error("Error fetching questions:", error);
@@ -318,9 +309,6 @@ export default function TakeTest() {
     if (!currentQuestion) return null;
     return sections[currentQuestion.sectionIndex];
   }, [currentQuestion, sections]);
-  
-  // 🔍 DEBUG: Log current section and image
-  console.log('🔍 [DEBUG] currentSection:', currentSection, 'imageUrl:', currentSection?.imageUrl);
 
   // Calculate total progress
   const completedQuestions = Object.keys(recordings).length;
@@ -539,16 +527,16 @@ export default function TakeTest() {
     }
 
     try {
-      console.log('🚀 Creating submission...', { purchaseId: purchase?.id, testId: finalTest?.id });
+      console.log('🚀 Creating submission...', { purchaseId: purchase?.id, testId: actualTest?.id });
       
-      if (!purchase?.id || !finalTest?.id) {
-        console.error('❌ Missing purchase or test ID', { purchase, test: finalTest });
+      if (!purchase?.id || !actualTest?.id) {
+        console.error('❌ Missing purchase or test ID', { purchase, test: actualTest });
         throw new Error('Purchase yoki test ID topilmadi');
       }
 
       const submission = await apiRequest("POST", "/api/submissions", {
         purchaseId: purchase.id,
-        testId: finalTest.id,
+        testId: actualTest!.id,
       });
 
       setSubmissionId(submission.id);
@@ -852,7 +840,7 @@ export default function TakeTest() {
       // Create submission
       await apiRequest("POST", "/api/submissions", {
         purchaseId,
-        testId: finalTest?.id,
+        testId: actualTest?.id,
         audioFiles: uploadedUrls,
       });
 
@@ -1104,7 +1092,7 @@ export default function TakeTest() {
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
-    if (purchaseLoading || testLoading || demoTestLoading) {
+    if (!isDemo && (purchaseLoading || testLoading)) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-lg">Yuklanmoqda...</div>
@@ -1113,7 +1101,7 @@ export default function TakeTest() {
     }
     
     // Demo mode uchun purchase kerak emas
-    if ((!isDemo && !purchase) || !finalTest) {
+    if ((!isDemo && !purchase) || !actualTest) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-lg text-destructive">Ma'lumot topilmadi</div>
@@ -1254,8 +1242,8 @@ export default function TakeTest() {
     );
   }
 
-  // Show loading while sections/questions are being fetched
-  if (sectionsLoading || questionsLoading) {
+  // Show loading while sections/questions are being fetched (skip for demo)
+  if (!isDemo && (sectionsLoading || questionsLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Test yuklanmoqda...</div>
@@ -1264,7 +1252,7 @@ export default function TakeTest() {
   }
 
   // Check if data is valid (demo mode uchun purchase kerak emas)
-  if ((!isDemo && !purchase) || !finalTest || sections.length === 0 || allQuestions.length === 0) {
+  if ((!isDemo && !purchase) || !actualTest || sections.length === 0 || allQuestions.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg text-destructive">Test ma'lumotlari topilmadi</div>
@@ -1334,9 +1322,9 @@ export default function TakeTest() {
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-bold truncate" data-testid="text-test-title">
-                {finalTest.title}
+                {actualTest?.title}
               </h1>
-              {finalTest.isDemo && (
+              {actualTest?.isDemo && (
                 <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/50">
                   📱 DEMO
                 </Badge>
