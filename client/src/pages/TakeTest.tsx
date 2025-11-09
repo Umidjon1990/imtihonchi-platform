@@ -136,6 +136,7 @@ const DEMO_MOCK_DATA = {
       preparationTime: 5, // 5 sekund tayyorgarlik
       speakingTime: 20, // 20 sekund gapirish
       parentSectionId: null,
+      imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=600&fit=crop', // ✅ Added image!
     } as TestSection,
   ],
   questions: [
@@ -1528,45 +1529,48 @@ export default function TakeTest() {
                     </div>
                   </div>
 
-                  {currentRecording ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
-                        <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-xs font-medium text-green-900 dark:text-green-100">Javob yozildi</p>
-                          <p className="text-xs text-green-700 dark:text-green-300">Davomiyligi: {formatTime(currentRecording.duration)}</p>
+                  <div className="space-y-3">
+                    {currentRecording ? (
+                      <>
+                        <div className="flex items-center gap-2 p-3 bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-800 rounded-lg">
+                          <Check className="h-4 w-4 text-green-600 dark:text-green-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-green-900 dark:text-green-100">Javob yozildi</p>
+                            <p className="text-xs text-green-700 dark:text-green-300">Davomiyligi: {formatTime(currentRecording.duration)}</p>
+                          </div>
                         </div>
-                      </div>
-                      <audio 
-                        src={currentRecording.url || undefined} 
-                        controls 
-                        className="w-full h-8"
-                        data-testid="audio-playback"
-                      />
-                      
-                      {/* Next Question Button - Only show if not last question */}
-                      {globalQuestionIndex < flatQuestionList.length - 1 && (
-                        <Button
-                          onClick={handleNextQuestion}
-                          className="w-full"
-                          size="lg"
-                          data-testid="button-next-question"
-                        >
-                          <ChevronRight className="h-5 w-5 mr-2" />
-                          Keyingi savolga o'tish
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <Alert className="py-2">
-                      <AlertCircle className="h-3 w-3" />
-                      <AlertDescription className="text-xs">
-                        {testPhase === 'preparation' 
-                          ? 'Tayyorgarlik vaqti tugagach, avtomatik yozuv boshlanadi'
-                          : 'Javob avtomatik yozilmoqda...'}
-                      </AlertDescription>
-                    </Alert>
-                  )}
+                        <audio 
+                          src={currentRecording.url || undefined} 
+                          controls 
+                          className="w-full h-8"
+                          data-testid="audio-playback"
+                        />
+                      </>
+                    ) : (
+                      <Alert className="py-2">
+                        <AlertCircle className="h-3 w-3" />
+                        <AlertDescription className="text-xs">
+                          {testPhase === 'preparation' 
+                            ? 'Tayyorgarlik vaqti tugagach, avtomatik yozuv boshlanadi'
+                            : 'Javob avtomatik yozilmoqda...'}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
+                    {/* Next/Skip Button - Always show if not last question */}
+                    {globalQuestionIndex < flatQuestionList.length - 1 && (
+                      <Button
+                        onClick={handleNextQuestion}
+                        className="w-full"
+                        size="lg"
+                        variant={currentRecording ? "default" : "outline"}
+                        data-testid="button-next-question"
+                      >
+                        <ChevronRight className="h-5 w-5 mr-2" />
+                        {currentRecording ? "Keyingi savolga o'tish" : "O'tkazib yuborish (javobsiz)"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </div>
             </CardContent>
