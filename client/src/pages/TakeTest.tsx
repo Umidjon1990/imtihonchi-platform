@@ -110,103 +110,6 @@ function flattenSections(tree: HierarchicalSection[]): HierarchicalSection[] {
   return result;
 }
 
-// Mock data for demo test - EXACT match with seed-demo-test.ts
-const DEMO_MOCK_DATA = {
-  test: {
-    id: 'demo-test',
-    title: 'TEST 1',
-    description: 'Bepul demo test - Arab tili og\'zaki nutq ko\'nikmasini baholash',
-    imageUrl: null,
-    categoryId: 'demo-category',
-    teacherId: 'system',
-    price: 0,
-    language: 'uz',
-    isPublished: true,
-    isDemo: true,
-    mainTestId: null,
-    createdAt: new Date(),
-  } as Test,
-  sections: [
-    {
-      id: 'demo-section-1',
-      testId: 'demo-test',
-      sectionNumber: 1,
-      title: 'Og\'zaki Nutq',
-      instructions: 'Arab tilida javob bering. Har bir savol uchun tayyorgarlik va javob berish vaqti beriladi.',
-      preparationTime: 30,
-      speakingTime: 60,
-      parentSectionId: null,
-      imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=600&fit=crop',
-    } as TestSection,
-  ],
-  questions: [
-    {
-      id: 'demo-q1',
-      sectionId: 'demo-section-1',
-      questionNumber: 1,
-      questionText: 'نفسك عن تحدث (O\'zingiz haqingizda gapiring)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q2',
-      sectionId: 'demo-section-1',
-      questionNumber: 2,
-      questionText: 'المفضلة؟ هوايتك ما (Sevimli mashg\'ulotingiz nima?)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q3',
-      sectionId: 'demo-section-1',
-      questionNumber: 3,
-      questionText: 'تعيش؟ أين (Qayerda yashaysiz?)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q4',
-      sectionId: 'demo-section-1',
-      questionNumber: 4,
-      questionText: 'تدرس؟ أو تعمل ماذا (Nima ish qilasiz yoki o\'qiysiz?)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q5',
-      sectionId: 'demo-section-1',
-      questionNumber: 5,
-      questionText: 'الحرة؟ أوقاتك في تفعل ماذا (Bo\'sh vaqtingizda nima qilasiz?)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q6',
-      sectionId: 'demo-section-1',
-      questionNumber: 6,
-      questionText: 'المفضل؟ طعامك ما (Sevimli taomingiz nima?)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q7',
-      sectionId: 'demo-section-1',
-      questionNumber: 7,
-      questionText: 'عائلتك؟ عن أخبرنا (Oilangiz haqida gapiring)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-    {
-      id: 'demo-q8',
-      sectionId: 'demo-section-1',
-      questionNumber: 8,
-      questionText: 'المستقبلية؟ أحلامك ما (Kelajakdagi orzularingiz nima?)',
-      preparationTime: 30,
-      speakingTime: 60,
-    } as Question,
-  ],
-};
-
 export default function TakeTest() {
   const [, demoParams] = useRoute("/take-test/demo");
   const [, purchaseParams] = useRoute("/take-test/:purchaseId");
@@ -258,9 +161,11 @@ export default function TakeTest() {
     enabled: !isDemo && !!purchaseId, // Skip if demo
   });
 
-  // ✅ FIX: Demo mode uses MOCK data, no API calls
-  const finalTest = isDemo ? DEMO_MOCK_DATA.test : undefined;
-  const finalSections = isDemo ? DEMO_MOCK_DATA.sections : [];
+  // ✅ FIX: Fetch REAL demo test from database
+  const { data: demoTest, isLoading: demoTestLoading } = useQuery<Test>({
+    queryKey: ["/api/demo-test"],
+    enabled: isDemo,
+  });
   
   // Fetch regular test if not demo (only for authenticated users)
   const { data: fetchedTest, isLoading: testLoading } = useQuery<Test>({
@@ -268,15 +173,16 @@ export default function TakeTest() {
     enabled: !isDemo && !!purchase?.testId,
   });
   
-  // Fetch sections for regular test (only if not demo)
-  const { data: fetchedSectionsAPI = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
-    queryKey: [`/api/tests/${fetchedTest?.id}/sections`],
-    enabled: !isDemo && !!fetchedTest?.id,
+  // Use demo test or regular test
+  const actualTest = isDemo ? demoTest : fetchedTest;
+  
+  // Fetch sections for demo or regular test
+  const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
+    queryKey: [`/api/tests/${actualTest?.id}/sections`],
+    enabled: !!actualTest?.id,
   });
   
-  // Use demo data if demo, otherwise use API data
-  const actualTest = isDemo ? finalTest : fetchedTest;
-  const actualSections = isDemo ? finalSections : fetchedSectionsAPI;
+  const actualSections = fetchedSections;
 
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
@@ -294,14 +200,7 @@ export default function TakeTest() {
       
       setQuestionsLoading(true);
       try {
-        // ✅ FIX: Demo mode uses MOCK questions
-        if (isDemo) {
-          setAllQuestions(DEMO_MOCK_DATA.questions);
-          setQuestionsLoading(false);
-          return;
-        }
-        
-        // Regular mode: fetch from API
+        // Fetch from API for both demo and regular tests
         const questionsPromises = sections.map(section =>
           fetch(`/api/sections/${section.id}/questions`).then(res => res.json())
         );
@@ -321,7 +220,7 @@ export default function TakeTest() {
     };
 
     fetchAllQuestions();
-  }, [sections, isDemo]);
+  }, [sections]);
 
   // Flat list of all questions with section info embedded
   const flatQuestionList = useMemo(() => {
@@ -1140,7 +1039,7 @@ export default function TakeTest() {
 
   // Mikrofon test sahifasi - show before checking other data
   if (!micTestCompleted) {
-    if (!isDemo && (purchaseLoading || testLoading)) {
+    if (purchaseLoading || testLoading || (isDemo && demoTestLoading)) {
       return (
         <div className="min-h-screen flex items-center justify-center">
           <div className="text-lg">Yuklanmoqda...</div>
@@ -1290,8 +1189,8 @@ export default function TakeTest() {
     );
   }
 
-  // Show loading while sections/questions are being fetched (skip for demo)
-  if (!isDemo && (sectionsLoading || questionsLoading)) {
+  // Show loading while sections/questions are being fetched
+  if (sectionsLoading || questionsLoading || (isDemo && demoTestLoading)) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Test yuklanmoqda...</div>
