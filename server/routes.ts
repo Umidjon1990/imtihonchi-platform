@@ -625,6 +625,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/tests/:testId/sections", async (req, res) => {
     try {
       const sections = await storage.getSectionsByTestId(req.params.testId);
+      // 🔍 DEBUG: Check if imageUrl is in the response
+      console.log('📸 [SECTIONS API] Sections with imageUrl:', sections.map(s => ({ 
+        id: s.id, 
+        title: s.title, 
+        imageUrl: s.imageUrl,
+        hasImageUrl: !!s.imageUrl 
+      })));
       res.json(sections);
     } catch (error) {
       console.error("Error fetching sections:", error);
