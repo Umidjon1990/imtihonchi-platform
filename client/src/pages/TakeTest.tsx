@@ -1244,6 +1244,7 @@ export default function TakeTest() {
 
   // Show loading while sections/questions are being fetched
   if (sectionsLoading || questionsLoading) {
+    console.log('⏳ [RETURN] Loading state - sectionsLoading:', sectionsLoading, 'questionsLoading:', questionsLoading);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Test yuklanmoqda...</div>
@@ -1253,9 +1254,24 @@ export default function TakeTest() {
 
   // Check if data is valid (demo mode uchun purchase kerak emas)
   if ((!isDemo && !purchase) || !finalTest || sections.length === 0 || allQuestions.length === 0) {
+    console.log('❌ [RETURN] Data validation failed:');
+    console.log('  - isDemo:', isDemo, '!isDemo && !purchase:', (!isDemo && !purchase));
+    console.log('  - finalTest:', !!finalTest);
+    console.log('  - sections.length:', sections.length);
+    console.log('  - allQuestions.length:', allQuestions.length);
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg text-destructive">Test ma'lumotlari topilmadi</div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md">
+          <CardHeader>
+            <CardTitle>Test ma'lumotlari topilmadi</CardTitle>
+            <CardDescription>
+              isDemo: {isDemo ? 'true' : 'false'}<br/>
+              finalTest: {finalTest ? 'mavjud' : 'yo\'q'}<br/>
+              sections: {sections.length}<br/>
+              questions: {allQuestions.length}
+            </CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
