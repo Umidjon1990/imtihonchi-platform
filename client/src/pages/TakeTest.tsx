@@ -193,14 +193,6 @@ export default function TakeTest() {
   // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
   const sectionTree = useMemo(() => buildSectionTree(actualSections), [actualSections]);
   const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
-  
-  // 🔍 DEBUG: Check sections data
-  console.log('📸 [CLIENT] Sections data:', sections.map(s => ({ 
-    id: s.id, 
-    title: s.title, 
-    imageUrl: s.imageUrl,
-    hasImageUrl: !!s.imageUrl 
-  })));
 
   useEffect(() => {
     const fetchAllQuestions = async () => {
