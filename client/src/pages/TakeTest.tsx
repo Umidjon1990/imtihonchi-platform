@@ -1275,7 +1275,27 @@ export default function TakeTest() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const currentRecording = recordings[currentQuestion.id];
+  // Check for recording in memory state OR localStorage (for demo mode)
+  const currentRecording = useMemo(() => {
+    const memoryRecording = recordings[currentQuestion.id];
+    if (memoryRecording) return memoryRecording;
+    
+    // For demo mode, check localStorage
+    if (isDemo) {
+      const storedAudio = localStorage.getItem(`demo-audio-${currentQuestion.id}`);
+      if (storedAudio) {
+        // Return a fake recording object to show button
+        return {
+          url: storedAudio,
+          duration: 60, // We don't store duration in localStorage
+          blob: null as any, // Not needed for display
+        };
+      }
+    }
+    
+    return null;
+  }, [recordings, currentQuestion.id, isDemo]);
+  
   const isQuestionAnswered = !!currentRecording;
 
   return (
