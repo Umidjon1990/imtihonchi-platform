@@ -895,18 +895,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/upload-audio", isAuthenticated, uploadAudio.single("file"), async (req: Request, res) => {
     try {
       if (!req.file) {
+        console.error("❌ [AUDIO-UPLOAD] No file provided");
         return res.status(400).json({ message: "Fayl tanlanmagan" });
       }
+      
+      const fileSize = req.file.buffer.length;
+      console.log(`📤 [AUDIO-UPLOAD] Uploading audio file (${fileSize} bytes)`);
       
       // Upload to Object Storage - force .webm extension for MediaRecorder compatibility
       const filename = `audio-${Date.now()}-${Math.random().toString(36).substring(7)}.webm`;
       const filePath = getFilePath('audio', filename);
-      await uploadToObjectStorage(filePath, req.file.buffer, 'audio/webm');
+      
+      try {
+        await uploadToObjectStorage(filePath, req.file.buffer, 'audio/webm');
+        console.log(`✅ [AUDIO-UPLOAD] Successfully uploaded: ${filename}`);
+      } catch (storageError: any) {
+        console.error(`❌ [AUDIO-UPLOAD] Object Storage error:`, {
+          message: storageError.message,
+          stack: storageError.stack,
+          env: {
+            hasPublicSearchPaths: !!process.env.PUBLIC_OBJECT_SEARCH_PATHS,
+            hasPrivateDir: !!process.env.PRIVATE_OBJECT_DIR,
+          }
+        });
+        
+        // Return user-friendly error message (don't expose internal details)
+        return res.status(500).json({ 
+          message: "Fayl yuklashda xatolik. Iltimos qaytadan urinib ko'ring yoki admin bilan bog'laning."
+        });
+      }
       
       const url = `/api/audio/${filename}`;
       res.json({ url });
     } catch (error: any) {
-      console.error("Error uploading audio:", error);
+      console.error("❌ [AUDIO-UPLOAD] Unexpected error:", error);
       res.status(500).json({ message: error.message || "Audio yuklashda xatolik" });
     }
   });

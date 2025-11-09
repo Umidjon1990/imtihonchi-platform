@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Mic, MicOff, Play, Square, Check, AlertCircle, ChevronRight, ChevronLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Mic, MicOff, Play, Square, Check, AlertCircle, ChevronRight, ChevronLeft, ZoomIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Purchase, Test, TestSection, Question } from "@shared/schema";
@@ -235,6 +236,8 @@ export default function TakeTest() {
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
     const fetchAllQuestions = async () => {
@@ -723,19 +726,46 @@ export default function TakeTest() {
   }, [isRecording]);
 
   const handleNextQuestion = useCallback(async () => {
-    console.log('🚀 [NEXT] handleNextQuestion called');
-    if (isRecording) {
-      console.log('🛑 [NEXT] Stopping recording first');
-      await stopRecording();
+    try {
+      console.log('🚀 [NEXT] handleNextQuestion called', {
+        currentIndex: globalQuestionIndex,
+        totalQuestions: flatQuestionList.length,
+        currentQuestion: currentQuestion?.id,
+        currentSection: currentSection?.title
+      });
+      
+      // Validation
+      if (!flatQuestionList || flatQuestionList.length === 0) {
+        console.error('❌ [NEXT] No questions available');
+        toast({
+          title: "Xatolik",
+          description: "Savollar topilmadi. Sahifani yangilang.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (isRecording) {
+        console.log('🛑 [NEXT] Stopping recording first');
+        await stopRecording();
+      }
+      
+      const nextIndex = globalQuestionIndex + 1;
+      if (nextIndex < flatQuestionList.length) {
+        console.log(`➡️ [NEXT] Moving to question ${nextIndex + 1}/${flatQuestionList.length}`);
+        setGlobalQuestionIndex(nextIndex);
+      } else {
+        console.log('✅ [NEXT] Already at last question');
+      }
+    } catch (error) {
+      console.error('❌ [NEXT] Error in handleNextQuestion:', error);
+      toast({
+        title: "Xatolik",
+        description: "Keyingi savolga o'tishda xatolik. Sahifani yangilang.",
+        variant: "destructive",
+      });
     }
-    
-    if (globalQuestionIndex < flatQuestionList.length - 1) {
-      console.log(`➡️ [NEXT] Moving to question ${globalQuestionIndex + 2}`);
-      setGlobalQuestionIndex(prev => prev + 1);
-    } else {
-      console.log('✅ [NEXT] Already at last question');
-    }
-  }, [isRecording, stopRecording, globalQuestionIndex, flatQuestionList.length]);
+  }, [isRecording, stopRecording, globalQuestionIndex, flatQuestionList, currentQuestion, currentSection, toast]);
 
   const handlePrevQuestion = useCallback(async () => {
     if (isRecording) {
@@ -1319,24 +1349,52 @@ export default function TakeTest() {
                     <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
                       Bo'lim rasmi (barcha savollar uchun):
                     </p>
-                    <img 
-                      src={currentSection.imageUrl} 
-                      alt="Bo'lim rasmi"
-                      className="w-full h-auto rounded-md"
-                      data-testid="section-image"
-                    />
+                    <div 
+                      className="relative group cursor-pointer"
+                      onClick={() => {
+                        setSelectedImage({ url: currentSection.imageUrl!, alt: "Bo'lim rasmi" });
+                        setImageModalOpen(true);
+                      }}
+                      data-testid="section-image-container"
+                    >
+                      <img 
+                        src={currentSection.imageUrl} 
+                        alt="Bo'lim rasmi"
+                        className="w-full h-auto rounded-md transition-opacity group-hover:opacity-80"
+                        data-testid="section-image"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-md">
+                        <div className="bg-white/90 dark:bg-black/90 p-3 rounded-full">
+                          <ZoomIn className="h-6 w-6 text-primary" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
                 {/* Question Image */}
                 {currentQuestion.imageUrl && (
                   <div className="rounded-lg overflow-hidden border-2 border-primary/20">
-                    <img 
-                      src={currentQuestion.imageUrl} 
-                      alt="Savol rasmi"
-                      className="w-full h-auto rounded-md"
-                      data-testid="question-image"
-                    />
+                    <div 
+                      className="relative group cursor-pointer"
+                      onClick={() => {
+                        setSelectedImage({ url: currentQuestion.imageUrl!, alt: "Savol rasmi" });
+                        setImageModalOpen(true);
+                      }}
+                      data-testid="question-image-container"
+                    >
+                      <img 
+                        src={currentQuestion.imageUrl} 
+                        alt="Savol rasmi"
+                        className="w-full h-auto rounded-md transition-opacity group-hover:opacity-80"
+                        data-testid="question-image"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-md">
+                        <div className="bg-white/90 dark:bg-black/90 p-3 rounded-full">
+                          <ZoomIn className="h-6 w-6 text-primary" />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -1498,6 +1556,23 @@ export default function TakeTest() {
           </Alert>
         </div>
       </main>
+
+      {/* Image Modal */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-2">
+          <DialogTitle className="sr-only">{selectedImage?.alt || "Rasm ko'rinishi"}</DialogTitle>
+          {selectedImage && (
+            <div className="flex items-center justify-center w-full h-full">
+              <img 
+                src={selectedImage.url} 
+                alt={selectedImage.alt}
+                className="max-w-full max-h-[85vh] object-contain rounded-lg"
+                data-testid="modal-image"
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
