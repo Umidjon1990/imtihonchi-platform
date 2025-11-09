@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Clock, BookOpen, Award, LogOut, Upload, Download } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
@@ -98,6 +98,7 @@ function SubmissionCard({ submission, test }: { submission: Submission; test: Te
 export default function StudentDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
@@ -238,12 +239,15 @@ export default function StudentDashboard() {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Link href="/take-test/demo" className="w-full">
-                    <Button className="w-full" size="lg" data-testid="button-start-demo">
-                      <BookOpen className="h-4 w-4 mr-2" />
-                      Demo Testni Boshlash
-                    </Button>
-                  </Link>
+                  <Button 
+                    className="w-full" 
+                    size="lg" 
+                    data-testid="button-start-demo"
+                    onClick={() => setLocation('/take-test/demo')}
+                  >
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    Demo Testni Boshlash
+                  </Button>
                 </CardFooter>
               </Card>
 
