@@ -163,7 +163,8 @@ export default function TakeTest() {
   const [, demoParams] = useRoute("/take-test/demo");
   const [, purchaseParams] = useRoute("/take-test/:purchaseId");
   const isDemo = !!demoParams;
-  const purchaseId = purchaseParams?.purchaseId;
+  // ✅ FIX: Don't use purchaseId if demo mode (prevents purchase logic from running)
+  const purchaseId = isDemo ? undefined : purchaseParams?.purchaseId;
   const [, navigate] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -797,6 +798,19 @@ export default function TakeTest() {
   }, [isRecording, stopRecording, globalQuestionIndex, clearAutoProgress]);
 
   const submitTest = async () => {
+    // ✅ FIX: Demo mode - skip submission, just navigate
+    if (isDemo) {
+      console.log('📱 [DEMO] Test completed, navigating to results...');
+      localStorage.setItem('demo-completed', 'true');
+      
+      // Clear all timers before navigating
+      if (sectionTimerRef.current) clearTimeout(sectionTimerRef.current);
+      if (recordingTimerRef.current) clearInterval(recordingTimerRef.current);
+      
+      navigate('/demo-result');
+      return;
+    }
+    
     if (completedQuestions < totalQuestions) {
       const confirmed = confirm(
         `Siz ${totalQuestions - completedQuestions} ta savolga javob bermadingiz. Testni topshirishni xohlaysizmi?`
