@@ -221,6 +221,14 @@ export default function TakeTest() {
   });
   
   const finalTest = isDemo ? demoTest : fetchedTest;
+  
+  // Debug: Log what we have
+  console.log('🔍 [DEBUG] isDemo:', isDemo, 'purchaseId:', purchaseId);
+  console.log('🔍 [DEBUG] demoTest:', demoTest);
+  console.log('🔍 [DEBUG] fetchedTest:', fetchedTest);
+  console.log('🔍 [DEBUG] finalTest:', finalTest);
+  console.log('🔍 [DEBUG] purchase:', purchase);
+  console.log('🔍 [DEBUG] purchaseLoading:', purchaseLoading, 'demoTestLoading:', demoTestLoading, 'testLoading:', testLoading);
 
   // Fetch sections for demo or regular test
   const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
@@ -229,13 +237,17 @@ export default function TakeTest() {
   });
   const finalSections = fetchedSections;
 
-  // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
-  const sectionTree = useMemo(() => buildSectionTree(finalSections), [finalSections]);
-  const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
-
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+  
+  // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
+  const sectionTree = useMemo(() => buildSectionTree(finalSections), [finalSections]);
+  const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
+  
+  console.log('🔍 [DEBUG] sections:', sections.length, 'allQuestions:', allQuestions.length);
+  console.log('🔍 [DEBUG] sectionsLoading:', sectionsLoading, 'questionsLoading:', questionsLoading);
+  console.log('🔍 [DEBUG] micTestCompleted:', micTestCompleted);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
