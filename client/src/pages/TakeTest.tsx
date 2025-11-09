@@ -221,14 +221,6 @@ export default function TakeTest() {
   });
   
   const finalTest = isDemo ? demoTest : fetchedTest;
-  
-  // Debug: Log what we have
-  console.log('🔍 [DEBUG] isDemo:', isDemo, 'purchaseId:', purchaseId);
-  console.log('🔍 [DEBUG] demoTest:', demoTest);
-  console.log('🔍 [DEBUG] fetchedTest:', fetchedTest);
-  console.log('🔍 [DEBUG] finalTest:', finalTest);
-  console.log('🔍 [DEBUG] purchase:', purchase);
-  console.log('🔍 [DEBUG] purchaseLoading:', purchaseLoading, 'demoTestLoading:', demoTestLoading, 'testLoading:', testLoading);
 
   // Fetch sections for demo or regular test
   const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
@@ -240,16 +232,12 @@ export default function TakeTest() {
   // Fetch all questions for all sections
   const [allQuestions, setAllQuestions] = useState<Question[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
   
   // Build hierarchical tree and flatten for navigation (memoized to prevent refetch loop)
   const sectionTree = useMemo(() => buildSectionTree(finalSections), [finalSections]);
   const sections = useMemo(() => flattenSections(sectionTree), [sectionTree]);
-  
-  console.log('🔍 [DEBUG] sections:', sections.length, 'allQuestions:', allQuestions.length);
-  console.log('🔍 [DEBUG] sectionsLoading:', sectionsLoading, 'questionsLoading:', questionsLoading);
-  console.log('🔍 [DEBUG] micTestCompleted:', micTestCompleted);
-  const [imageModalOpen, setImageModalOpen] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<{ url: string; alt: string } | null>(null);
 
   useEffect(() => {
     const fetchAllQuestions = async () => {
@@ -1244,7 +1232,6 @@ export default function TakeTest() {
 
   // Show loading while sections/questions are being fetched
   if (sectionsLoading || questionsLoading) {
-    console.log('⏳ [RETURN] Loading state - sectionsLoading:', sectionsLoading, 'questionsLoading:', questionsLoading);
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-lg">Test yuklanmoqda...</div>
@@ -1254,24 +1241,9 @@ export default function TakeTest() {
 
   // Check if data is valid (demo mode uchun purchase kerak emas)
   if ((!isDemo && !purchase) || !finalTest || sections.length === 0 || allQuestions.length === 0) {
-    console.log('❌ [RETURN] Data validation failed:');
-    console.log('  - isDemo:', isDemo, '!isDemo && !purchase:', (!isDemo && !purchase));
-    console.log('  - finalTest:', !!finalTest);
-    console.log('  - sections.length:', sections.length);
-    console.log('  - allQuestions.length:', allQuestions.length);
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Card className="max-w-md">
-          <CardHeader>
-            <CardTitle>Test ma'lumotlari topilmadi</CardTitle>
-            <CardDescription>
-              isDemo: {isDemo ? 'true' : 'false'}<br/>
-              finalTest: {finalTest ? 'mavjud' : 'yo\'q'}<br/>
-              sections: {sections.length}<br/>
-              questions: {allQuestions.length}
-            </CardDescription>
-          </CardHeader>
-        </Card>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-destructive">Test ma'lumotlari topilmadi</div>
       </div>
     );
   }
