@@ -110,12 +110,12 @@ function flattenSections(tree: HierarchicalSection[]): HierarchicalSection[] {
   return result;
 }
 
-// Mock data for demo test
+// Mock data for demo test - EXACT match with seed-demo-test.ts
 const DEMO_MOCK_DATA = {
   test: {
     id: 'demo-test',
-    title: 'Demo Test - CEFR Og\'zaki Baholash',
-    description: 'Platformani sinab ko\'rish uchun qisqartirilgan test',
+    title: 'TEST 1',
+    description: 'Bepul demo test - Arab tili og\'zaki nutq ko\'nikmasini baholash',
     imageUrl: null,
     categoryId: 'demo-category',
     teacherId: 'system',
@@ -131,12 +131,12 @@ const DEMO_MOCK_DATA = {
       id: 'demo-section-1',
       testId: 'demo-test',
       sectionNumber: 1,
-      title: 'Bo\'lim 1: Shaxsiy ma\'lumotlar',
-      instructions: 'O\'zingiz haqingizda qisqacha gaplang',
-      preparationTime: 5, // 5 sekund tayyorgarlik
-      speakingTime: 20, // 20 sekund gapirish
+      title: 'Og\'zaki Nutq',
+      instructions: 'Arab tilida javob bering. Har bir savol uchun tayyorgarlik va javob berish vaqti beriladi.',
+      preparationTime: 30,
+      speakingTime: 60,
       parentSectionId: null,
-      imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=600&fit=crop', // ✅ Added image!
+      imageUrl: 'https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?w=800&h=600&fit=crop',
     } as TestSection,
   ],
   questions: [
@@ -144,17 +144,65 @@ const DEMO_MOCK_DATA = {
       id: 'demo-q1',
       sectionId: 'demo-section-1',
       questionNumber: 1,
-      questionText: 'Ismingiz nima? Qayerda yashaysiz?',
-      preparationTime: null, // section default ishlatadi
-      speakingTime: null,
+      questionText: 'نفسك عن تحدث (O\'zingiz haqingizda gapiring)',
+      preparationTime: 30,
+      speakingTime: 60,
     } as Question,
     {
       id: 'demo-q2',
       sectionId: 'demo-section-1',
       questionNumber: 2,
-      questionText: 'Sevimli mashg\'ulotingiz nima?',
-      preparationTime: null,
-      speakingTime: null,
+      questionText: 'المفضلة؟ هوايتك ما (Sevimli mashg\'ulotingiz nima?)',
+      preparationTime: 30,
+      speakingTime: 60,
+    } as Question,
+    {
+      id: 'demo-q3',
+      sectionId: 'demo-section-1',
+      questionNumber: 3,
+      questionText: 'تعيش؟ أين (Qayerda yashaysiz?)',
+      preparationTime: 30,
+      speakingTime: 60,
+    } as Question,
+    {
+      id: 'demo-q4',
+      sectionId: 'demo-section-1',
+      questionNumber: 4,
+      questionText: 'تدرس؟ أو تعمل ماذا (Nima ish qilasiz yoki o\'qiysiz?)',
+      preparationTime: 30,
+      speakingTime: 60,
+    } as Question,
+    {
+      id: 'demo-q5',
+      sectionId: 'demo-section-1',
+      questionNumber: 5,
+      questionText: 'الحرة؟ أوقاتك في تفعل ماذا (Bo\'sh vaqtingizda nima qilasiz?)',
+      preparationTime: 30,
+      speakingTime: 60,
+    } as Question,
+    {
+      id: 'demo-q6',
+      sectionId: 'demo-section-1',
+      questionNumber: 6,
+      questionText: 'المفضل؟ طعامك ما (Sevimli taomingiz nima?)',
+      preparationTime: 30,
+      speakingTime: 60,
+    } as Question,
+    {
+      id: 'demo-q7',
+      sectionId: 'demo-section-1',
+      questionNumber: 7,
+      questionText: 'عائلتك؟ عن أخبرنا (Oilangiz haqida gapiring)',
+      preparationTime: 30,
+      speakingTime: 60,
+    } as Question,
+    {
+      id: 'demo-q8',
+      sectionId: 'demo-section-1',
+      questionNumber: 8,
+      questionText: 'المستقبلية؟ أحلامك ما (Kelajakdagi orzularingiz nima?)',
+      preparationTime: 30,
+      speakingTime: 60,
     } as Question,
   ],
 };
