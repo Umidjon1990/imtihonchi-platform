@@ -1276,7 +1276,10 @@ export default function TakeTest() {
   };
 
   // Check for recording in memory state OR localStorage (for demo mode)
-  const currentRecording = useMemo(() => {
+  // MOVED: No useMemo here - just regular function to avoid hooks ordering issues
+  const getCurrentRecording = () => {
+    if (!currentQuestion) return null;
+    
     const memoryRecording = recordings[currentQuestion.id];
     if (memoryRecording) return memoryRecording;
     
@@ -1294,8 +1297,9 @@ export default function TakeTest() {
     }
     
     return null;
-  }, [recordings, currentQuestion.id, isDemo]);
+  };
   
+  const currentRecording = getCurrentRecording();
   const isQuestionAnswered = !!currentRecording;
 
   return (
