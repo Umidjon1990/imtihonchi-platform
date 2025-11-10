@@ -1358,6 +1358,10 @@ export default function TakeTest() {
                     <p className="text-xs font-medium text-muted-foreground mb-2 px-1">
                       Bo'lim rasmi (barcha savollar uchun):
                     </p>
+                    {/* DEBUG: Show imageUrl value */}
+                    <p className="text-xs text-red-500 mb-2 break-all">
+                      DEBUG URL: {currentSection.imageUrl}
+                    </p>
                     <div 
                       className="relative group cursor-pointer"
                       onClick={() => {
