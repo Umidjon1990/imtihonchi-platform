@@ -223,6 +223,8 @@ export type TestCategory = typeof testCategories.$inferSelect;
 export type InsertTestCategory = z.infer<typeof insertTestCategorySchema>;
 export type Test = typeof tests.$inferSelect;
 export type InsertTest = z.infer<typeof insertTestSchema>;
+// ✅ Extended Test type with categoryName for frontend audio filtering
+export type TestWithCategory = Test & { categoryName?: string | null };
 export type TestSection = typeof testSections.$inferSelect;
 export type InsertTestSection = z.infer<typeof insertTestSectionSchema>;
 export type Question = typeof questions.$inferSelect;

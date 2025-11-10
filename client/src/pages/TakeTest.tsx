@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Mic, MicOff, Play, Square, Check, AlertCircle, ChevronRight, ChevronLeft, ZoomIn } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import type { Purchase, Test, TestSection, Question } from "@shared/schema";
+import type { Purchase, TestWithCategory, TestSection, Question } from "@shared/schema";
 
 interface AudioRecording {
   blob: Blob | null;
@@ -164,7 +164,7 @@ export default function TakeTest() {
   });
 
   // ✅ FIX: Fetch REAL demo test from database
-  const { data: demoTest, isLoading: demoTestLoading } = useQuery<Test>({
+  const { data: demoTest, isLoading: demoTestLoading } = useQuery<TestWithCategory>({
     queryKey: ["/api/demo-test"],
     enabled: isDemo,
     staleTime: 0, // Always fetch fresh data
@@ -172,13 +172,19 @@ export default function TakeTest() {
   });
   
   // Fetch regular test if not demo (only for authenticated users)
-  const { data: fetchedTest, isLoading: testLoading } = useQuery<Test>({
+  const { data: fetchedTest, isLoading: testLoading } = useQuery<TestWithCategory>({
     queryKey: ["/api/tests", purchase?.testId],
     enabled: !isDemo && !!purchase?.testId,
   });
   
   // Use demo test or regular test
   const actualTest = isDemo ? demoTest : fetchedTest;
+  
+  // ✅ Check if this test is for Listening category using categoryName from test
+  // Backend now includes categoryName in test response - no separate fetch needed!
+  const isListeningCategory = actualTest?.categoryName 
+    ? (actualTest.categoryName.toLowerCase().includes('tinglash') || actualTest.categoryName.toLowerCase().includes('listening'))
+    : false; // Default to false (safe - no audio) if categoryName missing
   
   // ✅ DIRECT FETCH - Bypass cache completely
   const [fetchedSections, setFetchedSections] = useState<TestSection[]>([]);
@@ -889,7 +895,8 @@ export default function TakeTest() {
       console.log(`🔄 [INIT] Question ${globalQuestionIndex + 1}/${flatQuestionList.length}, Section "${currentQuestion.sectionTitle}", Prep: ${prepTime}s`);
       
       // Check if question has audio - play it first before starting timer
-      if (currentQuestion.questionAudioUrl) {
+      // ✅ Only play audio for Listening category tests
+      if (currentQuestion.questionAudioUrl && isListeningCategory) {
         console.log(`🔊 [AUDIO] Playing question audio: ${currentQuestion.questionAudioUrl}`);
         setPlayingQuestionAudio(true);
         
@@ -1505,7 +1512,8 @@ export default function TakeTest() {
                 {/* Timer */}
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-3 mb-2">
-                    {playingQuestionAudio ? (
+                    {/* ✅ Only show audio status for Listening category */}
+                    {playingQuestionAudio && isListeningCategory ? (
                       <Badge variant="outline" className="text-base px-4 py-2 border-primary">
                         🔊 Savol audiosi ijro bo'lmoqda...
                       </Badge>

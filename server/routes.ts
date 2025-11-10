@@ -515,7 +515,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Demo test topilmadi" });
       }
       
-      res.json(demoTest);
+      // ✅ Fetch category name to enable frontend audio filtering
+      const category = await storage.getCategoryById(demoTest.categoryId);
+      
+      res.json({
+        ...demoTest,
+        categoryName: category?.name || null,
+      });
     } catch (error) {
       console.error("Error fetching demo test:", error);
       res.status(500).json({ message: "Demo testni olishda xatolik" });
@@ -578,7 +584,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!test) {
         return res.status(404).json({ message: "Test topilmadi" });
       }
-      res.json(test);
+      
+      // ✅ Fetch category name to enable frontend audio filtering
+      const category = await storage.getCategoryById(test.categoryId);
+      
+      res.json({
+        ...test,
+        categoryName: category?.name || null,
+      });
     } catch (error) {
       console.error("Error fetching test:", error);
       res.status(500).json({ message: "Testni olishda xatolik" });
