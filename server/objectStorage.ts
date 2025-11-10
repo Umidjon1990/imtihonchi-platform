@@ -319,6 +319,12 @@ export async function downloadFromObjectStorage(key: string): Promise<Buffer> {
 }
 
 export async function getObjectStorageUrl(key: string): Promise<string> {
-  // For now, return the key - frontend will use /api/object-storage/:key endpoint
-  return `/api/object-storage/${key}`;
+  // Generate signed URL that expires in 1 hour
+  const { bucketName, objectName } = parseObjectPath(key);
+  return signObjectURL({
+    bucketName,
+    objectName,
+    method: 'GET',
+    ttlSec: 3600, // 1 hour
+  });
 }
