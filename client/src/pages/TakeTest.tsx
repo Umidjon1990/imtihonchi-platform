@@ -189,7 +189,9 @@ export default function TakeTest() {
       setSectionsLoading(true);
       try {
         console.log('🔄 [FETCH] Fetching sections for test:', actualTest.id);
-        const response = await fetch(`/api/tests/${actualTest.id}/sections`, {
+        // Add cache-busting parameter to force fresh data
+        const cacheBust = Date.now();
+        const response = await fetch(`/api/tests/${actualTest.id}/sections?_t=${cacheBust}`, {
           cache: 'no-store', // Force no cache
           headers: {
             'Cache-Control': 'no-cache',
