@@ -186,6 +186,16 @@ export default function TakeTest() {
     gcTime: 0, // Don't cache
   });
   
+  // 🔍 DEBUG: Log what we received from API
+  useEffect(() => {
+    if (fetchedSections.length > 0) {
+      console.log('🔍 [FETCHED SECTIONS] Raw data from API:', fetchedSections);
+      fetchedSections.forEach((s, i) => {
+        console.log(`  Section ${i}: "${s.title}" - imageUrl:`, s.imageUrl);
+      });
+    }
+  }, [fetchedSections]);
+  
   const actualSections = fetchedSections;
 
   // Fetch all questions for all sections
