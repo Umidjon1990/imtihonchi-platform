@@ -129,6 +129,26 @@ export default function EditTest() {
     enabled: !!id,
   });
 
+  // Fetch category to check if it's Listening category
+  const { data: category } = useQuery<{ id: string; title: string }>({
+    queryKey: [`/api/categories/${test?.categoryId}`],
+    enabled: !!test?.categoryId,
+  });
+
+  // Check if this test is for Listening category
+  const isListeningCategory = category?.title?.toLowerCase().includes('tinglash') || 
+                               category?.title?.toLowerCase().includes('listening');
+
+  // ✅ Clear audio data when category changes or is not Listening
+  useEffect(() => {
+    if (!isListeningCategory && newQuestion.questionAudioUrl) {
+      setNewQuestion(prev => ({
+        ...prev,
+        questionAudioUrl: null,
+      }));
+    }
+  }, [isListeningCategory, newQuestion.questionAudioUrl]);
+
   // Build hierarchical tree from flat sections
   const sectionTree = useMemo(() => buildSectionTree(sections), [sections]);
 
@@ -172,7 +192,12 @@ export default function EditTest() {
 
   const createQuestionMutation = useMutation({
     mutationFn: async (payload: typeof newQuestion & { sectionId: string; questionNumber: number }) => {
-      await apiRequest("POST", "/api/questions", payload);
+      // ✅ Sanitize: Remove audio for non-Listening categories
+      const sanitizedPayload = {
+        ...payload,
+        questionAudioUrl: isListeningCategory ? payload.questionAudioUrl : null,
+      };
+      await apiRequest("POST", "/api/questions", sanitizedPayload);
     },
     onSuccess: () => {
       toast({ title: "Muvaffaqiyat", description: "Savol qo'shildi" });
@@ -950,80 +975,83 @@ export default function EditTest() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium">Savol audiosi (ixtiyoriy)</Label>
-              <p className="text-xs text-muted-foreground">
-                Audio tayyorgarlik boshlanishidan avval ijro etiladi
-              </p>
-              <div className="flex gap-2">
-                {!newQuestion.questionAudioUrl ? (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={recordingQuestionAudio ? stopRecordingQuestionAudio : startRecordingQuestionAudio}
-                      disabled={uploadingQuestionAudio}
-                      data-testid="button-record-question-audio"
-                    >
-                      {recordingQuestionAudio ? (
-                        <>
-                          <Square className="h-4 w-4 mr-2" />
-                          To'xtatish
-                        </>
-                      ) : (
-                        <>
-                          <Mic className="h-4 w-4 mr-2" />
-                          Yozish
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={uploadingQuestionAudio || recordingQuestionAudio}
-                      onClick={() => {
-                        const input = document.createElement('input');
-                        input.type = 'file';
-                        input.accept = 'audio/*';
-                        input.onchange = (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) handleQuestionAudioUpload(file);
-                        };
-                        input.click();
-                      }}
-                      data-testid="button-upload-question-audio"
-                    >
-                      {uploadingQuestionAudio ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Yuklanmoqda...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Yuklash
-                        </>
-                      )}
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <audio controls src={newQuestion.questionAudioUrl} className="flex-1" />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setNewQuestion({ ...newQuestion, questionAudioUrl: null })}
-                      data-testid="button-remove-question-audio"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </>
-                )}
+            {/* ✅ Show audio section only for Listening category */}
+            {isListeningCategory && (
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Savol audiosi (ixtiyoriy)</Label>
+                <p className="text-xs text-muted-foreground">
+                  Audio tayyorgarlik boshlanishidan avval ijro etiladi
+                </p>
+                <div className="flex gap-2">
+                  {!newQuestion.questionAudioUrl ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={recordingQuestionAudio ? stopRecordingQuestionAudio : startRecordingQuestionAudio}
+                        disabled={uploadingQuestionAudio}
+                        data-testid="button-record-question-audio"
+                      >
+                        {recordingQuestionAudio ? (
+                          <>
+                            <Square className="h-4 w-4 mr-2" />
+                            To'xtatish
+                          </>
+                        ) : (
+                          <>
+                            <Mic className="h-4 w-4 mr-2" />
+                            Yozish
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={uploadingQuestionAudio || recordingQuestionAudio}
+                        onClick={() => {
+                          const input = document.createElement('input');
+                          input.type = 'file';
+                          input.accept = 'audio/*';
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement).files?.[0];
+                            if (file) handleQuestionAudioUpload(file);
+                          };
+                          input.click();
+                        }}
+                        data-testid="button-upload-question-audio"
+                      >
+                        {uploadingQuestionAudio ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Yuklanmoqda...
+                          </>
+                        ) : (
+                          <>
+                            <Upload className="h-4 w-4 mr-2" />
+                            Yuklash
+                          </>
+                        )}
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <audio controls src={newQuestion.questionAudioUrl} className="flex-1" />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setNewQuestion({ ...newQuestion, questionAudioUrl: null })}
+                        data-testid="button-remove-question-audio"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
               <div className="flex items-center gap-2">

@@ -773,6 +773,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const data = insertQuestionSchema.parse(req.body);
+      
+      // TODO: Add backend validation for questionAudioUrl in non-Listening categories
+      // Currently relying on frontend sanitization in EditTest.tsx
+      // Future improvement: Add storage.getSectionWithCategory() helper method
+      
       const question = await storage.createQuestion(data);
       res.json(question);
     } catch (error: any) {
