@@ -178,23 +178,44 @@ export default function TakeTest() {
   // Use demo test or regular test
   const actualTest = isDemo ? demoTest : fetchedTest;
   
-  // Fetch sections for demo or regular test
-  const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
-    queryKey: ['/api/tests', actualTest?.id, 'sections'],
-    enabled: !!actualTest?.id,
-    staleTime: 0, // Always fetch fresh data
-    gcTime: 0, // Don't cache
-  });
+  // ✅ DIRECT FETCH - Bypass cache completely
+  const [fetchedSections, setFetchedSections] = useState<TestSection[]>([]);
+  const [sectionsLoading, setSectionsLoading] = useState(false);
   
-  // 🔍 DEBUG: Log what we received from API
   useEffect(() => {
-    if (fetchedSections.length > 0) {
-      console.log('🔍 [FETCHED SECTIONS] Raw data from API:', fetchedSections);
-      fetchedSections.forEach((s, i) => {
-        console.log(`  Section ${i}: "${s.title}" - imageUrl:`, s.imageUrl);
-      });
-    }
-  }, [fetchedSections]);
+    if (!actualTest?.id) return;
+    
+    const fetchSections = async () => {
+      setSectionsLoading(true);
+      try {
+        console.log('🔄 [FETCH] Fetching sections for test:', actualTest.id);
+        const response = await fetch(`/api/tests/${actualTest.id}/sections`, {
+          cache: 'no-store', // Force no cache
+          headers: {
+            'Cache-Control': 'no-cache',
+            'Pragma': 'no-cache'
+          }
+        });
+        const data = await response.json();
+        console.log('✅ [FETCH SUCCESS] Sections data:', data);
+        data.forEach((s: TestSection, i: number) => {
+          console.log(`  Section ${i}: "${s.title}" - imageUrl:`, s.imageUrl);
+        });
+        setFetchedSections(data);
+      } catch (error) {
+        console.error('❌ [FETCH ERROR]:', error);
+        toast({
+          title: "Xatolik",
+          description: "Bo'limlarni yuklashda xatolik",
+          variant: "destructive"
+        });
+      } finally {
+        setSectionsLoading(false);
+      }
+    };
+    
+    fetchSections();
+  }, [actualTest?.id, toast]);
   
   const actualSections = fetchedSections;
 
