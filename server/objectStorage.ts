@@ -288,13 +288,18 @@ export function generateFilename(originalName: string, prefix = ''): string {
 }
 
 export function getFilePath(type: 'audio' | 'receipt' | 'certificate' | 'image' | 'question-audio', filename: string): string {
+  const bucketId = process.env.DEFAULT_OBJECT_STORAGE_BUCKET_ID;
+  if (!bucketId) {
+    throw new Error('DEFAULT_OBJECT_STORAGE_BUCKET_ID not set');
+  }
+  
   const privateDir = process.env.PRIVATE_OBJECT_DIR || '.private';
   
   const paths = {
     audio: `${privateDir}/audio`,
     receipt: `${privateDir}/receipts`,
     certificate: `${privateDir}/certificates`,
-    image: 'public/images',
+    image: `/${bucketId}/public/images`,
     'question-audio': `${privateDir}/question-audio`,
   };
 
