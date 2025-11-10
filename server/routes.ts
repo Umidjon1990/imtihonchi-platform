@@ -522,6 +522,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get demo test sections (public endpoint - no auth required)
+  app.get("/api/demo-test/sections", async (req, res) => {
+    try {
+      const demoTests = await storage.getTests(undefined, undefined);
+      const demoTest = demoTests.find(t => t.isDemo);
+      
+      if (!demoTest) {
+        return res.status(404).json({ message: "Demo test topilmadi" });
+      }
+      
+      const sections = await storage.getSectionsByTestId(demoTest.id);
+      console.log('📸 [DEMO SECTIONS API] Sections with imageUrl:', sections.map(s => ({ 
+        id: s.id, 
+        title: s.title, 
+        imageUrl: s.imageUrl,
+        hasImageUrl: !!s.imageUrl 
+      })));
+      
+      res.json(sections);
+    } catch (error) {
+      console.error("Error fetching demo sections:", error);
+      res.status(500).json({ message: "Demo test bo'limlarini olishda xatolik" });
+    }
+  });
+
   app.get("/api/tests", async (req, res) => {
     try {
       const user = req.user as any;

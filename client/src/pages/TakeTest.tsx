@@ -183,21 +183,34 @@ export default function TakeTest() {
   const [sectionsLoading, setSectionsLoading] = useState(false);
   
   useEffect(() => {
-    if (!actualTest?.id) return;
+    // In demo mode, we can fetch sections without test ID
+    // In regular mode, we need the test ID
+    if (!isDemo && !actualTest?.id) return;
     
     const fetchSections = async () => {
       setSectionsLoading(true);
       try {
-        console.log('🔄 [FETCH] Fetching sections for test:', actualTest.id);
+        // Use different endpoint for demo mode (no auth required)
+        const endpoint = isDemo 
+          ? '/api/demo-test/sections'
+          : `/api/tests/${actualTest!.id}/sections`;
+        
+        console.log('🔄 [FETCH] Fetching sections from:', endpoint);
+        
         // Add cache-busting parameter to force fresh data
         const cacheBust = Date.now();
-        const response = await fetch(`/api/tests/${actualTest.id}/sections?_t=${cacheBust}`, {
+        const response = await fetch(`${endpoint}?_t=${cacheBust}`, {
           cache: 'no-store', // Force no cache
           headers: {
             'Cache-Control': 'no-cache',
             'Pragma': 'no-cache'
           }
         });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
         const data = await response.json();
         console.log('✅ [FETCH SUCCESS] Sections data:', data);
         data.forEach((s: TestSection, i: number) => {
@@ -217,7 +230,7 @@ export default function TakeTest() {
     };
     
     fetchSections();
-  }, [actualTest?.id, toast]);
+  }, [actualTest?.id, isDemo, toast]);
   
   const actualSections = fetchedSections;
 
