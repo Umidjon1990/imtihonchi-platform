@@ -62,6 +62,7 @@ export interface IStorage {
   
   // Test section operations
   getSectionsByTestId(testId: string): Promise<TestSection[]>;
+  getSectionWithCategory(sectionId: string): Promise<{ section: TestSection; test: Test; category: TestCategory } | undefined>;
   createSection(section: InsertTestSection): Promise<TestSection>;
   updateSection(id: string, section: Partial<InsertTestSection>): Promise<TestSection | undefined>;
   deleteSection(id: string): Promise<void>;
@@ -253,6 +254,22 @@ export class DatabaseStorage implements IStorage {
       .from(testSections)
       .where(eq(testSections.testId, testId))
       .orderBy(testSections.sectionNumber);
+  }
+
+  async getSectionWithCategory(sectionId: string): Promise<{ section: TestSection; test: Test; category: TestCategory } | undefined> {
+    const result = await db
+      .select({
+        section: testSections,
+        test: tests,
+        category: testCategories,
+      })
+      .from(testSections)
+      .innerJoin(tests, eq(testSections.testId, tests.id))
+      .innerJoin(testCategories, eq(tests.categoryId, testCategories.id))
+      .where(eq(testSections.id, sectionId))
+      .limit(1);
+    
+    return result[0];
   }
 
   async createSection(section: InsertTestSection): Promise<TestSection> {

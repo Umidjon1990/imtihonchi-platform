@@ -130,14 +130,14 @@ export default function EditTest() {
   });
 
   // Fetch category to check if it's Listening category
-  const { data: category } = useQuery<{ id: string; title: string }>({
+  const { data: category } = useQuery<{ id: string; name: string }>({
     queryKey: [`/api/categories/${test?.categoryId}`],
     enabled: !!test?.categoryId,
   });
 
   // Check if this test is for Listening category
-  const isListeningCategory = category?.title?.toLowerCase().includes('tinglash') || 
-                               category?.title?.toLowerCase().includes('listening');
+  const isListeningCategory = category?.name?.toLowerCase().includes('tinglash') || 
+                               category?.name?.toLowerCase().includes('listening');
 
   // ✅ Clear audio data when category changes or is not Listening
   useEffect(() => {

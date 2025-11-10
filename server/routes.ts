@@ -774,9 +774,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const data = insertQuestionSchema.parse(req.body);
       
-      // TODO: Add backend validation for questionAudioUrl in non-Listening categories
-      // Currently relying on frontend sanitization in EditTest.tsx
-      // Future improvement: Add storage.getSectionWithCategory() helper method
+      // ✅ Backend validation: Reject audio for non-Listening categories
+      if (data.questionAudioUrl) {
+        const sectionData = await storage.getSectionWithCategory(data.sectionId);
+        if (sectionData) {
+          const isListening = sectionData.category.name?.toLowerCase().includes('tinglash') || 
+                             sectionData.category.name?.toLowerCase().includes('listening');
+          if (!isListening) {
+            return res.status(400).json({ 
+              message: "Audio faqat Tinglash kategoriyasi uchun qo'shilishi mumkin" 
+            });
+          }
+        }
+      }
       
       const question = await storage.createQuestion(data);
       res.json(question);
