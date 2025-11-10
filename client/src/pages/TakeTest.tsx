@@ -167,6 +167,8 @@ export default function TakeTest() {
   const { data: demoTest, isLoading: demoTestLoading } = useQuery<Test>({
     queryKey: ["/api/demo-test"],
     enabled: isDemo,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: 'always', // Refetch every time component mounts
   });
   
   // Fetch regular test if not demo (only for authenticated users)
@@ -230,7 +232,7 @@ export default function TakeTest() {
     };
     
     fetchSections();
-  }, [actualTest?.id, isDemo, toast]);
+  }, [actualTest?.id, isDemo, toast, demoTest, fetchedTest]); // ✅ Add demoTest/fetchedTest to refetch sections when test data changes
   
   const actualSections = fetchedSections;
 
