@@ -104,7 +104,9 @@ function flattenSections(tree: HierarchicalSection[]): HierarchicalSection[] {
     title: s.title,
     displayNumber: s.displayNumber,
     sectionNumber: s.sectionNumber,
-    hasParent: !!s.parentSectionId
+    hasParent: !!s.parentSectionId,
+    imageUrl: s.imageUrl,
+    hasImageUrl: !!s.imageUrl
   })));
   
   return result;
@@ -254,7 +256,15 @@ export default function TakeTest() {
   const currentQuestion = useMemo(() => flatQuestionList[globalQuestionIndex], [flatQuestionList, globalQuestionIndex]);
   const currentSection = useMemo(() => {
     if (!currentQuestion) return null;
-    return sections[currentQuestion.sectionIndex];
+    const section = sections[currentQuestion.sectionIndex];
+    console.log('🎯 [CURRENT SECTION]:', {
+      title: section?.title,
+      imageUrl: section?.imageUrl,
+      hasImageUrl: !!section?.imageUrl,
+      sectionIndex: currentQuestion.sectionIndex,
+      totalSections: sections.length
+    });
+    return section;
   }, [currentQuestion, sections]);
 
   // Calculate total progress
@@ -1357,10 +1367,18 @@ export default function TakeTest() {
                       data-testid="section-image-container"
                     >
                       <img 
+                        key={currentSection.imageUrl}
                         src={currentSection.imageUrl} 
                         alt="Bo'lim rasmi"
                         className="w-full h-auto rounded-md transition-opacity group-hover:opacity-80"
                         data-testid="section-image"
+                        onError={(e) => {
+                          console.error('❌ [IMAGE ERROR] Failed to load section image:', currentSection.imageUrl);
+                          console.error('  Error:', e);
+                        }}
+                        onLoad={() => {
+                          console.log('✅ [IMAGE SUCCESS] Section image loaded:', currentSection.imageUrl);
+                        }}
                       />
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 rounded-md">
                         <div className="bg-white/90 dark:bg-black/90 p-3 rounded-full">
