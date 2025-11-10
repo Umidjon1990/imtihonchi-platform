@@ -1,10 +1,12 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -1177,6 +1179,15 @@ function SectionCard({
   const { data: questions = [] } = useQuery<Question[]>({
     queryKey: [`/api/sections/${section.id}/questions`],
   });
+  
+  const [imageLoading, setImageLoading] = useState(true);
+  const [imageError, setImageError] = useState(false);
+  
+  // Reset image loading states when URL changes
+  useEffect(() => {
+    setImageLoading(true);
+    setImageError(false);
+  }, [section.imageUrl]);
 
   return (
     <Card data-testid={`card-section-${section.id}`}>
@@ -1187,22 +1198,67 @@ function SectionCard({
               Bo'lim {displayNumber}: {section.title}
             </CardTitle>
             <CardDescription className="mt-2">{section.instructions}</CardDescription>
-            <div className="flex gap-4 mt-3 text-sm flex-wrap">
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>Tayyorgarlik: {section.preparationTime}s</span>
-              </div>
-              <div className="flex items-center gap-1 text-muted-foreground">
-                <Clock className="h-3 w-3" />
-                <span>Gapirish: {section.speakingTime}s</span>
-              </div>
-              {section.imageUrl && (
-                <div className="flex items-center gap-1 text-primary">
-                  <Upload className="h-3 w-3" />
-                  <span>Rasm yuklangan</span>
+            
+            {/* Image Preview - responsive layout */}
+            {section.imageUrl && (
+              <div className="mt-4 flex flex-col md:flex-row gap-4">
+                <div className="flex-1">
+                  <div className="flex gap-4 text-sm flex-wrap">
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>Tayyorgarlik: {section.preparationTime}s</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-muted-foreground">
+                      <Clock className="h-3 w-3" />
+                      <span>Gapirish: {section.speakingTime}s</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-primary">
+                      <Upload className="h-3 w-3" />
+                      <span>Rasm yuklangan</span>
+                    </div>
+                  </div>
                 </div>
-              )}
-            </div>
+                
+                <div className="w-full md:max-w-[240px] flex-shrink-0">
+                  <AspectRatio ratio={4 / 3}>
+                    {imageLoading && !imageError && (
+                      <Skeleton className="w-full h-full rounded-md" />
+                    )}
+                    {imageError ? (
+                      <div className="w-full h-full rounded-md border border-muted bg-muted/20 flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                        <Upload className="h-8 w-8" />
+                        <span className="text-xs">Rasmni yuklab bo'lmadi</span>
+                      </div>
+                    ) : (
+                      <img
+                        src={section.imageUrl}
+                        alt={section.title || "Bo'lim rasmi"}
+                        className={`w-full h-full object-cover rounded-md border ${imageLoading ? 'hidden' : ''}`}
+                        onLoad={() => setImageLoading(false)}
+                        onError={() => {
+                          setImageLoading(false);
+                          setImageError(true);
+                        }}
+                      />
+                    )}
+                  </AspectRatio>
+                </div>
+              </div>
+            )}
+            
+            {/* Time indicators when no image */}
+            {!section.imageUrl && (
+              <div className="flex gap-4 mt-3 text-sm flex-wrap">
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Tayyorgarlik: {section.preparationTime}s</span>
+                </div>
+                <div className="flex items-center gap-1 text-muted-foreground">
+                  <Clock className="h-3 w-3" />
+                  <span>Gapirish: {section.speakingTime}s</span>
+                </div>
+              </div>
+            )}
           </div>
           <div className="flex gap-2 flex-wrap">
             <Button 
