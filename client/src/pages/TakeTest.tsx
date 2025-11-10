@@ -180,8 +180,10 @@ export default function TakeTest() {
   
   // Fetch sections for demo or regular test
   const { data: fetchedSections = [], isLoading: sectionsLoading } = useQuery<TestSection[]>({
-    queryKey: [`/api/tests/${actualTest?.id}/sections`],
+    queryKey: ['/api/tests', actualTest?.id, 'sections'],
     enabled: !!actualTest?.id,
+    staleTime: 0, // Always fetch fresh data
+    gcTime: 0, // Don't cache
   });
   
   const actualSections = fetchedSections;
