@@ -3,102 +3,29 @@ import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, GraduationCap, Phone } from "lucide-react";
+import { Loader2, Phone, Lock } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<"email" | "phone">("email");
   
   // Get returnUrl from query params
   const urlParams = new URLSearchParams(window.location.search);
   const returnUrl = urlParams.get('returnUrl') || '/';
   
-  // Shared state for both tabs
-  const [isRegister, setIsRegister] = useState(false);
-  const [email, setEmail] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [password, setPassword] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const handleEmailAuth = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isRegister && (!firstName.trim() || !lastName.trim())) {
-      toast({
-        title: "Xato",
-        description: "Ism va familiyani kiriting",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!email.trim() || !password.trim()) {
-      toast({
-        title: "Xato",
-        description: "Email va parolni kiriting",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (password.length < 6) {
-      toast({
-        title: "Xato",
-        description: "Parol kamida 6 belgidan iborat bo'lishi kerak",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const endpoint = isRegister ? '/api/register' : '/api/login';
-      const body = isRegister 
-        ? { email, password, firstName, lastName }
-        : { email, password };
-
-      await apiRequest('POST', endpoint, body);
-
-      toast({
-        title: "Muvaffaqiyatli!",
-        description: isRegister ? "Ro'yxatdan o'tdingiz" : "Tizimga kirdingiz",
-      });
-
-      // Redirect to returnUrl or home
-      window.location.href = returnUrl;
-    } catch (error: any) {
-      toast({
-        title: "Xato",
-        description: error.message || (isRegister ? "Ro'yxatdan o'tishda xatolik" : "Kirishda xatolik"),
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handlePhoneAuth = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (isRegister && (!firstName.trim() || !lastName.trim())) {
-      toast({
-        title: "Xato",
-        description: "Ism va familiyani kiriting",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!phoneNumber.trim() || !password.trim()) {
       toast({
         title: "Xato",
-        description: "Telefon va parolni kiriting",
+        description: "Telefon raqam va parolni kiriting",
         variant: "destructive",
       });
       return;
@@ -115,16 +42,11 @@ export default function Login() {
 
     setLoading(true);
     try {
-      const endpoint = isRegister ? '/api/register' : '/api/login';
-      const body = isRegister 
-        ? { phoneNumber, password, firstName, lastName }
-        : { phoneNumber, password };
-
-      await apiRequest('POST', endpoint, body);
+      await apiRequest('POST', '/api/login', { phoneNumber, password });
 
       toast({
         title: "Muvaffaqiyatli!",
-        description: isRegister ? "Ro'yxatdan o'tdingiz" : "Tizimga kirdingiz",
+        description: "Tizimga kirdingiz",
       });
 
       // Redirect to returnUrl or home
@@ -132,7 +54,7 @@ export default function Login() {
     } catch (error: any) {
       toast({
         title: "Xato",
-        description: error.message || (isRegister ? "Ro'yxatdan o'tishda xatolik" : "Kirishda xatolik"),
+        description: error.message || "Kirishda xatolik",
         variant: "destructive",
       });
     } finally {
@@ -150,208 +72,76 @@ export default function Login() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "email" | "phone")} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="email" data-testid="tab-email-auth">
-                <Mail className="h-4 w-4 mr-2" />
-                Email
-              </TabsTrigger>
-              <TabsTrigger value="phone" data-testid="tab-phone-auth">
-                <Phone className="h-4 w-4 mr-2" />
-                Telefon
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="email" className="space-y-4 mt-4">
-              <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                <GraduationCap className="h-5 w-5 text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  O'quvchilar uchun
-                </p>
-              </div>
-
-              <form onSubmit={handleEmailAuth} className="space-y-4">
-                {isRegister && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Ism</label>
-                      <Input
-                        type="text"
-                        placeholder="Ahmad"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        disabled={loading}
-                        data-testid="input-first-name"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Familiya</label>
-                      <Input
-                        type="text"
-                        placeholder="Ahmadov"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        disabled={loading}
-                        data-testid="input-last-name"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Email</label>
-                  <Input
-                    type="email"
-                    placeholder="example@gmail.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={loading}
-                    data-testid="input-email"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Parol</label>
-                  <Input
-                    type="password"
-                    placeholder="••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    data-testid="input-password"
-                    minLength={6}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Kamida 6 belgidan iborat bo'lishi kerak
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium">
+                Telefon raqam
+              </label>
+              <div className="relative">
+                <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="+998 90 123 45 67"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-phone"
                   disabled={loading}
-                  className="w-full"
-                  data-testid="button-email-submit"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isRegister ? "Ro'yxatdan o'tilmoqda..." : "Kirilmoqda..."}
-                    </>
-                  ) : (
-                    isRegister ? "Ro'yxatdan o'tish" : "Kirish"
-                  )}
-                </Button>
-
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setIsRegister(!isRegister)}
-                    className="text-sm text-primary hover:underline"
-                    data-testid="button-toggle-register"
-                  >
-                    {isRegister 
-                      ? "Akkauntingiz bormi? Kirish" 
-                      : "Akkauntingiz yo'qmi? Ro'yxatdan o'tish"}
-                  </button>
-                </div>
-              </form>
-            </TabsContent>
-
-            <TabsContent value="phone" className="space-y-4 mt-4">
-              <div className="flex items-center justify-center gap-2 p-3 bg-muted rounded-lg">
-                <GraduationCap className="h-5 w-5 text-primary" />
-                <p className="text-sm text-muted-foreground">
-                  O'quvchilar uchun
-                </p>
+                />
               </div>
+            </div>
 
-              <form onSubmit={handlePhoneAuth} className="space-y-4">
-                {isRegister && (
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Ism</label>
-                      <Input
-                        type="text"
-                        placeholder="Ahmad"
-                        value={firstName}
-                        onChange={(e) => setFirstName(e.target.value)}
-                        disabled={loading}
-                        data-testid="input-first-name-phone"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Familiya</label>
-                      <Input
-                        type="text"
-                        placeholder="Ahmadov"
-                        value={lastName}
-                        onChange={(e) => setLastName(e.target.value)}
-                        disabled={loading}
-                        data-testid="input-last-name-phone"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Telefon raqam</label>
-                  <Input
-                    type="tel"
-                    placeholder="+998901234567"
-                    value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    disabled={loading}
-                    data-testid="input-phone-number"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Parol</label>
-                  <Input
-                    type="password"
-                    placeholder="••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={loading}
-                    data-testid="input-password-phone"
-                    minLength={6}
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Kamida 6 belgidan iborat bo'lishi kerak
-                  </p>
-                </div>
-
-                <Button
-                  type="submit"
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Parol
+              </label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Parolingizni kiriting"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  data-testid="input-password"
                   disabled={loading}
-                  className="w-full"
-                  data-testid="button-phone-submit"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {isRegister ? "Ro'yxatdan o'tilmoqda..." : "Kirilmoqda..."}
-                    </>
-                  ) : (
-                    isRegister ? "Ro'yxatdan o'tish" : "Kirish"
-                  )}
-                </Button>
+                />
+              </div>
+            </div>
 
-                <div className="text-center">
-                  <button
-                    type="button"
-                    onClick={() => setIsRegister(!isRegister)}
-                    className="text-sm text-primary hover:underline"
-                    data-testid="button-toggle-register-phone"
-                  >
-                    {isRegister 
-                      ? "Akkauntingiz bormi? Kirish" 
-                      : "Akkauntingiz yo'qmi? Ro'yxatdan o'tish"}
-                  </button>
-                </div>
-              </form>
-            </TabsContent>
-          </Tabs>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={loading}
+              data-testid="button-login"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Tekshirilmoqda...
+                </>
+              ) : (
+                "Kirish"
+              )}
+            </Button>
+
+            <div className="text-center pt-4">
+              <p className="text-sm text-muted-foreground">
+                Akkauntingiz yo'qmi?{" "}
+                <a 
+                  href="https://t.me/arabictest_admin" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-primary hover:underline font-medium"
+                  data-testid="link-telegram"
+                >
+                  Telegram orqali ro'yxatdan o'ting
+                </a>
+              </p>
+            </div>
+          </form>
         </CardContent>
       </Card>
     </div>

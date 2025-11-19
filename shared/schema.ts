@@ -23,14 +23,14 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table (Email/Password + Phone/Password compatible)
+// User storage table (Phone/Password authentication)
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  email: varchar("email").unique(),
-  phoneNumber: varchar("phone_number").unique(), // Phone number for phone/password auth
-  passwordHash: varchar("password_hash"), // For email/password or phone/password auth
-  firstName: varchar("first_name"),
-  lastName: varchar("last_name"),
+  email: varchar("email").unique(), // Optional - for notifications only
+  phoneNumber: varchar("phone_number").notNull().unique(), // Primary login identifier
+  passwordHash: varchar("password_hash").notNull(), // Required for phone/password auth
+  firstName: varchar("first_name").notNull(),
+  lastName: varchar("last_name").notNull(),
   profileImageUrl: varchar("profile_image_url"),
   role: text("role").notNull().default('student'), // admin, student
   sessionVersion: integer("session_version").notNull().default(0), // Incremented on role change to invalidate all sessions
@@ -165,6 +165,27 @@ export const upsertUserSchema = createInsertSchema(users).omit({
   updatedAt: true 
 });
 
+// Phone/Password Login Schema
+export const loginSchema = z.object({
+  phoneNumber: z.string()
+    .min(9, "Telefon raqam kamida 9 ta raqamdan iborat bo'lishi kerak")
+    .max(13, "Telefon raqam juda uzun")
+    .regex(/^\+?[0-9]+$/, "Telefon raqam faqat raqamlardan iborat bo'lishi kerak"),
+  password: z.string().min(6, "Parol kamida 6 ta belgidan iborat bo'lishi kerak"),
+});
+
+// Admin creates new student schema
+export const createStudentSchema = z.object({
+  firstName: z.string().min(2, "Ism kamida 2 ta belgidan iborat bo'lishi kerak"),
+  lastName: z.string().min(2, "Familiya kamida 2 ta belgidan iborat bo'lishi kerak"),
+  phoneNumber: z.string()
+    .min(9, "Telefon raqam kamida 9 ta raqamdan iborat bo'lishi kerak")
+    .max(13, "Telefon raqam juda uzun")
+    .regex(/^\+?[0-9]+$/, "Telefon raqam faqat raqamlardan iborat bo'lishi kerak"),
+  password: z.string().min(6, "Parol kamida 6 ta belgidan iborat bo'lishi kerak"),
+  testId: z.string().optional(), // Optional - admin may assign test immediately
+});
+
 export const insertTestCategorySchema = createInsertSchema(testCategories).omit({ 
   id: true, 
   createdAt: true 
@@ -219,6 +240,8 @@ export const updateSettingsSchema = insertSettingsSchema.partial();
 // Types
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
+export type LoginCredentials = z.infer<typeof loginSchema>;
+export type CreateStudent = z.infer<typeof createStudentSchema>;
 export type TestCategory = typeof testCategories.$inferSelect;
 export type InsertTestCategory = z.infer<typeof insertTestCategorySchema>;
 export type Test = typeof tests.$inferSelect;

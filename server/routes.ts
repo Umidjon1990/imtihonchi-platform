@@ -25,7 +25,15 @@ import {
   insertResultSchema,
   insertAiEvaluationSchema,
   updateSettingsSchema,
+  createStudentSchema,
+  type User,
 } from "@shared/schema";
+
+// ✅ SECURITY: Helper to remove sensitive fields from user objects
+function sanitizeUser<T extends User>(user: T): Omit<T, 'passwordHash' | 'sessionVersion' | 'roleChangedAt'> {
+  const { passwordHash, sessionVersion, roleChangedAt, ...safeUser } = user;
+  return safeUser;
+}
 
 // Configure multer for receipt uploads (memory storage)
 const uploadReceipt = multer({
@@ -130,153 +138,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Firebase Phone Auth endpoint
-  app.post('/api/auth/firebase', async (req: Request, res) => {
-    try {
-      const { idToken } = req.body;
-      
-      if (!idToken) {
-        return res.status(400).json({ message: "ID token kerak" });
-      }
+  // Firebase Phone Auth endpoint (DISABLED - using Phone/Password local auth instead)
+  // app.post('/api/auth/firebase', async (req: Request, res) => {
+  //   ...
+  // });
 
-      // Verify Firebase ID token
-      const decodedToken = await adminAuth.verifyIdToken(idToken);
-      const phoneNumber = decodedToken.phone_number;
-      const uid = decodedToken.uid;
+  // Self-Registration DISABLED - Admin creates students manually via Telegram
+  // Students contact admin on Telegram to get their login credentials
 
-      if (!phoneNumber) {
-        return res.status(400).json({ message: "Telefon raqam topilmadi" });
-      }
-
-      // Create or update user in database
-      await storage.upsertUser({
-        id: uid,
-        email: phoneNumber, // Use phone as email for now
-        firstName: phoneNumber.slice(0, 13), // Use phone as first name
-        lastName: "",
-        profileImageUrl: "",
-      });
-
-      // Fetch full user data including sessionVersion
-      const dbUser = await storage.getUser(uid);
-      if (!dbUser) {
-        return res.status(500).json({ message: "Foydalanuvchi yaratishda xatolik" });
-      }
-
-      // Create session with full user data including sessionVersion
-      const user = {
-        id: dbUser.id,
-        email: dbUser.email,
-        phoneNumber: phoneNumber,
-        role: dbUser.role,
-        sessionVersion: dbUser.sessionVersion ?? 0, // IMPORTANT: Include version for session invalidation
-        firstName: dbUser.firstName,
-        lastName: dbUser.lastName,
-        profileImageUrl: dbUser.profileImageUrl,
-      };
-
-      // Log the user in via Passport session
-      req.login(user, (err) => {
-        if (err) {
-          console.error("Session yaratishda xatolik:", err);
-          return res.status(500).json({ message: "Session yaratishda xatolik" });
-        }
-        res.json({ success: true, user });
-      });
-    } catch (error: any) {
-      console.error("Firebase auth xatolik:", error);
-      res.status(401).json({ message: "Autentifikatsiya xatosi: " + error.message });
-    }
-  });
-
-  // Email/Password Registration
-  app.post('/api/register', async (req: Request, res) => {
-    try {
-      const { email, phoneNumber, password, firstName, lastName } = req.body;
-
-      // Validation - at least one identifier required
-      if ((!email && !phoneNumber) || !password || !firstName || !lastName) {
-        return res.status(400).json({ message: "Barcha maydonlar to'ldirilishi shart" });
-      }
-
-      if (password.length < 6) {
-        return res.status(400).json({ message: "Parol kamida 6 belgidan iborat bo'lishi kerak" });
-      }
-
-      // Check if email or phone already exists
-      if (email) {
-        const existingUser = await storage.getUserByEmail(email);
-        if (existingUser) {
-          return res.status(400).json({ message: "Bu email allaqachon ro'yxatdan o'tgan" });
-        }
-      }
-
-      if (phoneNumber) {
-        const existingUser = await storage.getUserByPhoneNumber(phoneNumber);
-        if (existingUser) {
-          return res.status(400).json({ message: "Bu telefon raqam allaqachon ro'yxatdan o'tgan" });
-        }
-      }
-
-      // Hash password
-      const passwordHash = await bcrypt.hash(password, 10);
-
-      // Create user
-      const newUser = await storage.upsertUser({
-        email: email || undefined,
-        phoneNumber: phoneNumber || undefined,
-        passwordHash,
-        firstName,
-        lastName,
-        profileImageUrl: "",
-        role: 'student', // Default role for new registrations
-      });
-
-      // Create session with full user object
-      req.login(newUser, (err) => {
-        if (err) {
-          console.error("Session yaratishda xatolik:", err);
-          return res.status(500).json({ message: "Session yaratishda xatolik" });
-        }
-        res.json({ success: true, user: newUser });
-      });
-    } catch (error: any) {
-      console.error("Registration xatolik:", error);
-      res.status(500).json({ message: "Ro'yxatdan o'tishda xatolik: " + error.message });
-    }
-  });
-
-  // Email/Phone + Password Login
+  // Phone + Password Login
   app.post('/api/login', async (req: Request, res) => {
     try {
-      const { email, phoneNumber, password } = req.body;
+      const { phoneNumber, password } = req.body;
 
-      // Validation - at least one identifier required
-      if ((!email && !phoneNumber) || !password) {
-        return res.status(400).json({ message: "Email/Telefon va parol kiritilishi shart" });
+      // Validation
+      if (!phoneNumber || !password) {
+        return res.status(400).json({ message: "Telefon raqam va parol kiritilishi shart" });
       }
 
-      // Find user by email or phone
-      let user;
-      if (email) {
-        user = await storage.getUserByEmail(email);
-      } else if (phoneNumber) {
-        user = await storage.getUserByPhoneNumber(phoneNumber);
-      }
+      // Find user by phone
+      const user = await storage.getUserByPhoneNumber(phoneNumber);
 
       if (!user) {
-        return res.status(401).json({ message: "Email/Telefon yoki parol noto'g'ri" });
-      }
-
-      // Check if user has password
-      if (!user.passwordHash) {
-        return res.status(401).json({ message: "Parol topilmadi" });
+        return res.status(401).json({ message: "Telefon raqam yoki parol noto'g'ri" });
       }
 
       // Verify password
       const isPasswordValid = await bcrypt.compare(password, user.passwordHash);
       if (!isPasswordValid) {
-        return res.status(401).json({ message: "Email/Telefon yoki parol noto'g'ri" });
+        return res.status(401).json({ message: "Telefon raqam yoki parol noto'g'ri" });
       }
 
       // Create session with full user object
@@ -285,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.error("Session yaratishda xatolik:", err);
           return res.status(500).json({ message: "Session yaratishda xatolik" });
         }
-        res.json({ success: true, user });
+        res.json({ success: true, user: sanitizeUser(user) });
       });
     } catch (error: any) {
       console.error("Login xatolik:", error);
@@ -310,7 +200,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Support both Replit Auth and Firebase Auth
       const userId = (req.user as any)?.id || getUserId(req);
       const user = await storage.getUser(userId);
-      res.json(user);
+      if (!user) {
+        return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
+      }
+      res.json(sanitizeUser(user));
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Foydalanuvchini olishda xatolik" });
@@ -329,7 +222,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const users = await storage.getAllUsers();
-      res.json(users);
+      res.json(users.map(sanitizeUser));
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Foydalanuvchilarni olishda xatolik" });
@@ -387,10 +280,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Don't fail the request if session invalidation fails
       }
       
-      res.json(updatedUser);
+      res.json(sanitizeUser(updatedUser));
     } catch (error) {
       console.error("Error updating user role:", error);
       res.status(500).json({ message: "Rolni yangilashda xatolik" });
+    }
+  });
+
+  // Admin: Create new student (Phone + Password)
+  app.post('/api/admin/create-student', isAuthenticated, async (req: Request, res) => {
+    try {
+      const currentUser = await storage.getUser(getUserId(req));
+      
+      // Admin-only access
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat admin foydalanuvchilarga ruxsat berilgan" });
+      }
+
+      // Validate request body using Zod schema
+      const validated = createStudentSchema.parse(req.body);
+      
+      // Check if phone number already exists
+      const existingUser = await storage.getUserByPhoneNumber(validated.phoneNumber);
+      if (existingUser) {
+        return res.status(400).json({ message: "Bu telefon raqam allaqachon ro'yxatdan o'tgan" });
+      }
+
+      // Hash password
+      const passwordHash = await bcrypt.hash(validated.password, 10);
+
+      // Create new student
+      const newStudent = await storage.upsertUser({
+        phoneNumber: validated.phoneNumber,
+        passwordHash,
+        firstName: validated.firstName,
+        lastName: validated.lastName,
+        role: 'student',
+      });
+
+      // If testId provided, create purchase for immediate access
+      if (validated.testId) {
+        await storage.createPurchase({
+          studentId: newStudent.id,
+          testId: validated.testId,
+          status: 'approved', // Auto-approved by admin
+        });
+      }
+
+      res.json({ success: true, student: sanitizeUser(newStudent) });
+    } catch (error: any) {
+      console.error("Error creating student:", error);
+      res.status(400).json({ message: error.message || "O'quvchi yaratishda xatolik" });
+    }
+  });
+
+  // Admin: Update student password
+  app.patch('/api/admin/update-student-password/:id', isAuthenticated, async (req: Request, res) => {
+    try {
+      const currentUser = await storage.getUser(getUserId(req));
+      
+      // Admin-only access
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat admin foydalanuvchilarga ruxsat berilgan" });
+      }
+
+      const { password } = req.body;
+      if (!password || password.length < 6) {
+        return res.status(400).json({ message: "Parol kamida 6 belgidan iborat bo'lishi kerak" });
+      }
+
+      // Get student
+      const student = await storage.getUser(req.params.id);
+      if (!student) {
+        return res.status(404).json({ message: "O'quvchi topilmadi" });
+      }
+
+      // Hash new password
+      const passwordHash = await bcrypt.hash(password, 10);
+
+      // Update password
+      await storage.upsertUser({
+        id: student.id,
+        phoneNumber: student.phoneNumber,
+        firstName: student.firstName,
+        lastName: student.lastName,
+        passwordHash,
+        role: student.role,
+      });
+
+      res.json({ success: true, message: "Parol yangilandi" });
+    } catch (error: any) {
+      console.error("Error updating password:", error);
+      res.status(500).json({ message: error.message || "Parolni yangilashda xatolik" });
+    }
+  });
+
+  // Admin: Delete student
+  app.delete('/api/admin/delete-student/:id', isAuthenticated, async (req: Request, res) => {
+    try {
+      const currentUser = await storage.getUser(getUserId(req));
+      
+      // Admin-only access
+      if (currentUser?.role !== 'admin') {
+        return res.status(403).json({ message: "Faqat admin foydalanuvchilarga ruxsat berilgan" });
+      }
+
+      const student = await storage.getUser(req.params.id);
+      if (!student) {
+        return res.status(404).json({ message: "O'quvchi topilmadi" });
+      }
+
+      if (student.role === 'admin') {
+        return res.status(400).json({ message: "Adminni o'chirish mumkin emas" });
+      }
+
+      await storage.deleteUser(req.params.id);
+      res.json({ success: true, message: "O'quvchi o'chirildi" });
+    } catch (error: any) {
+      console.error("Error deleting student:", error);
+      res.status(500).json({ message: error.message || "O'quvchini o'chirishda xatolik" });
     }
   });
 
@@ -409,7 +417,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Foydalanuvchi topilmadi" });
       }
       
-      res.json(user);
+      res.json(sanitizeUser(user));
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Foydalanuvchini olishda xatolik" });
@@ -516,7 +524,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // ✅ Fetch category name to enable frontend audio filtering
-      const category = await storage.getCategoryById(demoTest.categoryId);
+      const categories = await storage.getCategories();
+      const category = categories.find(c => c.id === demoTest.categoryId);
       
       res.json({
         ...demoTest,
@@ -586,7 +595,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // ✅ Fetch category name to enable frontend audio filtering
-      const category = await storage.getCategoryById(test.categoryId);
+      const categories = await storage.getCategories();
+      const category = categories.find(c => c.id === test.categoryId);
       
       res.json({
         ...test,
