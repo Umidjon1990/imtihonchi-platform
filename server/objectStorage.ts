@@ -294,12 +294,14 @@ export function getFilePath(type: 'audio' | 'receipt' | 'certificate' | 'image' 
   }
   
   const privateDir = process.env.PRIVATE_OBJECT_DIR || '.private';
+  // ✅ FIX: Use PUBLIC_OBJECT_SEARCH_PATHS for images instead of constructing path manually
+  const publicPath = process.env.PUBLIC_OBJECT_SEARCH_PATHS?.split(',')[0]?.trim() || `/${bucketId}/public`;
   
   const paths = {
     audio: `${privateDir}/audio`,
     receipt: `${privateDir}/receipts`,
     certificate: `${privateDir}/certificates`,
-    image: `/${bucketId}/public/images`,
+    image: `${publicPath}/images`,
     'question-audio': `${privateDir}/question-audio`,
   };
 
