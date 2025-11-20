@@ -311,6 +311,12 @@ export default function AdminDashboard() {
             <h1 className="text-xl font-bold">Admin Panel</h1>
           </div>
           <div className="flex items-center gap-4">
+            <Link href="/admin/students">
+              <Button variant="outline" data-testid="button-nav-students">
+                <Users className="mr-2 h-4 w-4" />
+                O'quvchilar
+              </Button>
+            </Link>
             <div className="text-sm text-muted-foreground">
               {user?.firstName} {user?.lastName}
             </div>

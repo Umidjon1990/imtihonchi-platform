@@ -14,6 +14,7 @@ import PurchaseTest from "@/pages/PurchaseTest";
 import DemoResult from "@/pages/DemoResult";
 import StudentDashboard from "@/pages/StudentDashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AdminStudents from "@/pages/AdminStudents";
 import TakeTest from "@/pages/TakeTest";
 import EditTest from "@/pages/EditTest";
 import ReviewSubmission from "@/pages/ReviewSubmission";
@@ -81,6 +82,13 @@ function Router() {
             {() => (
               <RoleGuard allowedRoles={['admin']}>
                 <ReviewSubmission />
+              </RoleGuard>
+            )}
+          </Route>
+          <Route path="/admin/students">
+            {() => (
+              <RoleGuard allowedRoles={['admin']}>
+                <AdminStudents />
               </RoleGuard>
             )}
           </Route>
