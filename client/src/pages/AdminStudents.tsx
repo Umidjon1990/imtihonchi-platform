@@ -30,7 +30,7 @@ interface Test {
 }
 
 export default function AdminStudents() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, isError } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -58,8 +58,43 @@ export default function AdminStudents() {
     );
   }
 
+  // Handle auth errors (network failures, etc.)
+  if (isError || !user) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Autentifikatsiya xatolik</CardTitle>
+            <CardDescription>
+              {isError 
+                ? "Foydalanuvchi ma'lumotlarini yuklashda xatolik. Iltimos, qaytadan urinib ko'ring."
+                : "Foydalanuvchi topilmadi. Iltimos, qaytadan login qiling."}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={() => queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] })} 
+              className="w-full"
+              data-testid="button-retry-auth"
+            >
+              Qayta urinish
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => navigate('/login')} 
+              className="w-full"
+              data-testid="button-goto-login"
+            >
+              Login sahifasiga o'tish
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // RoleGuard already handles access control at route level
-  // This component only renders if user has passed RoleGuard check
+  // At this point we have a verified admin user object
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],

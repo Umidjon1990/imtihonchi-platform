@@ -15,6 +15,7 @@ export function useAuth() {
   return {
     user,
     isLoading: isLoading && !isError, // Error bo'lsa loading false
+    isError,
     isAuthenticated: !!user,
   };
 }
