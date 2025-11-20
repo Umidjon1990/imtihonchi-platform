@@ -5,14 +5,21 @@ import * as schema from "@shared/schema";
 
 neonConfig.webSocketConstructor = ws;
 
-if (!process.env.DATABASE_URL) {
+const databaseUrl = process.env.DATABASE_PRIVATE_URL || process.env.DATABASE_URL;
+
+if (!databaseUrl) {
   throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+    "DATABASE_URL or DATABASE_PRIVATE_URL must be set. Did you forget to provision a database?",
   );
 }
 
+const isPrivateUrl = !!process.env.DATABASE_PRIVATE_URL;
+const isProduction = process.env.NODE_ENV === 'production';
+
 export const pool = new Pool({ 
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+  connectionString: databaseUrl,
+  ssl: isPrivateUrl 
+    ? false 
+    : (isProduction ? { rejectUnauthorized: false } : false)
 });
 export const db = drizzle({ client: pool, schema });
