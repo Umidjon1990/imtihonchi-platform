@@ -13,7 +13,7 @@ The platform is built with a modern web stack, featuring React + TypeScript for 
 - **Authentication System:** Phone number + password authentication. Admin creates all student accounts manually. Students contact admin via Telegram to register and receive login credentials.
 - **Role-Based Access Control:** Admin and Student roles (Teacher functionality merged into Admin). Admin creates tests, grades submissions, manages users, and manually approves test access. Students purchase and take tests. Guest users can browse and take free demo tests.
 - **Admin User Management:** Admin can create students (POST `/api/admin/create-student`), update passwords (PATCH `/api/admin/update-student-password/:id`), and delete students (DELETE `/api/admin/delete-student/:id`). All user management is manual via admin panel.
-- **Simplified Registration Flow:** No self-registration. Students visit public test catalog → click "Buy Test" → redirected to Telegram → admin creates their account with login credentials → admin manually assigns test access.
+- **Simplified Registration & Payment Flow:** No self-registration. Students visit public test catalog → click "Telegram orqali admin bilan bog'laning" button → opens Telegram to contact admin → negotiate payment → admin creates account with phone + password → admin manually grants test access. No payment receipt upload system - all coordination happens via Telegram.
 - **Dynamic Test Structure:** Tests are composed of categories, sections, and questions. Sections can include image uploads, and speaking questions support configurable preparation and speaking timers with automatic progression.
 - **AI-Powered Assessment:** GPT-4o is used for Arabic language evaluation, providing detailed feedback and recommendations.
 - **Audio Recording & Storage:** Utilizes MediaRecorder API for audio capture, with files uploaded to Replit Object Storage.
@@ -28,9 +28,10 @@ The platform is built with a modern web stack, featuring React + TypeScript for 
 ## Recent Changes (November 2025)
 - **Phone-based Authentication:** Migrated from Replit Auth (OIDC) and Firebase Phone Auth to local Phone + Password authentication.
 - **Admin-Only User Creation:** Disabled self-registration. Admin creates all student accounts manually via admin panel or API.
-- **Simplified Payment Flow:** Removed Stripe integration. All payments handled manually via Telegram.
+- **Simplified Payment Flow:** Removed Stripe integration and payment receipt upload system. All payments coordinated manually via Telegram. "Buy Test" button now directly opens Telegram chat with admin.
 - **Database Schema Updates:** Phone number is now required and unique. Email is optional. Password hash is required.
 - **Admin API Endpoints:** Added create student, update password, and delete student endpoints.
+- **Admin Students Management UI:** Created dedicated admin panel at `/admin/students` for managing student accounts with full CRUD operations.
 
 ## External Dependencies
 - **Database:** PostgreSQL (Neon)
