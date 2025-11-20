@@ -1,31 +1,22 @@
-import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useRoute, useLocation } from "wouter";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Loader2, Upload, Check, AlertCircle, ArrowLeft } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Loader2, Check, AlertCircle, ArrowLeft, MessageCircle } from "lucide-react";
 
 export default function PurchaseTest() {
   const [, params] = useRoute("/tests/:testId/purchase");
   const testId = params?.testId;
   const [, setLocation] = useLocation();
-  const { user, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [uploading, setUploading] = useState(false);
+  const { isAuthenticated } = useAuth();
 
   // Redirect to login if not authenticated
   if (!isAuthenticated) {
     const returnUrl = encodeURIComponent(`/tests/${testId}/purchase`);
-    window.location.href = `/api/login?returnUrl=${returnUrl}`;
+    window.location.href = `/login?returnUrl=${returnUrl}`;
     return null;
   }
 
@@ -38,83 +29,21 @@ export default function PurchaseTest() {
     queryKey: ["/api/purchases"],
   });
 
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
+
   const existingPurchase = purchases?.find(p => p.testId === testId);
 
-  const uploadReceiptMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload-receipt', {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Faylni yuklashda xatolik');
-      return res.json();
-    },
-  });
-
-  const createPurchaseMutation = useMutation({
-    mutationFn: async (receiptUrl: string) => {
-      return apiRequest('POST', '/api/purchases', {
-        testId,
-        receiptUrl,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
-      toast({
-        title: "Muvaffaqiyatli",
-        description: "To'lov cheki yuklandi. O'qituvchi tomonidan tasdiqlanishi kutilmoqda.",
-      });
-      setTimeout(() => setLocation('/student'), 2000);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Xatolik",
-        description: error.message || "Xaridni yaratishda xatolik",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Xatolik",
-          description: "Fayl hajmi 5MB dan oshmasligi kerak",
-          variant: "destructive",
-        });
-        return;
-      }
-      setSelectedFile(file);
-      toast({
-        title: "Fayl tanlandi",
-        description: file.name,
-      });
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedFile) {
-      toast({
-        title: "Xatolik",
-        description: "Iltimos, to'lov chekini yuklang",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const { filename } = await uploadReceiptMutation.mutateAsync(selectedFile);
-      await createPurchaseMutation.mutateAsync(filename);
-    } catch (error: any) {
-      console.error('Purchase error:', error);
-    } finally {
-      setUploading(false);
-    }
+  const handleContactTelegram = () => {
+    const telegramLink = settings?.telegramLink || 'arabictest_admin';
+    const tgUrl = telegramLink.startsWith('http') 
+      ? telegramLink 
+      : telegramLink.startsWith('@') 
+        ? `https://t.me/${telegramLink.slice(1)}` 
+        : `https://t.me/${telegramLink}`;
+    
+    window.open(tgUrl, '_blank');
   };
 
   if (testLoading) {
@@ -255,71 +184,93 @@ export default function PurchaseTest() {
 
         <Card>
           <CardHeader>
-            <CardTitle>To'lov Ma'lumotlari</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              Admin bilan bog'laning
+            </CardTitle>
             <CardDescription>
-              To'lovni amalga oshiring va chekni yuklang
+              Testni sotib olish uchun admin bilan Telegram orqali bog'laning
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <h3 className="font-semibold">Bank ma'lumotlari:</h3>
-              <div className="space-y-1 text-sm">
-                <p><strong>Karta raqami:</strong> 8600 1234 5678 9012</p>
-                <p><strong>Karta egasi:</strong> ArabicTest Platform</p>
-                <p><strong>Summa:</strong> {test.price.toLocaleString()} so'm</p>
-              </div>
-            </div>
-
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                To'lovni amalga oshirgandan keyin, to'lov chekini yuklang. O'qituvchi tomonidan 
-                tasdiqlanganidan keyin test sizga ochiladi.
+                Testni sotib olish jarayoni:
               </AlertDescription>
             </Alert>
 
-            <div className="space-y-2">
-              <Label htmlFor="receipt">To'lov Cheki</Label>
-              <div className="flex flex-col gap-2">
-                <Input
-                  id="receipt"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="hidden"
-                  data-testid="input-receipt"
-                />
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => document.getElementById('receipt')?.click()}
-                  data-testid="button-select-receipt"
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {selectedFile ? selectedFile.name : 'Chekni tanlang'}
-                </Button>
-                {selectedFile && (
-                  <p className="text-sm text-muted-foreground">
-                    Tanlangan: {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-                  </p>
-                )}
+            <div className="bg-muted p-6 rounded-lg space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                    1
+                  </div>
+                  <div>
+                    <p className="font-medium">Telegram orqali admin bilan bog'laning</p>
+                    <p className="text-sm text-muted-foreground">
+                      Quyidagi tugmani bosib, admin bilan muloqotni boshlang
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                    2
+                  </div>
+                  <div>
+                    <p className="font-medium">Quyidagi ma'lumotlarni yuboring</p>
+                    <p className="text-sm text-muted-foreground">
+                      • Test nomi: <strong>{test.title}</strong><br />
+                      • Narxi: <strong>{test.price.toLocaleString()} so'm</strong><br />
+                      • Ismingiz va familiyangiz
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                    3
+                  </div>
+                  <div>
+                    <p className="font-medium">To'lovni amalga oshiring</p>
+                    <p className="text-sm text-muted-foreground">
+                      Admin sizga to'lov ma'lumotlarini yuboradi
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
+                    4
+                  </div>
+                  <div>
+                    <p className="font-medium">Login ma'lumotlarini oling</p>
+                    <p className="text-sm text-muted-foreground">
+                      To'lovdan so'ng, admin sizga login va parol beradi. Test avtomatik ochiladi.
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
 
             <Button
               className="w-full"
-              onClick={handleSubmit}
-              disabled={!selectedFile || uploading}
-              data-testid="button-submit-purchase"
+              size="lg"
+              onClick={handleContactTelegram}
+              data-testid="button-contact-telegram"
             >
-              {uploading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Yuklanmoqda...
-                </>
-              ) : (
-                'Yuborish'
-              )}
+              <MessageCircle className="h-5 w-5 mr-2" />
+              Telegram orqali bog'lanish
+            </Button>
+
+            <Button
+              variant="outline"
+              className="w-full"
+              onClick={() => setLocation('/tests')}
+              data-testid="button-back-tests-bottom"
+            >
+              Testlarga qaytish
             </Button>
           </CardContent>
         </Card>
