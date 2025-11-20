@@ -123,14 +123,14 @@ export default function PurchaseTest() {
                 <Alert>
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    To'lov chekingiz o'qituvchi tomonidan ko'rib chiqilmoqda. Tez orada javob beriladi.
+                    To'lovingiz admin tomonidan ko'rib chiqilmoqda. Tez orada javob beriladi. Agar savolingiz bo'lsa, admin bilan Telegram orqali bog'laning.
                   </AlertDescription>
                 </Alert>
               ) : (
                 <Alert variant="destructive">
                   <AlertCircle className="h-4 w-4" />
                   <AlertDescription>
-                    To'lovingiz rad etilgan. Iltimos, to'g'ri to'lov chekini yuklang.
+                    To'lovingiz rad etilgan. Iltimos, admin bilan Telegram orqali bog'laning.
                   </AlertDescription>
                 </Alert>
               )}

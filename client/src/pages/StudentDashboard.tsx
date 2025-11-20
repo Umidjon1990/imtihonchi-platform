@@ -1,13 +1,11 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Clock, BookOpen, Award, LogOut, Upload, Download } from "lucide-react";
+import { Clock, BookOpen, Award, LogOut, Download } from "lucide-react";
 import { Link, useLocation } from "wouter";
-import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import type { Test, Purchase, Submission } from "@shared/schema";
@@ -99,9 +97,7 @@ export default function StudentDashboard() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  const [buyDialogOpen, setBuyDialogOpen] = useState(false);
   const [selectedTest, setSelectedTest] = useState<Test | null>(null);
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   const { data: tests = [], isLoading: testsLoading } = useQuery<Test[]>({
     queryKey: ["/api/tests"],
@@ -115,6 +111,10 @@ export default function StudentDashboard() {
     queryKey: ["/api/submissions/student"],
   });
 
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
+
   const publishedTests = tests.filter(t => t.isPublished);
   const purchasedTestIds = new Set(purchases.map(p => p.testId));
   // Mavjud testlar: sotib olinMAgan yoki demo testlar
@@ -122,39 +122,21 @@ export default function StudentDashboard() {
     !purchasedTestIds.has(t.id) || t.isDemo // Demo testlar har doim ko'rinadi
   );
 
-  const createPurchaseMutation = useMutation({
-    mutationFn: async () => {
-      if (!selectedTest || !receiptFile) throw new Error("Test yoki chek tanlanmagan");
-      
-      // Upload receipt image to object storage
-      const formData = new FormData();
-      formData.append("file", receiptFile);
-      
-      const uploadRes = await fetch("/api/upload-receipt", {
-        method: "POST",
-        body: formData,
-      });
-      
-      if (!uploadRes.ok) throw new Error("Chek yuklashda xatolik");
-      const { url } = await uploadRes.json();
-      
-      // Create purchase with receipt URL
-      await apiRequest("POST", "/api/purchases", {
-        testId: selectedTest.id,
-        receiptUrl: url,
-      });
-    },
-    onSuccess: () => {
-      toast({ title: "Muvaffaqiyat", description: "So'rovingiz yuborildi. Tasdiqlashni kuting." });
-      queryClient.invalidateQueries({ queryKey: ["/api/purchases"] });
-      setBuyDialogOpen(false);
-      setSelectedTest(null);
-      setReceiptFile(null);
-    },
-    onError: (error: any) => {
-      toast({ title: "Xatolik", description: error.message, variant: "destructive" });
-    },
-  });
+  const handleContactTelegram = (test: Test) => {
+    const telegramLink = settings?.telegramLink || 'arabictest_admin';
+    const tgUrl = telegramLink.startsWith('http') 
+      ? telegramLink 
+      : telegramLink.startsWith('@') 
+        ? `https://t.me/${telegramLink.slice(1)}` 
+        : `https://t.me/${telegramLink}`;
+    
+    // Add test info to message
+    const message = encodeURIComponent(
+      `Assalomu alaykum! Men ${test.title} testini sotib olmoqchiman. Narxi: ${test.price.toLocaleString()} so'm`
+    );
+    
+    window.open(`${tgUrl}?text=${message}`, '_blank');
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -317,13 +299,10 @@ export default function StudentDashboard() {
                         ) : (
                           <Button 
                             className="w-full" 
-                            onClick={() => {
-                              setSelectedTest(test);
-                              setBuyDialogOpen(true);
-                            }}
+                            onClick={() => handleContactTelegram(test)}
                             data-testid={`button-buy-${test.id}`}
                           >
-                            Sotib olish
+                            Telegram orqali bog'laning
                           </Button>
                         )}
                       </CardFooter>
@@ -469,78 +448,6 @@ export default function StudentDashboard() {
           </Tabs>
         </div>
       </main>
-
-      <Dialog open={buyDialogOpen} onOpenChange={setBuyDialogOpen}>
-        <DialogContent data-testid="dialog-buy-test">
-          <DialogHeader>
-            <DialogTitle>Test sotib olish</DialogTitle>
-            <DialogDescription>
-              To'lov chekini yuklang. O'qituvchi tasdiqlashidan keyin testni topshirishingiz mumkin bo'ladi.
-            </DialogDescription>
-          </DialogHeader>
-          
-          {selectedTest && (
-            <div className="space-y-4">
-              <div className="p-4 border rounded-lg">
-                <h3 className="font-semibold mb-2">{selectedTest.title}</h3>
-                <p className="text-2xl font-bold text-primary">
-                  {selectedTest.price.toLocaleString()} so'm
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">To'lov cheki</label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center hover-elevate active-elevate-2 cursor-pointer">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setReceiptFile(e.target.files?.[0] || null)}
-                    className="hidden"
-                    id="receipt-upload"
-                    data-testid="input-receipt"
-                  />
-                  <label htmlFor="receipt-upload" className="cursor-pointer">
-                    {receiptFile ? (
-                      <div className="space-y-2">
-                        <div className="w-16 h-16 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
-                          <Upload className="h-8 w-8 text-primary" />
-                        </div>
-                        <p className="text-sm font-medium">{receiptFile.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {(receiptFile.size / 1024).toFixed(2)} KB
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center">
-                          <Upload className="h-8 w-8 text-muted-foreground" />
-                        </div>
-                        <p className="text-sm font-medium">Chek rasmini yuklang</p>
-                        <p className="text-xs text-muted-foreground">
-                          PNG, JPG yoki JPEG
-                        </p>
-                      </div>
-                    )}
-                  </label>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setBuyDialogOpen(false)}>
-              Bekor qilish
-            </Button>
-            <Button 
-              onClick={() => createPurchaseMutation.mutate()}
-              disabled={!receiptFile || createPurchaseMutation.isPending}
-              data-testid="button-submit-purchase"
-            >
-              Yuborish
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

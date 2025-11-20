@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Users, FolderOpen, TrendingUp, Plus, Pencil, Trash2, LogOut, ArrowLeft, Settings as SettingsIcon, Edit, Eye, CheckCircle, XCircle, Receipt } from "lucide-react";
+import { FileText, Users, FolderOpen, TrendingUp, Plus, Pencil, Trash2, LogOut, ArrowLeft, Settings as SettingsIcon, Edit, Eye, CheckCircle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Link, useLocation } from "wouter";
@@ -588,27 +588,9 @@ export default function AdminDashboard() {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {purchase.receiptUrl && (
-                          <div className="space-y-2">
-                            <p className="text-sm font-medium">To'lov cheki:</p>
-                            <a 
-                              href={purchase.receiptUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="block"
-                            >
-                              <div className="border rounded-lg p-4 hover-elevate active-elevate-2 cursor-pointer flex items-center gap-3">
-                                <Receipt className="h-8 w-8 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm font-medium">Chekni ko'rish</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    Chekni yangi oynada ochish uchun bosing
-                                  </p>
-                                </div>
-                              </div>
-                            </a>
-                          </div>
-                        )}
+                        <p className="text-sm text-muted-foreground">
+                          O'quvchi Telegram orqali to'lov haqida ma'lumot bergan. To'lovni tekshiring va tasdiqlang yoki rad eting.
+                        </p>
                       </CardContent>
                       <CardFooter className="flex gap-2">
                         <Button
