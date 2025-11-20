@@ -23,17 +23,24 @@ export default function PublicTestCatalog() {
     enabled: isAuthenticated,
   });
 
+  const { data: settings } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
+
   const handleDemoTest = () => {
     setLocation(`/take-test/demo`);
   };
 
-  const handlePurchaseTest = (testId: string) => {
-    if (!isAuthenticated) {
-      const returnUrl = encodeURIComponent(`/tests/${testId}/purchase`);
-      window.location.href = `/login?returnUrl=${returnUrl}`;
-      return;
-    }
-    setLocation(`/tests/${testId}/purchase`);
+  const handlePurchaseTest = () => {
+    // Redirect to Telegram to contact admin
+    const telegramLink = settings?.telegramLink || 'arabictest_admin';
+    const tgUrl = telegramLink.startsWith('http') 
+      ? telegramLink 
+      : telegramLink.startsWith('@') 
+        ? `https://t.me/${telegramLink.slice(1)}` 
+        : `https://t.me/${telegramLink}`;
+    
+    window.open(tgUrl, '_blank');
   };
 
   const isPurchased = (testId: string) => {
@@ -201,10 +208,10 @@ export default function PublicTestCatalog() {
                       ) : (
                         <Button
                           className="w-full"
-                          onClick={() => handlePurchaseTest(test.id)}
+                          onClick={handlePurchaseTest}
                           data-testid={`button-purchase-${test.id}`}
                         >
-                          Sotib olish - {test.price.toLocaleString()} so'm
+                          Telegram orqali admin bilan bog'laning
                         </Button>
                       )}
                     </CardFooter>
