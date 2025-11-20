@@ -129,15 +129,15 @@ export default function Login() {
 
             <div className="text-center pt-4">
               <p className="text-sm text-muted-foreground">
-                Akkauntingiz yo'qmi?{" "}
+                Login parolingiz yo'qmi? Testni harid qilish uchun{" "}
                 <a 
-                  href="https://t.me/arabictest_admin" 
+                  href="https://t.me/zamonaviytalimuz" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-primary hover:underline font-medium"
                   data-testid="link-telegram"
                 >
-                  Telegram orqali ro'yxatdan o'ting
+                  adminga murojaat qiling!
                 </a>
               </p>
             </div>
