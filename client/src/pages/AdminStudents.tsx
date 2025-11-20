@@ -30,7 +30,7 @@ interface Test {
 }
 
 export default function AdminStudents() {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const [, navigate] = useLocation();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -47,11 +47,19 @@ export default function AdminStudents() {
   // Update password form state
   const [newPassword, setNewPassword] = useState("");
 
-  // Redirect if not admin
-  if (user?.role !== 'admin') {
-    navigate('/');
-    return null;
+  // Show loading while auth is being checked
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground">Yuklanmoqda...</p>
+        </div>
+      </div>
+    );
   }
+
+  // RoleGuard already handles access control at route level
+  // This component only renders if user has passed RoleGuard check
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
